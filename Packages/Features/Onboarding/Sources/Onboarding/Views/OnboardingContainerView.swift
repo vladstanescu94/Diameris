@@ -16,12 +16,35 @@ public struct OnboardingContainerView: View {
         ZStack {
             currentScreen
                 .id(viewModel.currentStep)
-                .transition(.push(from: .trailing))
+                .transition(screenTransition)
         }
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.currentStep)
+        .animation(SpringPreset.smooth, value: viewModel.currentStep)
         .safeAreaInset(edge: .top) {
-            progressIndicator
+            OnboardingProgressIndicator(
+                currentStep: viewModel.currentStep,
+                totalSteps: OnboardingViewModel.OnboardingStep.allCases.count
+            )
+            .padding(.top, Spacing.md)
+            .padding(.horizontal, Spacing.lg)
         }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            viewModel.dismissKeyboard()
+        }
+        .onChange(of: viewModel.currentStep) { _, _ in
+            HapticManager.selectionChanged()
+        }
+    }
+
+    private var screenTransition: AnyTransition {
+        .asymmetric(
+            insertion: .opacity
+                .combined(with: .scale(scale: ScaleEffect.pressed))
+                .combined(with: .offset(x: SlideOffset.large)),
+            removal: .opacity
+                .combined(with: .scale(scale: ScaleEffect.pressed))
+                .combined(with: .offset(x: -SlideOffset.large))
+        )
     }
 
     @ViewBuilder
@@ -41,20 +64,6 @@ public struct OnboardingContainerView: View {
                 onComplete()
             }
         }
-    }
-
-    private var progressIndicator: some View {
-        HStack(spacing: Spacing.xs) {
-            ForEach(OnboardingViewModel.OnboardingStep.allCases, id: \.self) { step in
-                Circle()
-                    .fill(step.rawValue <= viewModel.currentStep.rawValue
-                        ? DiamerisColors.accentPrimaryLight
-                        : Color.secondary.opacity(Opacity.subtle))
-                    .frame(width: ComponentSize.progressDot, height: ComponentSize.progressDot)
-            }
-        }
-        .padding(.top, Spacing.md)
-        .animation(.easeInOut, value: viewModel.currentStep)
     }
 }
 

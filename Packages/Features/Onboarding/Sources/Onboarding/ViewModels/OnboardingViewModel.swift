@@ -1,6 +1,8 @@
 import Foundation
 import SwiftData
+import UIKit
 
+@MainActor
 @Observable
 public final class OnboardingViewModel {
     // MARK: - Collected Data
@@ -37,11 +39,24 @@ public final class OnboardingViewModel {
     // MARK: - Navigation
 
     public func advance() {
+        dismissKeyboard()
+        // Delay to allow keyboard to dismiss before transition
+        Task {
+            try? await Task.sleep(for: .milliseconds(150))
+            performAdvance()
+        }
+    }
+
+    private func performAdvance() {
         guard let currentIndex = OnboardingStep.allCases.firstIndex(of: currentStep),
               currentIndex < OnboardingStep.allCases.count - 1 else {
             return
         }
         currentStep = OnboardingStep.allCases[currentIndex + 1]
+    }
+
+    public func dismissKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 
     public var canAdvance: Bool {

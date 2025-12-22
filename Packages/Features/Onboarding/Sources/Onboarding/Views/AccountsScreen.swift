@@ -6,6 +6,7 @@ struct AccountsScreen: View {
     @State private var showingAddAccount = false
     @State private var newAccountName = ""
     @State private var newAccountPurpose = ""
+    @State private var contentAppeared = false
 
     var body: some View {
         VStack(spacing: Spacing.xl) {
@@ -58,7 +59,10 @@ struct AccountsScreen: View {
                                     }
                                     Spacer()
                                     Button {
-                                        viewModel.additionalAccounts.removeAll { $0.id == account.id }
+                                        withAnimation(SpringPreset.responsive) {
+                                            viewModel.additionalAccounts.removeAll { $0.id == account.id }
+                                        }
+                                        HapticManager.lightTap()
                                     } label: {
                                         Image(systemName: "xmark.circle.fill")
                                             .foregroundStyle(.secondary)
@@ -68,12 +72,14 @@ struct AccountsScreen: View {
                                 }
                                 .padding(Spacing.sm)
                                 .glassEffect(.regular.interactive(), in: .rect(cornerRadius: CornerRadius.small))
+                                .transition(.scale.combined(with: .opacity))
                             }
                         }
                     }
                 }
 
                 Button {
+                    HapticManager.lightTap()
                     showingAddAccount = true
                 } label: {
                     Label {
@@ -86,23 +92,26 @@ struct AccountsScreen: View {
                 .buttonStyle(.glass)
                 .accessibilityHint(String(localized: "Opens a sheet to add a new account"))
             }
+            .opacity(contentAppeared ? 1 : 0)
+            .offset(y: contentAppeared ? 0 : SlideOffset.standard)
 
             Spacer()
 
-            Button {
+            OnboardingButton("Continue", isEnabled: viewModel.canAdvance) {
                 viewModel.advance()
-            } label: {
-                Text("Continue", comment: "Primary button to advance to next onboarding step")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity, minHeight: ComponentSize.buttonHeight)
             }
-            .buttonStyle(.glassProminent)
-            .disabled(!viewModel.canAdvance)
+            .opacity(contentAppeared ? 1 : 0)
+            .offset(y: contentAppeared ? 0 : SlideOffset.standard)
             .accessibilityHint(String(localized: "Continues to complete onboarding"))
         }
         .padding(Spacing.lg)
         .sheet(isPresented: $showingAddAccount) {
             addAccountSheet
+        }
+        .onAppear {
+            withAnimation(SpringPreset.smooth.delay(StaggerDelay.initial)) {
+                contentAppeared = true
+            }
         }
     }
 

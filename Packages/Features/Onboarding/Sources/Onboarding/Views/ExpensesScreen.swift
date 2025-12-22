@@ -3,6 +3,8 @@ import DesignSystem
 
 struct ExpensesScreen: View {
     @Bindable var viewModel: OnboardingViewModel
+    @State private var contentAppeared = false
+    @State private var rowsAppeared: [Bool] = [false, false, false]
 
     var body: some View {
         VStack(spacing: Spacing.xl) {
@@ -17,13 +19,15 @@ struct ExpensesScreen: View {
 
             GlassEffectContainer {
                 VStack(spacing: Spacing.sm) {
-                    ForEach($viewModel.expenses) { $expense in
+                    ForEach(Array(viewModel.expenses.enumerated()), id: \.element.id) { index, expense in
                         ExpenseRow(
                             icon: expense.icon,
                             name: expense.name,
-                            amount: $expense.amount,
+                            amount: $viewModel.expenses[index].amount,
                             currency: viewModel.currency
                         )
+                        .opacity(index < rowsAppeared.count && rowsAppeared[index] ? 1 : 0)
+                        .offset(x: index < rowsAppeared.count && rowsAppeared[index] ? 0 : SlideOffset.large)
                     }
                 }
             }
@@ -32,32 +36,38 @@ struct ExpensesScreen: View {
 
             Spacer()
 
-            VStack(spacing: Spacing.sm) {
-                Button {
+            VStack(spacing: Spacing.lg) {
+                OnboardingButton("Continue", isEnabled: true) {
                     viewModel.advance()
-                } label: {
-                    Text("Continue", comment: "Primary button to advance to next onboarding step")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity, minHeight: ComponentSize.buttonHeight)
                 }
-                .buttonStyle(.glassProminent)
                 .accessibilityHint(String(localized: "Continues to the accounts step"))
 
-                Button {
+                OnboardingSecondaryButton("Skip for now") {
                     for index in viewModel.expenses.indices {
                         viewModel.expenses[index].amount = 0
                     }
                     viewModel.advance()
-                } label: {
-                    Text("Skip for now", comment: "Secondary button to skip expenses entry")
-                        .font(.subheadline)
-                        .frame(maxWidth: .infinity, minHeight: ComponentSize.buttonHeight)
                 }
-                .buttonStyle(.glass)
                 .accessibilityHint(String(localized: "Skips expense entry and continues to accounts"))
             }
+            .opacity(contentAppeared ? 1 : 0)
+            .offset(y: contentAppeared ? 0 : SlideOffset.standard)
         }
         .padding(Spacing.lg)
+        .onAppear {
+            triggerStaggeredRowAnimations()
+            withAnimation(SpringPreset.smooth.delay(AnimationDuration.slow)) {
+                contentAppeared = true
+            }
+        }
+    }
+
+    private func triggerStaggeredRowAnimations() {
+        for index in 0..<min(viewModel.expenses.count, rowsAppeared.count) {
+            withAnimation(SpringPreset.responsive.delay(StaggerDelay.initial + Double(index) * StaggerDelay.standard)) {
+                rowsAppeared[index] = true
+            }
+        }
     }
 }
 

@@ -4,6 +4,7 @@ import DesignSystem
 struct IncomeScreen: View {
     @Bindable var viewModel: OnboardingViewModel
     @FocusState private var isAmountFocused: Bool
+    @State private var contentAppeared = false
 
     var body: some View {
         VStack(spacing: Spacing.xl) {
@@ -27,27 +28,31 @@ struct IncomeScreen: View {
                 )
                 .accessibilityLabel(String(localized: "Monthly income amount"))
             }
+            .opacity(contentAppeared ? 1 : 0)
+            .offset(y: contentAppeared ? 0 : SlideOffset.standard)
 
             Text("This is your salary after all deductions.", comment: "Helper text explaining net income")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
+                .opacity(contentAppeared ? 1 : 0)
 
             Spacer()
 
-            Button {
+            OnboardingButton("Continue", isEnabled: viewModel.canAdvance) {
                 viewModel.advance()
-            } label: {
-                Text("Continue", comment: "Primary button to advance to next onboarding step")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity, minHeight: ComponentSize.buttonHeight)
             }
-            .buttonStyle(.glassProminent)
-            .disabled(!viewModel.canAdvance)
+            .opacity(contentAppeared ? 1 : 0)
+            .offset(y: contentAppeared ? 0 : SlideOffset.standard)
             .accessibilityHint(String(localized: "Continues to the expenses step"))
         }
         .padding(Spacing.lg)
+        .onAppear {
+            withAnimation(SpringPreset.smooth.delay(StaggerDelay.initial)) {
+                contentAppeared = true
+            }
+        }
     }
 }
 

@@ -38,6 +38,31 @@ public enum ComponentSize {
 
     /// 50pt - Standard button height
     public static let buttonHeight: CGFloat = 50
+
+    /// 36pt - Small button height (secondary actions)
+    public static let buttonHeightSmall: CGFloat = 36
+
+    // MARK: - Celebration Effects
+
+    /// 200pt - Celebration ring container size
+    public static let celebrationRingSize: CGFloat = 200
+
+    /// 8pt - Confetti particle width
+    public static let confettiWidth: CGFloat = 8
+
+    /// 12pt - Confetti particle height
+    public static let confettiHeight: CGFloat = 12
+
+    // MARK: - Progress Bar
+
+    /// 4pt - Progress track height
+    public static let progressTrackHeight: CGFloat = 4
+
+    /// 18pt - Progress indicator outer ring size
+    public static let progressRingSize: CGFloat = 18
+
+    /// 200pt - Maximum progress bar width
+    public static let progressBarMaxWidth: CGFloat = 200
 }
 
 // MARK: - Opacity Constants
@@ -48,6 +73,9 @@ public enum Opacity {
 
     /// 0.5 - Half opacity
     public static let half: Double = 0.5
+
+    /// 0.6 - Medium opacity (pressed states)
+    public static let medium: Double = 0.6
 
     /// 0.7 - Slightly dimmed
     public static let dimmed: Double = 0.7

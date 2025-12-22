@@ -4,6 +4,7 @@ import DesignSystem
 struct NameScreen: View {
     @Bindable var viewModel: OnboardingViewModel
     @FocusState private var isNameFocused: Bool
+    @State private var contentAppeared = false
 
     var body: some View {
         VStack(spacing: Spacing.xl) {
@@ -28,23 +29,26 @@ struct NameScreen: View {
                     viewModel.advance()
                 }
             }
+            .opacity(contentAppeared ? 1 : 0)
+            .offset(y: contentAppeared ? 0 : SlideOffset.standard)
 
             Spacer()
 
-            Button {
+            OnboardingButton("Continue", isEnabled: viewModel.canAdvance) {
                 viewModel.advance()
-            } label: {
-                Text("Continue", comment: "Primary button to advance to next onboarding step")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity, minHeight: ComponentSize.buttonHeight)
             }
-            .buttonStyle(.glassProminent)
-            .disabled(!viewModel.canAdvance)
+            .opacity(contentAppeared ? 1 : 0)
+            .offset(y: contentAppeared ? 0 : SlideOffset.standard)
             .accessibilityHint(String(localized: "Continues to the next step"))
         }
         .padding(Spacing.lg)
         .onAppear {
-            isNameFocused = true
+            withAnimation(SpringPreset.smooth.delay(StaggerDelay.initial)) {
+                contentAppeared = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + AnimationDuration.slow) {
+                HapticManager.softTap()
+            }
         }
     }
 }

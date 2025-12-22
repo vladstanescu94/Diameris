@@ -5,39 +5,81 @@ struct CompleteScreen: View {
     @Bindable var viewModel: OnboardingViewModel
     let onComplete: () -> Void
 
+    @State private var showCelebration = false
+    @State private var contentAppeared = false
+    @State private var summaryRowsAppeared: [Bool] = [false, false, false]
+
     var body: some View {
-        VStack(spacing: Spacing.xl) {
-            Spacer()
+        ZStack {
+            VStack(spacing: Spacing.xl) {
+                Spacer()
 
-            OnboardingHeader(
-                icon: "checkmark.circle.fill",
-                iconColor: DiamerisColors.accentSecondaryLight,
-                title: String(localized: "You're all set!"),
-                subtitle: String(localized: "Hi \(viewModel.trimmedName), your budget is ready."),
-                useHeroIcon: true
-            )
+                // Custom animated header for completion
+                VStack(spacing: Spacing.md) {
+                    AnimatedCheckmark()
 
-            summaryCard
+                    Text(String(localized: "You're all set!"))
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .opacity(contentAppeared ? 1 : 0)
+                        .offset(y: contentAppeared ? 0 : SlideOffset.small)
 
-            Text("You can add more details anytime in the Budget tab.", comment: "Helper text on completion screen")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
+                    Text(String(localized: "Hi \(viewModel.trimmedName), your budget is ready."))
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .opacity(contentAppeared ? 1 : 0)
+                        .offset(y: contentAppeared ? 0 : SlideOffset.subtle)
+                }
 
-            Spacer()
+                summaryCard
 
-            Button {
-                onComplete()
-            } label: {
-                Text("Start Planning", comment: "Final onboarding button to enter the app")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity, minHeight: ComponentSize.buttonHeight)
+                Text("You can add more details anytime in the Budget tab.", comment: "Helper text on completion screen")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .opacity(contentAppeared ? 1 : 0)
+
+                Spacer()
+
+                OnboardingButton("Start Planning", isEnabled: true) {
+                    HapticManager.success()
+                    onComplete()
+                }
+                .opacity(contentAppeared ? 1 : 0)
+                .offset(y: contentAppeared ? 0 : SlideOffset.standard)
+                .accessibilityHint(String(localized: "Completes onboarding and opens the main app"))
             }
-            .buttonStyle(.glassProminent)
-            .accessibilityHint(String(localized: "Completes onboarding and opens the main app"))
+            .padding(Spacing.lg)
+
+            // Celebration overlay
+            if showCelebration {
+                CompletionCelebration()
+                    .allowsHitTesting(false)
+            }
         }
-        .padding(Spacing.lg)
+        .onAppear {
+            triggerCelebration()
+        }
+    }
+
+    private func triggerCelebration() {
+        // Show celebration effects
+        showCelebration = true
+        HapticManager.success()
+
+        // Stagger content appearance
+        withAnimation(SpringPreset.bouncy.delay(StaggerDelay.initial)) {
+            contentAppeared = true
+        }
+
+        // Stagger summary rows
+        for index in 0..<summaryRowsAppeared.count {
+            withAnimation(SpringPreset.responsive.delay(AnimationDuration.slow + Double(index) * StaggerDelay.standard)) {
+                summaryRowsAppeared[index] = true
+            }
+        }
     }
 
     private var summaryCard: some View {
@@ -47,22 +89,30 @@ struct CompleteScreen: View {
                 label: String(localized: "Monthly Income"),
                 value: AmountFormatter.formatForDisplay(viewModel.monthlyIncome, currency: viewModel.currency.rawValue)
             )
+            .opacity(summaryRowsAppeared[0] ? 1 : 0)
+            .offset(x: summaryRowsAppeared[0] ? 0 : -SlideOffset.standard)
 
             Divider()
+                .opacity(summaryRowsAppeared[0] ? 1 : 0)
 
             SummaryRow(
                 icon: "creditcard.fill",
                 label: String(localized: "Expenses"),
                 value: AmountFormatter.formatForDisplay(totalExpenses, currency: viewModel.currency.rawValue)
             )
+            .opacity(summaryRowsAppeared[1] ? 1 : 0)
+            .offset(x: summaryRowsAppeared[1] ? 0 : -SlideOffset.standard)
 
             Divider()
+                .opacity(summaryRowsAppeared[1] ? 1 : 0)
 
             SummaryRow(
                 icon: "building.columns.fill",
                 label: String(localized: "Accounts"),
                 value: "\(totalAccounts)"
             )
+            .opacity(summaryRowsAppeared[2] ? 1 : 0)
+            .offset(x: summaryRowsAppeared[2] ? 0 : -SlideOffset.standard)
         }
         .glassCard()
         .accessibilityElement(children: .contain)

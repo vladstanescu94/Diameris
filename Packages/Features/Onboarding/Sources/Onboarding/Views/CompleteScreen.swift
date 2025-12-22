@@ -17,11 +17,13 @@ struct CompleteScreen: View {
                 Text("You're all set!")
                     .font(.largeTitle)
                     .fontWeight(.bold)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Text("Hi \(viewModel.trimmedName), your budget is ready.")
                     .font(.title3)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             summaryCard
@@ -30,6 +32,7 @@ struct CompleteScreen: View {
                 .font(.caption)
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
 
             Spacer()
 

@@ -22,6 +22,7 @@ Before implementing features, **read the relevant API documentation**:
 | `Architecture.md` | **Required** - SPM modular architecture, layer rules, dependency injection |
 | `DesignGuidelines.md` | **Required** - Visual identity, colors, typography, SF Symbols, responsive design, microinteractions |
 | `SwiftUI-Implementing-Liquid-Glass-Design.md` | Any UI work - `.glassEffect()`, `GlassEffectContainer`, morphing |
+| `SwiftUI-Layout-Best-Practices.md` | Layout issues - `ViewThatFits`, text truncation, adaptive layouts |
 | `SwiftData-Class-Inheritance.md` | Data model changes - inheritance, polymorphic queries |
 | `SwiftUI-New-Toolbar-Features.md` | Navigation/toolbar work - customizable toolbars, search |
 | `Swift-Concurrency-Updates.md` | Async code - Swift 6.2 `@concurrent`, MainActor patterns |

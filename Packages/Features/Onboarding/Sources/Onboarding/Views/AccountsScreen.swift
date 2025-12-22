@@ -20,11 +20,13 @@ struct AccountsScreen: View {
                     .font(.title)
                     .fontWeight(.bold)
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Text("Set up your accounts to track where your money goes.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             VStack(alignment: .leading, spacing: Spacing.md) {

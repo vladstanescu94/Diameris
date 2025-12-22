@@ -30,10 +30,12 @@ public struct ExpenseRow: View {
 
             Text(name)
                 .font(.body)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
 
-            Spacer()
+            Spacer(minLength: Spacing.sm)
 
-            HStack(spacing: Spacing.xxs) {
+            HStack(spacing: Spacing.xs) {
                 Text(currency.rawValue)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -43,7 +45,7 @@ public struct ExpenseRow: View {
                     .fontWeight(.medium)
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
-                    .frame(width: ComponentSize.compactInputWidth)
+                    .frame(width: 60)
                     .onChange(of: amountText) { _, newValue in
                         updateAmount(from: newValue)
                     }
@@ -91,7 +93,14 @@ public struct ExpenseRow: View {
             icon: "house.fill",
             name: "Rent / Housing",
             amount: .constant(0),
-            currency: .ron
+            currency: .eur
+        )
+
+        ExpenseRow(
+            icon: "car.fill",
+            name: "Transportation & Fuel",
+            amount: .constant(500),
+            currency: .usd
         )
     }
     .padding()

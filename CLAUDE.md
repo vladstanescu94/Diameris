@@ -14,6 +14,7 @@ Before implementing features, **read the relevant API documentation**:
 |------|--------------|
 | `ProjectDefinition.md` | Start here - contains app scope, data model, UI structure |
 | `Architecture.md` | **Required** - SPM modular architecture, layer rules, dependency injection |
+| `DesignGuidelines.md` | **Required** - Visual identity, colors, typography, SF Symbols, responsive design, microinteractions |
 | `SwiftUI-Implementing-Liquid-Glass-Design.md` | Any UI work - `.glassEffect()`, `GlassEffectContainer`, morphing |
 | `SwiftData-Class-Inheritance.md` | Data model changes - inheritance, polymorphic queries |
 | `SwiftUI-New-Toolbar-Features.md` | Navigation/toolbar work - customizable toolbars, search |

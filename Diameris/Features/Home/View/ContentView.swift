@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import DesignSystem
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
@@ -15,14 +16,32 @@ struct ContentView: View {
     var body: some View {
         NavigationSplitView {
             List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
+                // MARK: - Welcome Header (DesignSystem Demo)
+                Section {
+                    VStack(alignment: .leading, spacing: Spacing.sm) {
+                        Text("Welcome to Diameris")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(DiamerisColors.accentPrimaryLight)
+
+                        Text("Your personal finance companion")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
                     }
+                    .padding(.vertical, Spacing.xs)
                 }
-                .onDelete(perform: deleteItems)
+
+                // MARK: - Items List
+                Section("Items") {
+                    ForEach(items) { item in
+                        NavigationLink {
+                            Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
+                        } label: {
+                            Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
+                        }
+                    }
+                    .onDelete(perform: deleteItems)
+                }
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -35,7 +54,17 @@ struct ContentView: View {
                 }
             }
         } detail: {
-            Text("Select an item")
+            // MARK: - Detail View (DesignSystem Demo)
+            VStack(spacing: Spacing.lg) {
+                Image(systemName: "chart.pie.fill")
+                    .iconXxl()
+                    .foregroundStyle(DiamerisColors.accentSecondaryLight)
+
+                Text("Select an item")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 

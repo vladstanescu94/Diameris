@@ -8,6 +8,12 @@ The `Docs/` directory at the project root contains `.md` files with feature spec
 
 ### Required Reading
 
+**Always read first:**
+
+| File | Purpose |
+|------|---------|
+| `DeveloperRoadmap.md` | **Read every session** - Current progress, completed tasks, next steps |
+
 Before implementing features, **read the relevant API documentation**:
 
 | File | When to Read |

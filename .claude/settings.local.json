@@ -4,7 +4,9 @@
       "WebSearch",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "WebFetch(domain:medium.com)"
+      "WebFetch(domain:medium.com)",
+      "Bash(cat:*)",
+      "Bash(swift build:*)"
     ]
   }
 }

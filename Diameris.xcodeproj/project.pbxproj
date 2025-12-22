@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		DE0EA2DF2EF9882C0037FB3A /* DesignSystem in Frameworks */ = {isa = PBXBuildFile; productRef = DE0EA2DE2EF9882C0037FB3A /* DesignSystem */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		DE0EA2BA2EF963470037FB3A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DE0EA2DF2EF9882C0037FB3A /* DesignSystem in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +117,7 @@
 			);
 			name = Diameris;
 			packageProductDependencies = (
+				DE0EA2DE2EF9882C0037FB3A /* DesignSystem */,
 			);
 			productName = Diameris;
 			productReference = DE0EA2AA2EF963440037FB3A /* Diameris.app */;
@@ -195,6 +201,9 @@
 			);
 			mainGroup = DE0EA2A12EF963440037FB3A;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				DE0EA2DD2EF9882C0037FB3A /* XCLocalSwiftPackageReference "Packages/Core/DesignSystem" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = DE0EA2AB2EF963440037FB3A /* Products */;
 			projectDirPath = "";
@@ -580,6 +589,20 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		DE0EA2DD2EF9882C0037FB3A /* XCLocalSwiftPackageReference "Packages/Core/DesignSystem" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/Core/DesignSystem;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		DE0EA2DE2EF9882C0037FB3A /* DesignSystem */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DesignSystem;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = DE0EA2A22EF963440037FB3A /* Project object */;
 }

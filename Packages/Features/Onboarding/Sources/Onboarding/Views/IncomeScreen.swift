@@ -9,26 +9,15 @@ struct IncomeScreen: View {
         VStack(spacing: Spacing.xl) {
             Spacer()
 
-            VStack(spacing: Spacing.md) {
-                Image(systemName: "banknote.fill")
-                    .iconXxl()
-                    .foregroundStyle(DiamerisColors.accentSecondaryLight)
-
-                Text("Welcome, \(viewModel.trimmedName)!")
-                    .font(.title)
-                    .fontWeight(.bold)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text("How much do you receive each month after taxes?")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            OnboardingHeader(
+                icon: "banknote.fill",
+                iconColor: DiamerisColors.accentSecondaryLight,
+                title: String(localized: "Welcome, \(viewModel.trimmedName)!"),
+                subtitle: String(localized: "How much do you receive each month after taxes?")
+            )
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
-                Text("Monthly net income")
+                Text("Monthly net income", comment: "Label for income input field")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
@@ -36,9 +25,10 @@ struct IncomeScreen: View {
                     amount: $viewModel.monthlyIncome,
                     currency: $viewModel.currency
                 )
+                .accessibilityLabel(String(localized: "Monthly income amount"))
             }
 
-            Text("This is your salary after all deductions.")
+            Text("This is your salary after all deductions.", comment: "Helper text explaining net income")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
@@ -49,12 +39,13 @@ struct IncomeScreen: View {
             Button {
                 viewModel.advance()
             } label: {
-                Text("Continue")
+                Text("Continue", comment: "Primary button to advance to next onboarding step")
                     .font(.headline)
                     .frame(maxWidth: .infinity, minHeight: ComponentSize.buttonHeight)
             }
             .buttonStyle(.glassProminent)
             .disabled(!viewModel.canAdvance)
+            .accessibilityHint(String(localized: "Continues to the expenses step"))
         }
         .padding(Spacing.lg)
     }

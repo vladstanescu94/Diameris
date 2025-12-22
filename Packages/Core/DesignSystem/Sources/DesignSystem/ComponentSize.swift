@@ -9,6 +9,9 @@ public enum ComponentSize {
 
     // MARK: - Input Fields
 
+    /// 60pt - Small amount input width (for inline currency inputs)
+    public static let amountInputWidth: CGFloat = 60
+
     /// 80pt - Compact numeric input field width
     public static let compactInputWidth: CGFloat = 80
 

@@ -112,28 +112,6 @@ public final class OnboardingViewModel {
     }
 }
 
-// MARK: - Supporting Types
-
-public struct ExpenseEntry: Identifiable, Sendable {
-    public let id = UUID()
-    public var name: String
-    public var amount: Decimal
-    public var icon: String
-
-    public init(name: String, amount: Decimal, icon: String) {
-        self.name = name
-        self.amount = amount
-        self.icon = icon
-    }
-}
-
-public struct AccountEntry: Identifiable, Sendable {
-    public let id = UUID()
-    public var name: String
-    public var purpose: String?
-
-    public init(name: String, purpose: String? = nil) {
-        self.name = name
-        self.purpose = purpose
-    }
-}
+// Supporting types are defined in:
+// - Models/ExpenseEntry.swift
+// - Models/AccountEntry.swift

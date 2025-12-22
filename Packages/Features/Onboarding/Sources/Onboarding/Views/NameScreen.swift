@@ -9,23 +9,12 @@ struct NameScreen: View {
         VStack(spacing: Spacing.xl) {
             Spacer()
 
-            VStack(spacing: Spacing.md) {
-                Image(systemName: "person.circle.fill")
-                    .iconXxl()
-                    .foregroundStyle(DiamerisColors.accentPrimaryLight)
-
-                Text("What should we call you?")
-                    .font(.title)
-                    .fontWeight(.bold)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text("We'll use this to personalize your experience.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            OnboardingHeader(
+                icon: "person.circle.fill",
+                iconColor: DiamerisColors.accentPrimaryLight,
+                title: String(localized: "What should we call you?"),
+                subtitle: String(localized: "We'll use this to personalize your experience.")
+            )
 
             OnboardingTextField(
                 "",
@@ -45,12 +34,13 @@ struct NameScreen: View {
             Button {
                 viewModel.advance()
             } label: {
-                Text("Continue")
+                Text("Continue", comment: "Primary button to advance to next onboarding step")
                     .font(.headline)
                     .frame(maxWidth: .infinity, minHeight: ComponentSize.buttonHeight)
             }
             .buttonStyle(.glassProminent)
             .disabled(!viewModel.canAdvance)
+            .accessibilityHint(String(localized: "Continues to the next step"))
         }
         .padding(Spacing.lg)
         .onAppear {

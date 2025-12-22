@@ -9,26 +9,17 @@ struct CompleteScreen: View {
         VStack(spacing: Spacing.xl) {
             Spacer()
 
-            VStack(spacing: Spacing.md) {
-                Image(systemName: "checkmark.circle.fill")
-                    .iconHero()
-                    .foregroundStyle(DiamerisColors.accentSecondaryLight)
-
-                Text("You're all set!")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text("Hi \(viewModel.trimmedName), your budget is ready.")
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            OnboardingHeader(
+                icon: "checkmark.circle.fill",
+                iconColor: DiamerisColors.accentSecondaryLight,
+                title: String(localized: "You're all set!"),
+                subtitle: String(localized: "Hi \(viewModel.trimmedName), your budget is ready."),
+                useHeroIcon: true
+            )
 
             summaryCard
 
-            Text("You can add more details anytime in the Budget tab.")
+            Text("You can add more details anytime in the Budget tab.", comment: "Helper text on completion screen")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
@@ -39,11 +30,12 @@ struct CompleteScreen: View {
             Button {
                 onComplete()
             } label: {
-                Text("Start Planning")
+                Text("Start Planning", comment: "Final onboarding button to enter the app")
                     .font(.headline)
                     .frame(maxWidth: .infinity, minHeight: ComponentSize.buttonHeight)
             }
             .buttonStyle(.glassProminent)
+            .accessibilityHint(String(localized: "Completes onboarding and opens the main app"))
         }
         .padding(Spacing.lg)
     }
@@ -52,27 +44,29 @@ struct CompleteScreen: View {
         VStack(spacing: Spacing.md) {
             SummaryRow(
                 icon: "banknote.fill",
-                label: "Monthly Income",
-                value: formatAmount(viewModel.monthlyIncome)
+                label: String(localized: "Monthly Income"),
+                value: AmountFormatter.formatForDisplay(viewModel.monthlyIncome, currency: viewModel.currency.rawValue)
             )
 
             Divider()
 
             SummaryRow(
                 icon: "creditcard.fill",
-                label: "Expenses",
-                value: formatAmount(totalExpenses)
+                label: String(localized: "Expenses"),
+                value: AmountFormatter.formatForDisplay(totalExpenses, currency: viewModel.currency.rawValue)
             )
 
             Divider()
 
             SummaryRow(
                 icon: "building.columns.fill",
-                label: "Accounts",
+                label: String(localized: "Accounts"),
                 value: "\(totalAccounts)"
             )
         }
         .glassCard()
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(String(localized: "Budget summary"))
     }
 
     private var totalExpenses: Decimal {
@@ -81,16 +75,6 @@ struct CompleteScreen: View {
 
     private var totalAccounts: Int {
         1 + viewModel.additionalAccounts.count
-    }
-
-    private func formatAmount(_ amount: Decimal) -> String {
-        let number = NSDecimalNumber(decimal: amount)
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.maximumFractionDigits = 0
-        formatter.groupingSeparator = ","
-        let formatted = formatter.string(from: number) ?? "0"
-        return "\(formatted) \(viewModel.currency.rawValue)"
     }
 }
 
@@ -105,6 +89,7 @@ private struct SummaryRow: View {
                 .font(.title3)
                 .foregroundStyle(.secondary)
                 .frame(width: ComponentSize.iconContainer)
+                .accessibilityHidden(true)
 
             Text(label)
                 .font(.body)
@@ -114,6 +99,7 @@ private struct SummaryRow: View {
             Text(value)
                 .font(.headline)
         }
+        .accessibilityElement(children: .combine)
     }
 }
 

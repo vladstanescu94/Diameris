@@ -35,11 +35,10 @@ public struct CurrencyAmountField: View {
                         Image(systemName: "chevron.up.chevron.down")
                             .font(.caption)
                     }
-                    .padding(.horizontal, Spacing.sm)
-                    .padding(.vertical, Spacing.xs)
-                    .glassEffect(.regular.interactive(), in: .rect(cornerRadius: CornerRadius.small))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.glass)
+                .accessibilityLabel(String(localized: "Currency: \(currency.displayName)"))
+                .accessibilityHint(String(localized: "Double tap to change currency"))
             } else {
                 Text(currency.rawValue)
                     .font(.headline)
@@ -53,35 +52,17 @@ public struct CurrencyAmountField: View {
                 .focused($isFocused)
                 .multilineTextAlignment(.trailing)
                 .onChange(of: amountText) { _, newValue in
-                    updateAmount(from: newValue)
+                    amount = AmountFormatter.parse(newValue)
                 }
                 .onAppear {
                     if amount > 0 {
-                        amountText = formatForEditing(amount)
+                        amountText = AmountFormatter.formatForEditing(amount)
                     }
                 }
+                .accessibilityLabel(String(localized: "Amount"))
         }
         .padding(Spacing.md)
         .glassEffect(.regular.interactive(), in: .rect(cornerRadius: CornerRadius.medium))
-    }
-
-    private func updateAmount(from text: String) {
-        let cleaned = text.replacingOccurrences(of: ",", with: ".")
-        if let value = Decimal(string: cleaned) {
-            amount = value
-        } else if text.isEmpty {
-            amount = 0
-        }
-    }
-
-    private func formatForEditing(_ value: Decimal) -> String {
-        let number = NSDecimalNumber(decimal: value)
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.maximumFractionDigits = 2
-        formatter.minimumFractionDigits = 0
-        formatter.groupingSeparator = ""
-        return formatter.string(from: number) ?? "0"
     }
 }
 

@@ -11,27 +11,16 @@ struct AccountsScreen: View {
         VStack(spacing: Spacing.xl) {
             Spacer()
 
-            VStack(spacing: Spacing.md) {
-                Image(systemName: "building.columns.fill")
-                    .iconXxl()
-                    .foregroundStyle(DiamerisColors.accentSecondaryLight)
-
-                Text("Where does your income arrive?")
-                    .font(.title)
-                    .fontWeight(.bold)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text("Set up your accounts to track where your money goes.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            OnboardingHeader(
+                icon: "building.columns.fill",
+                iconColor: DiamerisColors.accentSecondaryLight,
+                title: String(localized: "Where does your income arrive?"),
+                subtitle: String(localized: "Set up your accounts to track where your money goes.")
+            )
 
             VStack(alignment: .leading, spacing: Spacing.md) {
                 VStack(alignment: .leading, spacing: Spacing.xs) {
-                    Text("Primary Account")
+                    Text("Primary Account", comment: "Label for primary bank account input")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
 
@@ -40,8 +29,9 @@ struct AccountsScreen: View {
                         text: $viewModel.primaryAccountName,
                         prompt: String(localized: "Main Checking")
                     )
+                    .accessibilityLabel(String(localized: "Primary account name"))
 
-                    Text("This is where your salary lands.")
+                    Text("This is where your salary lands.", comment: "Helper text for primary account")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
@@ -49,7 +39,7 @@ struct AccountsScreen: View {
                 if !viewModel.additionalAccounts.isEmpty {
                     Divider()
 
-                    Text("Additional Accounts")
+                    Text("Additional Accounts", comment: "Section header for additional accounts")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
 
@@ -74,6 +64,7 @@ struct AccountsScreen: View {
                                             .foregroundStyle(.secondary)
                                     }
                                     .buttonStyle(.plain)
+                                    .accessibilityLabel(String(localized: "Remove \(account.name)"))
                                 }
                                 .padding(Spacing.sm)
                                 .glassEffect(.regular.interactive(), in: .rect(cornerRadius: CornerRadius.small))
@@ -85,10 +76,15 @@ struct AccountsScreen: View {
                 Button {
                     showingAddAccount = true
                 } label: {
-                    Label("Add Account", systemImage: "plus.circle.fill")
-                        .font(.subheadline)
+                    Label {
+                        Text("Add Account", comment: "Button to add a new account")
+                    } icon: {
+                        Image(systemName: "plus.circle.fill")
+                    }
+                    .font(.subheadline)
                 }
                 .buttonStyle(.glass)
+                .accessibilityHint(String(localized: "Opens a sheet to add a new account"))
             }
 
             Spacer()
@@ -96,12 +92,13 @@ struct AccountsScreen: View {
             Button {
                 viewModel.advance()
             } label: {
-                Text("Continue")
+                Text("Continue", comment: "Primary button to advance to next onboarding step")
                     .font(.headline)
                     .frame(maxWidth: .infinity, minHeight: ComponentSize.buttonHeight)
             }
             .buttonStyle(.glassProminent)
             .disabled(!viewModel.canAdvance)
+            .accessibilityHint(String(localized: "Continues to complete onboarding"))
         }
         .padding(Spacing.lg)
         .sheet(isPresented: $showingAddAccount) {
@@ -113,24 +110,30 @@ struct AccountsScreen: View {
         NavigationStack {
             VStack(spacing: Spacing.lg) {
                 OnboardingTextField(
-                    "Account Name",
+                    String(localized: "Account Name"),
                     text: $newAccountName,
                     prompt: String(localized: "e.g., Emergency Fund")
                 )
+                .accessibilityLabel(String(localized: "Account name"))
 
                 OnboardingTextField(
-                    "Purpose (optional)",
+                    String(localized: "Purpose (optional)"),
                     text: $newAccountPurpose,
                     prompt: String(localized: "e.g., 3x salary safety net")
                 )
+                .accessibilityLabel(String(localized: "Account purpose"))
 
-                Text("Quick suggestions")
+                Text("Quick suggestions", comment: "Label for account name suggestions")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 HStack(spacing: Spacing.sm) {
-                    ForEach(["Emergency", "Savings", "Joint"], id: \.self) { suggestion in
+                    ForEach([
+                        String(localized: "Emergency"),
+                        String(localized: "Savings"),
+                        String(localized: "Joint")
+                    ], id: \.self) { suggestion in
                         Button(suggestion) {
                             newAccountName = suggestion
                         }
@@ -142,18 +145,18 @@ struct AccountsScreen: View {
                 Spacer()
             }
             .padding(Spacing.lg)
-            .navigationTitle("Add Account")
+            .navigationTitle(String(localized: "Add Account"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    Button(String(localized: "Cancel")) {
                         newAccountName = ""
                         newAccountPurpose = ""
                         showingAddAccount = false
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Add") {
+                    Button(String(localized: "Add")) {
                         let trimmedName = newAccountName.trimmingCharacters(in: .whitespacesAndNewlines)
                         let trimmedPurpose = newAccountPurpose.trimmingCharacters(in: .whitespacesAndNewlines)
                         if !trimmedName.isEmpty {

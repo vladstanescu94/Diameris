@@ -27,6 +27,7 @@ public struct ExpenseRow: View {
                 .font(.title3)
                 .foregroundStyle(.secondary)
                 .frame(width: ComponentSize.iconContainer)
+                .accessibilityHidden(true)
 
             Text(name)
                 .font(.body)
@@ -45,38 +46,21 @@ public struct ExpenseRow: View {
                     .fontWeight(.medium)
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
-                    .frame(width: 60)
+                    .frame(width: ComponentSize.amountInputWidth)
                     .onChange(of: amountText) { _, newValue in
-                        updateAmount(from: newValue)
+                        amount = AmountFormatter.parse(newValue)
                     }
                     .onAppear {
                         if amount > 0 {
-                            amountText = formatForEditing(amount)
+                            amountText = AmountFormatter.formatForEditing(amount)
                         }
                     }
+                    .accessibilityLabel(String(localized: "\(name) amount"))
             }
         }
         .padding(Spacing.md)
         .glassEffect(.regular.interactive(), in: .rect(cornerRadius: CornerRadius.medium))
-    }
-
-    private func updateAmount(from text: String) {
-        let cleaned = text.replacingOccurrences(of: ",", with: ".")
-        if let value = Decimal(string: cleaned) {
-            amount = value
-        } else if text.isEmpty {
-            amount = 0
-        }
-    }
-
-    private func formatForEditing(_ value: Decimal) -> String {
-        let number = NSDecimalNumber(decimal: value)
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.maximumFractionDigits = 2
-        formatter.minimumFractionDigits = 0
-        formatter.groupingSeparator = ""
-        return formatter.string(from: number) ?? "0"
+        .accessibilityElement(children: .combine)
     }
 }
 

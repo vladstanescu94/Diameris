@@ -270,6 +270,59 @@ GlassEffectContainer(spacing: 20) {
 }
 ```
 
+## Troubleshooting & Common Pitfalls
+
+### Menu with Custom Glass Label - Dismiss Animation Glitch
+
+**Problem:** When using a `Menu` with a custom label that has `.glassEffect(.regular.interactive())` applied manually, the label content (e.g., text) gets momentarily cut off or glitches during the menu dismiss animation.
+
+**Cause:** The manual `.interactive()` glass effect isn't coordinated with Menu's internal state management for presenting/dismissing its popover. When the menu closes, the interactive state change triggers a glass effect animation that conflicts with the dismiss animation, causing a brief layout glitch.
+
+**Bad - Manual glass effect on Menu label:**
+```swift
+Menu {
+    ForEach(options) { option in
+        Button(option.name) { /* ... */ }
+    }
+} label: {
+    HStack(spacing: 4) {
+        Text("RON")
+            .font(.headline)
+        Image(systemName: "chevron.up.chevron.down")
+            .font(.caption)
+    }
+    .padding(.horizontal, 12)
+    .padding(.vertical, 8)
+    .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 8)) // ❌ Causes glitch
+}
+.buttonStyle(.plain)
+```
+
+**Good - Use built-in .buttonStyle(.glass):**
+```swift
+Menu {
+    ForEach(options) { option in
+        Button(option.name) { /* ... */ }
+    }
+} label: {
+    HStack(spacing: 4) {
+        Text("RON")
+            .font(.headline)
+        Image(systemName: "chevron.up.chevron.down")
+            .font(.caption)
+    }
+}
+.buttonStyle(.glass) // ✅ Properly handles Menu animation states
+```
+
+**Key Insight:** Always prefer `.buttonStyle(.glass)` or `.buttonStyle(.glassProminent)` for interactive elements like Buttons and Menus. The built-in styles properly coordinate with SwiftUI's internal animation states. Reserve manual `.glassEffect()` for static decorative elements or containers.
+
+### Nested Glass Effects
+
+**Problem:** Applying `.glassEffect()` to a view that's inside another view with `.glassEffect()` can cause unexpected visual artifacts.
+
+**Solution:** Use `GlassEffectContainer` to wrap multiple glass effects, and avoid nesting interactive glass effects. If you need hierarchy, apply glass to the container level only.
+
 ## References
 
 - [Applying Liquid Glass to custom views](https://developer.apple.com/documentation/SwiftUI/Applying-Liquid-Glass-to-custom-views)

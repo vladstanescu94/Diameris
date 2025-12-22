@@ -20,6 +20,8 @@ Before implementing features, **read the relevant API documentation**:
 | `SwiftUI-New-Toolbar-Features.md` | Navigation/toolbar work - customizable toolbars, search |
 | `Swift-Concurrency-Updates.md` | Async code - Swift 6.2 `@concurrent`, MainActor patterns |
 | `Swift-Charts-3D-Visualization.md` | Data visualization - `Chart3D`, `SurfacePlot` |
+| `FoundationModels-Using-on-device-LLM.md` | AI features - on-device LLM, `@Generable`, guided generation |
+| `Diameris-AI-Features.md` | Pre-MVP AI feature ideas (brainstorming) |
 
 **Important:** This project targets iOS 26+ with Liquid Glass design. Always use the new APIs documented above rather than deprecated patterns.
 

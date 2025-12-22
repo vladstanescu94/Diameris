@@ -11,7 +11,7 @@ struct IncomeScreen: View {
 
             VStack(spacing: Spacing.md) {
                 Image(systemName: "banknote.fill")
-                    .font(.system(size: 64))
+                    .iconXxl()
                     .foregroundStyle(DiamerisColors.accentSecondaryLight)
 
                 Text("Welcome, \(viewModel.trimmedName)!")
@@ -48,7 +48,7 @@ struct IncomeScreen: View {
             } label: {
                 Text("Continue")
                     .font(.headline)
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, minHeight: ComponentSize.buttonHeight)
             }
             .buttonStyle(.glassProminent)
             .disabled(!viewModel.canAdvance)

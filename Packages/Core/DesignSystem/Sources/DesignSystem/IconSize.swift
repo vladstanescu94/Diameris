@@ -16,6 +16,9 @@ public enum IconSize {
 
     /// 64pt - Hero icons (splash screens, onboarding)
     public static let xxl: CGFloat = 64
+
+    /// 80pt - Large hero icons (success states, celebrations)
+    public static let hero: CGFloat = 80
 }
 
 // MARK: - View Extensions
@@ -44,5 +47,10 @@ public extension View {
     /// Apply hero icon size (64pt)
     func iconXxl() -> some View {
         font(.system(size: IconSize.xxl))
+    }
+
+    /// Apply large hero icon size (80pt)
+    func iconHero() -> some View {
+        font(.system(size: IconSize.hero))
     }
 }

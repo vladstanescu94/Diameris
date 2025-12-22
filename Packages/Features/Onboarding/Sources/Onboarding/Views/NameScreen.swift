@@ -11,7 +11,7 @@ struct NameScreen: View {
 
             VStack(spacing: Spacing.md) {
                 Image(systemName: "person.circle.fill")
-                    .font(.system(size: 64))
+                    .iconXxl()
                     .foregroundStyle(DiamerisColors.accentPrimaryLight)
 
                 Text("What should we call you?")
@@ -45,7 +45,7 @@ struct NameScreen: View {
             } label: {
                 Text("Continue")
                     .font(.headline)
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, minHeight: ComponentSize.buttonHeight)
             }
             .buttonStyle(.glassProminent)
             .disabled(!viewModel.canAdvance)

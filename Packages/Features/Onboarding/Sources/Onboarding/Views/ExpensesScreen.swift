@@ -10,7 +10,7 @@ struct ExpensesScreen: View {
 
             VStack(spacing: Spacing.md) {
                 Image(systemName: "creditcard.fill")
-                    .font(.system(size: 64))
+                    .iconXxl()
                     .foregroundStyle(DiamerisColors.accentPrimaryLight)
 
                 Text("Let's estimate your main expenses")
@@ -24,14 +24,16 @@ struct ExpensesScreen: View {
                     .multilineTextAlignment(.center)
             }
 
-            VStack(spacing: Spacing.sm) {
-                ForEach($viewModel.expenses) { $expense in
-                    ExpenseRow(
-                        icon: expense.icon,
-                        name: expense.name,
-                        amount: $expense.amount,
-                        currency: viewModel.currency
-                    )
+            GlassEffectContainer {
+                VStack(spacing: Spacing.sm) {
+                    ForEach($viewModel.expenses) { $expense in
+                        ExpenseRow(
+                            icon: expense.icon,
+                            name: expense.name,
+                            amount: $expense.amount,
+                            currency: viewModel.currency
+                        )
+                    }
                 }
             }
 
@@ -43,7 +45,7 @@ struct ExpensesScreen: View {
                 } label: {
                     Text("Continue")
                         .font(.headline)
-                        .frame(maxWidth: .infinity)
+                        .frame(maxWidth: .infinity, minHeight: ComponentSize.buttonHeight)
                 }
                 .buttonStyle(.glassProminent)
 
@@ -55,6 +57,7 @@ struct ExpensesScreen: View {
                 } label: {
                     Text("Skip for now")
                         .font(.subheadline)
+                        .frame(maxWidth: .infinity, minHeight: ComponentSize.buttonHeight)
                 }
                 .buttonStyle(.glass)
             }

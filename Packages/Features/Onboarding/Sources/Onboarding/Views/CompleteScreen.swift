@@ -11,7 +11,7 @@ struct CompleteScreen: View {
 
             VStack(spacing: Spacing.md) {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 80))
+                    .iconHero()
                     .foregroundStyle(DiamerisColors.accentSecondaryLight)
 
                 Text("You're all set!")
@@ -38,7 +38,7 @@ struct CompleteScreen: View {
             } label: {
                 Text("Start Planning")
                     .font(.headline)
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, minHeight: ComponentSize.buttonHeight)
             }
             .buttonStyle(.glassProminent)
         }
@@ -101,7 +101,7 @@ private struct SummaryRow: View {
             Image(systemName: icon)
                 .font(.title3)
                 .foregroundStyle(.secondary)
-                .frame(width: 32)
+                .frame(width: ComponentSize.iconContainer)
 
             Text(label)
                 .font(.body)

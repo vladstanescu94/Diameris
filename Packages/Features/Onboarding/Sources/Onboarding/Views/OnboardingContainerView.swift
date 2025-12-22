@@ -49,8 +49,8 @@ public struct OnboardingContainerView: View {
                 Circle()
                     .fill(step.rawValue <= viewModel.currentStep.rawValue
                         ? DiamerisColors.accentPrimaryLight
-                        : Color.secondary.opacity(0.3))
-                    .frame(width: 8, height: 8)
+                        : Color.secondary.opacity(Opacity.subtle))
+                    .frame(width: ComponentSize.progressDot, height: ComponentSize.progressDot)
             }
         }
         .padding(.top, Spacing.md)

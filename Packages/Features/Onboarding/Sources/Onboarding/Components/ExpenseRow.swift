@@ -26,7 +26,7 @@ public struct ExpenseRow: View {
             Image(systemName: icon)
                 .font(.title3)
                 .foregroundStyle(.secondary)
-                .frame(width: 32)
+                .frame(width: ComponentSize.iconContainer)
 
             Text(name)
                 .font(.body)
@@ -43,7 +43,7 @@ public struct ExpenseRow: View {
                     .fontWeight(.medium)
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
-                    .frame(width: 80)
+                    .frame(width: ComponentSize.compactInputWidth)
                     .onChange(of: amountText) { _, newValue in
                         updateAmount(from: newValue)
                     }
@@ -55,7 +55,7 @@ public struct ExpenseRow: View {
             }
         }
         .padding(Spacing.md)
-        .glassEffect(in: .rect(cornerRadius: CornerRadius.medium))
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: CornerRadius.medium))
     }
 
     private func updateAmount(from text: String) {

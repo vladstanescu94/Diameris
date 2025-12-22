@@ -33,7 +33,13 @@ This document establishes Diameris's visual identity and design standards. Diame
 
 ## 2. Liquid Glass Integration
 
-Liquid Glass is Apple's 2025 design language. See `SwiftUI-Implementing-Liquid-Glass-Design.md` for implementation details.
+Liquid Glass is Apple's 2025 design language - the most significant visual overhaul since iOS 7. See `SwiftUI-Implementing-Liquid-Glass-Design.md` for implementation details.
+
+> "Establish a clear visual hierarchy where controls and interface elements elevate and distinguish the content beneath them." — Apple Human Interface Guidelines (iOS 26)
+
+### Core Principle: Navigation Layer Only
+
+**Liquid Glass is exclusively for the navigation layer that floats above app content.** It should never be applied to content itself (lists, tables, media). This maintains clear visual hierarchy: content remains primary while controls provide functional overlay.
 
 ### When to Use
 
@@ -44,13 +50,71 @@ Liquid Glass is Apple's 2025 design language. See `SwiftUI-Implementing-Liquid-G
 | Secondary buttons | `.buttonStyle(.glass)` |
 | Grouped controls | `GlassEffectContainer` |
 | Interactive elements | `.glassEffect(.regular.interactive())` |
+| Concentric corners | `.rect(cornerRadius: .containerConcentric)` |
 
-### Best Practices
+### Glass Variants
+
+The system offers three appearance modes (light and dark):
+- **Regular** - Standard glass effect
+- **Clear** - More transparent variant
+- **Tinted** - Colored glass with `.tint(Color)`
+
+**Rule:** Never mix Regular and Clear variants in the same interface.
+
+### Corner Concentricity
+
+Controls should align perfectly within their containers. Use `.containerConcentric` for automatic alignment:
+
+```swift
+.glassEffect(in: .rect(cornerRadius: .containerConcentric))
+// or
+RoundedRectangle(cornerRadius: .containerConcentric, style: .continuous)
+```
+
+### Best Practices - DO
 
 - Use `GlassEffectContainer` when multiple glass elements are near each other
 - Apply `.glassEffectID()` with `@Namespace` for morphing transitions
 - Tint glass sparingly with accent colors for emphasis
 - Let glass blur create natural depth hierarchy
+- Enable `.interactive()` only on tappable surfaces
+- Verify accessibility settings (Increase Contrast, Reduce Transparency, Reduce Motion)
+- Test on lower-end devices (iPhone 11 minimum for iOS 26)
+
+### Best Practices - DON'T
+
+- **Never** apply glass to content (lists, tables, media) - only navigation chrome
+- **Never** add `.blur`, `.opacity`, or `.background` modifiers on a glassEffect
+- **Never** place solid fills (`Color.white`, `Color.black`) behind glass views
+- **Never** add your own `.background` or another `glassEffect` to toolbars (they already have built-in glass)
+- **Avoid** turning glass on for static labels or dense lists (increases GPU work)
+- **Avoid** stacking multiple nested glass elements (performance impact)
+
+### Opacity Guidelines for Content on Glass
+
+| Opacity | Use Case |
+|---------|----------|
+| **100%** | Vital content - main text, primary CTAs, logos |
+| **70%** | Supporting text, secondary buttons, navigation tabs |
+| **40%** | Decorative UI - dividers, outlines, icons |
+| **20%** | Subtle tints, background overlays, atmospheric effects |
+
+### Performance Considerations
+
+Liquid Glass uses real-time, GPU-accelerated blur effects. It's efficient for a few elements, but:
+- Avoid stacking many translucent views
+- Avoid animating glass elements excessively
+- Test on lower-end supported devices
+- Use `GlassEffectContainer` to optimize multiple glass elements
+
+### Accessibility Adaptations
+
+When users enable accessibility settings, Liquid Glass automatically adapts:
+- **Reduce Transparency**: Glass becomes more opaque
+- **Increase Contrast**: Enhanced borders and text contrast
+- **Reduce Motion**: Animations are minimized or removed
+
+If using custom elements, provide fallback experiences for these settings.
 
 ---
 

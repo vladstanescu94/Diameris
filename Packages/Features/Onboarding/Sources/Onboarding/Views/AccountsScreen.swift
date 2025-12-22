@@ -13,7 +13,7 @@ struct AccountsScreen: View {
 
             VStack(spacing: Spacing.md) {
                 Image(systemName: "building.columns.fill")
-                    .font(.system(size: 64))
+                    .iconXxl()
                     .foregroundStyle(DiamerisColors.accentSecondaryLight)
 
                 Text("Where does your income arrive?")
@@ -51,28 +51,32 @@ struct AccountsScreen: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
 
-                    ForEach(viewModel.additionalAccounts) { account in
-                        HStack {
-                            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                                Text(account.name)
-                                    .font(.body)
-                                if let purpose = account.purpose, !purpose.isEmpty {
-                                    Text(purpose)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                    GlassEffectContainer {
+                        VStack(spacing: Spacing.sm) {
+                            ForEach(viewModel.additionalAccounts) { account in
+                                HStack {
+                                    VStack(alignment: .leading, spacing: Spacing.xxs) {
+                                        Text(account.name)
+                                            .font(.body)
+                                        if let purpose = account.purpose, !purpose.isEmpty {
+                                            Text(purpose)
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
+                                    Spacer()
+                                    Button {
+                                        viewModel.additionalAccounts.removeAll { $0.id == account.id }
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    .buttonStyle(.plain)
                                 }
+                                .padding(Spacing.sm)
+                                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: CornerRadius.small))
                             }
-                            Spacer()
-                            Button {
-                                viewModel.additionalAccounts.removeAll { $0.id == account.id }
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundStyle(.secondary)
-                            }
-                            .buttonStyle(.plain)
                         }
-                        .padding(Spacing.sm)
-                        .glassEffect(in: .rect(cornerRadius: CornerRadius.small))
                     }
                 }
 
@@ -92,7 +96,7 @@ struct AccountsScreen: View {
             } label: {
                 Text("Continue")
                     .font(.headline)
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, minHeight: ComponentSize.buttonHeight)
             }
             .buttonStyle(.glassProminent)
             .disabled(!viewModel.canAdvance)

@@ -41,7 +41,7 @@ private struct DashboardPlaceholder: View {
         NavigationStack {
             VStack(spacing: Spacing.lg) {
                 Image(systemName: "chart.pie.fill")
-                    .font(.system(size: 64))
+                    .iconXxl()
                     .foregroundStyle(DiamerisColors.accentPrimaryLight)
 
                 Text("Dashboard")
@@ -63,7 +63,7 @@ private struct BudgetPlaceholder: View {
         NavigationStack {
             VStack(spacing: Spacing.lg) {
                 Image(systemName: "list.bullet.rectangle")
-                    .font(.system(size: 64))
+                    .iconXxl()
                     .foregroundStyle(DiamerisColors.accentSecondaryLight)
 
                 Text("Budget")
@@ -85,7 +85,7 @@ private struct GoalsPlaceholder: View {
         NavigationStack {
             VStack(spacing: Spacing.lg) {
                 Image(systemName: "target")
-                    .font(.system(size: 64))
+                    .iconXxl()
                     .foregroundStyle(DiamerisColors.accentPrimaryLight)
 
                 Text("Goals")
@@ -107,7 +107,7 @@ private struct TransfersPlaceholder: View {
         NavigationStack {
             VStack(spacing: Spacing.lg) {
                 Image(systemName: "arrow.left.arrow.right")
-                    .font(.system(size: 64))
+                    .iconXxl()
                     .foregroundStyle(DiamerisColors.accentSecondaryLight)
 
                 Text("Transfers")

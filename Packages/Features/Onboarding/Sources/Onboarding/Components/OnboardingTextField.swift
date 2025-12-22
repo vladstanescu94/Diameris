@@ -32,7 +32,7 @@ public struct OnboardingTextField: View {
                 .keyboardType(keyboardType)
                 .textInputAutocapitalization(keyboardType == .default ? .words : .never)
                 .padding(Spacing.md)
-                .glassEffect(in: .rect(cornerRadius: CornerRadius.medium))
+                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: CornerRadius.medium))
         }
     }
 }

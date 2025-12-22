@@ -37,7 +37,7 @@ public struct CurrencyAmountField: View {
                     }
                     .padding(.horizontal, Spacing.sm)
                     .padding(.vertical, Spacing.xs)
-                    .glassEffect(in: .rect(cornerRadius: CornerRadius.small))
+                    .glassEffect(.regular.interactive(), in: .rect(cornerRadius: CornerRadius.small))
                 }
                 .buttonStyle(.plain)
             } else {
@@ -62,7 +62,7 @@ public struct CurrencyAmountField: View {
                 }
         }
         .padding(Spacing.md)
-        .glassEffect(in: .rect(cornerRadius: CornerRadius.medium))
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: CornerRadius.medium))
     }
 
     private func updateAmount(from text: String) {

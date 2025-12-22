@@ -7,12 +7,18 @@
 
 import SwiftUI
 import SwiftData
+import Onboarding
 
 @main
 struct DiamerisApp: App {
+    @AppStorage(AppStorageKeys.onboardingCompleted) private var onboardingCompleted = false
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            UserProfile.self,
+            Income.self,
+            Expense.self,
+            Account.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -25,7 +31,13 @@ struct DiamerisApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            if onboardingCompleted {
+                MainTabView()
+            } else {
+                OnboardingContainerView {
+                    onboardingCompleted = true
+                }
+            }
         }
         .modelContainer(sharedModelContainer)
     }

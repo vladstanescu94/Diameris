@@ -56,7 +56,9 @@ private extension ExpensesScreen {
                         icon: expense.icon,
                         name: expense.name,
                         amount: $viewModel.expenses[index].amount,
-                        currency: viewModel.currency
+                        currency: viewModel.currency,
+                        linkedAccountId: $viewModel.expenses[index].linkedAccountId,
+                        accounts: viewModel.accounts
                     )
                     .opacity(index < rowsAppeared.count && rowsAppeared[index] ? 1 : 0)
                     .offset(x: index < rowsAppeared.count && rowsAppeared[index] ? 0 : SlideOffset.large)
@@ -115,7 +117,7 @@ private extension ExpensesScreen {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            Text("These stay in your main account for automatic payments".localized)
+            Text("By default, expenses are paid from your main account".localized)
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

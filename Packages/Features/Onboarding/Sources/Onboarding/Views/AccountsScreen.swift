@@ -20,8 +20,11 @@ struct AccountsScreen: View {
             .padding(Spacing.lg)
         }
         .sheet(isPresented: $showingAddAccount) {
-            AddAccountSheet(isPresented: $showingAddAccount) { name, type in
-                addAccount(name: name, type: type)
+            AddAccountSheet(
+                isPresented: $showingAddAccount,
+                expenses: viewModel.expenses
+            ) { name, type, linkedExpenseIds in
+                addAccount(name: name, type: type, linkedExpenseIds: linkedExpenseIds)
             }
         }
         .onAppear { triggerAnimations() }
@@ -60,6 +63,7 @@ private extension AccountsScreen {
             AccountRow(
                 account: account,
                 isPrimary: account.isPrimary,
+                linkedExpenses: linkedExpenses(for: account),
                 onTypeChange: { newType in
                     viewModel.accounts[index].accountType = newType
                 },
@@ -79,6 +83,18 @@ private extension AccountsScreen {
                 SpringPreset.responsive.delay(Double(index) * StaggerDelay.standard),
                 value: accountsAppeared
             )
+        }
+    }
+
+    /// Returns expenses linked to the given account.
+    /// For primary account: returns expenses with nil linkedAccountId (default).
+    /// For other accounts: returns expenses explicitly linked to that account.
+    func linkedExpenses(for account: AccountEntry) -> [ExpenseEntry] {
+        let nonZeroExpenses = viewModel.expenses.filter { $0.amount > 0 }
+        if account.isPrimary {
+            return nonZeroExpenses.filter { $0.linkedAccountId == nil }
+        } else {
+            return nonZeroExpenses.filter { $0.linkedAccountId == account.id }
         }
     }
 
@@ -123,10 +139,16 @@ private extension AccountsScreen {
 // MARK: - Actions
 
 private extension AccountsScreen {
-    func addAccount(name: String, type: AccountType) {
-        viewModel.accounts.append(
-            AccountEntry(name: name, accountType: type)
-        )
+    func addAccount(name: String, type: AccountType, linkedExpenseIds: Set<UUID>) {
+        let newAccount = AccountEntry(name: name, accountType: type)
+        viewModel.accounts.append(newAccount)
+
+        // Link selected expenses to this account
+        for expenseId in linkedExpenseIds {
+            if let index = viewModel.expenses.firstIndex(where: { $0.id == expenseId }) {
+                viewModel.expenses[index].linkedAccountId = newAccount.id
+            }
+        }
     }
 }
 
@@ -148,5 +170,11 @@ private extension AccountsScreen {
     let vm = OnboardingViewModel()
     vm.name = "Vlad"
     vm.accounts = AccountEntry.defaults
+    vm.expenses = [
+        ExpenseEntry(name: "Food & Groceries".localized, amount: 1500, icon: "cart.fill"),
+        ExpenseEntry(name: "Rent / Housing".localized, amount: 3000, icon: "house.fill"),
+        ExpenseEntry(name: "Transportation".localized, amount: 500, icon: "car.fill"),
+        ExpenseEntry(name: "Subscriptions".localized, amount: 200, icon: "repeat.circle.fill")
+    ]
     return AccountsScreen(viewModel: vm)
 }

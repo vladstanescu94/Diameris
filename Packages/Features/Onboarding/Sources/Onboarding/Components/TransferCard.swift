@@ -185,6 +185,22 @@ extension TransferCard {
             iconColor: .secondary
         )
     }
+
+    /// Create for account expense transfer
+    public static func expenseTransfer(
+        transfer: TransferPlan.AccountExpenseTransfer,
+        currency: String
+    ) -> TransferCard {
+        let subtitle = transfer.expenseNames.joined(separator: ", ")
+        return TransferCard(
+            title: transfer.accountName,
+            subtitle: subtitle,
+            amount: transfer.amount,
+            currency: currency,
+            icon: "creditcard.fill",
+            iconColor: .purple
+        )
+    }
 }
 
 #Preview {

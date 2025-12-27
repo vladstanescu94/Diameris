@@ -31,12 +31,16 @@ public enum TransferCalculator {
         // 5. Calculate flexible spending (what's left after savings)
         let flexibleSpending = availableIncome - totalSavings
 
-        // 6. What stays in primary = expenses (for automatic payments)
-        let remainsInPrimary = totalExpenses
+        // 6. Distribute expenses to accounts
+        let (remainsInPrimary, accountExpenseTransfers) = distributeExpenses(
+            expenses: expenses,
+            accounts: accounts
+        )
 
         // 7. Verify balance
         let totalAllocated = goalAllocations.reduce(0) { $0 + $1.amount }
-        let total = remainsInPrimary + totalAllocated + flexibleSpending
+        let totalExpenseTransfers = accountExpenseTransfers.reduce(0) { $0 + $1.amount }
+        let total = remainsInPrimary + totalExpenseTransfers + totalAllocated + flexibleSpending
         let isBalanced = abs(total - income) < 0.01  // Allow small rounding error
 
         return TransferPlan(
@@ -46,6 +50,7 @@ public enum TransferCalculator {
             totalSavings: totalSavings,
             goalAllocations: goalAllocations,
             remainsInPrimary: remainsInPrimary,
+            accountExpenseTransfers: accountExpenseTransfers,
             flexibleSpending: flexibleSpending,
             isBalanced: isBalanced
         )
@@ -55,6 +60,49 @@ public enum TransferCalculator {
 // MARK: - Private Helpers
 
 private extension TransferCalculator {
+
+    /// Distribute expenses to accounts based on linkedAccountId.
+    /// Returns: (remainsInPrimary, accountExpenseTransfers)
+    static func distributeExpenses(
+        expenses: [ExpenseEntry],
+        accounts: [AccountEntry]
+    ) -> (Decimal, [TransferPlan.AccountExpenseTransfer]) {
+        // Group expenses by linkedAccountId (nil = primary account)
+        let expensesByAccount = Dictionary(grouping: expenses.filter { $0.amount > 0 }) { expense in
+            expense.linkedAccountId
+        }
+
+        // Calculate what stays in primary (nil linkedAccountId)
+        let primaryExpenses = expensesByAccount[nil] ?? []
+        let remainsInPrimary = primaryExpenses.reduce(0) { $0 + $1.amount }
+
+        // Create transfers for linked accounts
+        var transfers: [TransferPlan.AccountExpenseTransfer] = []
+
+        for (accountId, linkedExpenses) in expensesByAccount {
+            // Skip primary account (nil)
+            guard let accountId = accountId else { continue }
+
+            // Find the account name
+            let accountName = accounts.first { $0.id == accountId }?.name ?? "Unknown"
+
+            let amount = linkedExpenses.reduce(0) { $0 + $1.amount }
+            let expenseNames = linkedExpenses.map { $0.name }
+
+            if amount > 0 {
+                transfers.append(
+                    TransferPlan.AccountExpenseTransfer(
+                        accountId: accountId,
+                        accountName: accountName,
+                        amount: amount,
+                        expenseNames: expenseNames
+                    )
+                )
+            }
+        }
+
+        return (remainsInPrimary, transfers)
+    }
 
     /// Distribute savings to goals in priority order.
     static func distributeToGoals(

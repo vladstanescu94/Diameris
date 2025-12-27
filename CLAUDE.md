@@ -89,6 +89,26 @@ Diameris/
 - **Localization**: English + Romanian (use `String(localized:)` for all user-facing text)
 - **Design**: iOS 26 Liquid Glass - use `.glassEffect()`, `GlassEffectContainer`, `.buttonStyle(.glass)`
 
+## iOS 26 Liquid Glass Design
+
+**ALWAYS leverage Liquid Glass** for UI components in this project. Before implementing any UI:
+
+1. **Read `Docs/SwiftUI-Implementing-Liquid-Glass-Design.md`** - Contains patterns, troubleshooting, and examples
+2. **Use glass modifiers**: `.glassEffect()`, `.buttonStyle(.glass)`, `.buttonStyle(.glassProminent)`, `GlassEffectContainer`
+3. **Web search when unsure**: Search with terms like "iOS 26 SwiftUI", "late 2025 SwiftUI", "glassEffect iOS 26" to find latest patterns
+
+**Quick Reference:**
+- Buttons: `.buttonStyle(.glass)` or `.buttonStyle(.glassProminent)`
+- Cards/containers: `.glassEffect()` or use `.glassCard()` from DesignSystem
+- Interactive elements: `.glassEffect(.regular.interactive())`
+- Menus: Use native Menu with `.buttonStyle(.glass)` - avoid manual glass on Menu labels
+- Toolbars: Native toolbar items get glass automatically
+
+**Common Pitfalls:**
+- Don't use `GlassEffectContainer` when you don't want elements to morph together
+- Menu + manual `.glassEffect()` causes dismiss animation glitches
+- `.buttonStyle(.glass)` already has built-in press states - don't add custom ones
+
 ## Code Standards
 
 ### No Magic Numbers

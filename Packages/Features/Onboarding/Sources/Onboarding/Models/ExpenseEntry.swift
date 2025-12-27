@@ -7,11 +7,14 @@ public struct ExpenseEntry: Identifiable, Sendable {
     public var name: String
     public var amount: Decimal
     public var icon: String
+    /// Optional link to account - nil means Primary account (default)
+    public var linkedAccountId: UUID?
 
-    public init(name: String, amount: Decimal, icon: String) {
+    public init(name: String, amount: Decimal, icon: String, linkedAccountId: UUID? = nil) {
         self.id = UUID()
         self.name = name
         self.amount = amount
         self.icon = icon
+        self.linkedAccountId = linkedAccountId
     }
 }

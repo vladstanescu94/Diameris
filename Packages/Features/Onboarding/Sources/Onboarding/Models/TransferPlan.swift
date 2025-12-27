@@ -20,11 +20,35 @@ public struct TransferPlan: Sendable {
     /// Amount that stays in primary account for automatic payments
     public let remainsInPrimary: Decimal
 
+    /// Expense transfers to non-primary accounts
+    public let accountExpenseTransfers: [AccountExpenseTransfer]
+
     /// Amount for flexible/personal spending
     public let flexibleSpending: Decimal
 
     /// Whether all amounts add up correctly
     public let isBalanced: Bool
+}
+
+// MARK: - Account Expense Transfer
+
+extension TransferPlan {
+    /// Represents expenses that are transferred to a specific account.
+    public struct AccountExpenseTransfer: Identifiable, Sendable {
+        public let id: UUID
+        public let accountId: UUID
+        public let accountName: String
+        public let amount: Decimal
+        public let expenseNames: [String]
+
+        public init(accountId: UUID, accountName: String, amount: Decimal, expenseNames: [String]) {
+            self.id = UUID()
+            self.accountId = accountId
+            self.accountName = accountName
+            self.amount = amount
+            self.expenseNames = expenseNames
+        }
+    }
 }
 
 // MARK: - Goal Allocation

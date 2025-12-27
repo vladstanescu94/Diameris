@@ -115,6 +115,7 @@ private extension TransferPlanScreen {
         VStack(spacing: Spacing.md) {
             sectionHeader
             goalAllocationCards
+            expenseTransferCards
             flexibleSpendingCard
             primaryAccountCard
         }
@@ -142,6 +143,30 @@ private extension TransferPlanScreen {
         }
     }
 
+    var expenseTransferCards: some View {
+        ForEach(Array(transferPlan.accountExpenseTransfers.enumerated()), id: \.element.id) { index, transfer in
+            TransferCard.expenseTransfer(
+                transfer: transfer,
+                currency: viewModel.currency.rawValue
+            )
+            .opacity(transfersAppeared ? 1 : 0)
+            .offset(x: transfersAppeared ? 0 : SlideOffset.standard)
+            .animation(
+                SpringPreset.responsive.delay(Double(transferPlan.goalAllocations.count + index) * StaggerDelay.standard),
+                value: transfersAppeared
+            )
+        }
+    }
+
+    /// Calculate index offset for animations based on previous sections
+    private var expenseTransferStartIndex: Int {
+        transferPlan.goalAllocations.count
+    }
+
+    private var flexibleSpendingIndex: Int {
+        expenseTransferStartIndex + transferPlan.accountExpenseTransfers.count
+    }
+
     @ViewBuilder
     var flexibleSpendingCard: some View {
         if transferPlan.flexibleSpending > 0 {
@@ -152,7 +177,7 @@ private extension TransferPlanScreen {
             .opacity(transfersAppeared ? 1 : 0)
             .offset(x: transfersAppeared ? 0 : SlideOffset.standard)
             .animation(
-                SpringPreset.responsive.delay(Double(transferPlan.goalAllocations.count) * StaggerDelay.standard),
+                SpringPreset.responsive.delay(Double(flexibleSpendingIndex) * StaggerDelay.standard),
                 value: transfersAppeared
             )
         }
@@ -166,7 +191,7 @@ private extension TransferPlanScreen {
         .opacity(transfersAppeared ? 1 : 0)
         .offset(x: transfersAppeared ? 0 : SlideOffset.standard)
         .animation(
-            SpringPreset.responsive.delay(Double(transferPlan.goalAllocations.count + 1) * StaggerDelay.standard),
+            SpringPreset.responsive.delay(Double(flexibleSpendingIndex + 1) * StaggerDelay.standard),
             value: transfersAppeared
         )
     }
@@ -229,6 +254,14 @@ private extension TransferPlanScreen {
 // MARK: - Animations
 
 private extension TransferPlanScreen {
+    /// Total number of transfer cards for animation timing
+    private var totalTransferCards: Int {
+        transferPlan.goalAllocations.count +
+        transferPlan.accountExpenseTransfers.count +
+        (transferPlan.flexibleSpending > 0 ? 1 : 0) +
+        1 // Primary account card
+    }
+
     func triggerAnimations() {
         showCelebration = true
         HapticManager.success()
@@ -245,7 +278,7 @@ private extension TransferPlanScreen {
             transfersAppeared = true
         }
 
-        withAnimation(SpringPreset.smooth.delay(AnimationDuration.slow + Double(transferPlan.goalAllocations.count + 2) * StaggerDelay.standard)) {
+        withAnimation(SpringPreset.smooth.delay(AnimationDuration.slow + Double(totalTransferCards) * StaggerDelay.standard)) {
             verificationAppeared = true
         }
     }

@@ -33,8 +33,8 @@ public final class OnboardingViewModel {
         case name
         case income
         case savingsGoals
+        case expenses      // Expenses before accounts so user can link them
         case accounts
-        case expenses
         case transferPlan
     }
 
@@ -75,10 +75,10 @@ public final class OnboardingViewModel {
             return monthlyIncome > 0
         case .savingsGoals:
             return true // Goals are optional
-        case .accounts:
-            return accounts.contains { $0.isPrimary }
         case .expenses:
             return true // Expenses are optional
+        case .accounts:
+            return accounts.contains { $0.isPrimary }
         case .transferPlan:
             return true
         }
@@ -150,7 +150,8 @@ public final class OnboardingViewModel {
                 name: expense.name,
                 amount: expense.amount,
                 icon: expense.icon,
-                frequency: "monthly"
+                frequency: "monthly",
+                linkedAccountId: expense.linkedAccountId
             )
             context.insert(expenseModel)
         }

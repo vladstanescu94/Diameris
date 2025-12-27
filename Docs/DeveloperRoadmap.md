@@ -64,6 +64,7 @@ This document tracks implementation progress. **Update this file after completin
 | Localization infrastructure | 2025-12-27 | String Catalog (xcstrings), `.localized` extension, CFBundleAllowMixedLocalizations |
 | GoalCard UX polish | 2025-12-27 | Added chevron affordance, styled input background, improved placeholder visibility |
 | Opacity constants | 2025-12-27 | Added `Opacity.faint` (0.1), `Opacity.light` (0.15) to DesignSystem |
+| Expense-to-account linking | 2025-12-27 | Bidirectional: ExpenseRow picker + AccountRow chips; flow: Expenses → Accounts; defaults to Main |
 
 ### In Progress
 
@@ -372,6 +373,26 @@ OnboardingButton("Let's Go".localized, ...)
 // For interpolation (can't use .localized)
 String(localized: "Hello, \(name)!", bundle: .module)
 ```
+
+### 2025-12-27 - Expense-to-Account Linking Session
+
+**Focus:** Allow users to optionally link expenses to specific accounts during onboarding.
+
+**Design Principle:** Optional, not forced. All expenses default to Main/Primary account. Users can optionally change which account an expense is paid from.
+
+**Changes Made:**
+1. **Flow reorder:** Expenses → Accounts (so users define expenses first, then can link them)
+2. **ExpenseEntry/Expense models:** Added `linkedAccountId: UUID?` (nil = Primary account)
+3. **ExpenseRow:** Added account picker Menu on left side with `.buttonStyle(.glass)`
+4. **AccountRow:** Added `linkedExpenses` parameter, shows expense names as chips
+5. **AccountsScreen:** Computes linked expenses per account (Primary gets nil-linked ones)
+6. **AddAccountSheet:** Shows all expenses (removed amount > 0 filter), multiple can be selected
+7. **TransferCalculator:** Added `distributeExpenses()` for expense-aware transfer planning
+8. **Localization:** Added "From:", "Main" strings in en/ro
+
+**Key Learnings:**
+1. **Menu glass glitch:** Manual `.glassEffect(.interactive())` on Menu labels causes dismiss animation glitch. Solution: Use `.buttonStyle(.glass)` per `SwiftUI-Implementing-Liquid-Glass-Design.md` troubleshooting section.
+2. **Bidirectional UX:** Expense linking works from both directions - edit on expense row OR view on account card.
 
 ---
 

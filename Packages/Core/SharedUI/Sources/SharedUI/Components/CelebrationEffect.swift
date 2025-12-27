@@ -74,9 +74,12 @@ public struct ConfettiView: View {
     }
 
     private func startAnimation() {
-        animationTimer = Timer.scheduledTimer(withTimeInterval: 1/60, repeats: true) { _ in
+        let timer = Timer(timeInterval: 1/60, repeats: true) { _ in
             updateParticles()
         }
+        // Add to .common mode so animation continues during scroll
+        RunLoop.main.add(timer, forMode: .common)
+        animationTimer = timer
     }
 
     private func updateParticles() {

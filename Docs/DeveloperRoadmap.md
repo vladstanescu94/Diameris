@@ -65,6 +65,7 @@ This document tracks implementation progress. **Update this file after completin
 | GoalCard UX polish | 2025-12-27 | Added chevron affordance, styled input background, improved placeholder visibility |
 | Opacity constants | 2025-12-27 | Added `Opacity.faint` (0.1), `Opacity.light` (0.15) to DesignSystem |
 | Expense-to-account linking | 2025-12-27 | Bidirectional: ExpenseRow picker + AccountRow chips; flow: Expenses → Accounts; defaults to Main |
+| Confetti scroll fix | 2025-12-27 | Timer now uses `.common` run loop mode to continue during scroll |
 
 ### In Progress
 

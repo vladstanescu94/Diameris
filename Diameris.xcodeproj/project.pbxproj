@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		DE0EA2DF2EF9882C0037FB3A /* DesignSystem in Frameworks */ = {isa = PBXBuildFile; productRef = DE0EA2DE2EF9882C0037FB3A /* DesignSystem */; };
 		DE0EA2E82EF98E7C0037FB3A /* Onboarding in Frameworks */ = {isa = PBXBuildFile; productRef = DE0EA2E72EF98E7C0037FB3A /* Onboarding */; };
+		DEFC41CA2EFFEBA2009AA81A /* SharedUI in Frameworks */ = {isa = PBXBuildFile; productRef = DEFC41C92EFFEBA2009AA81A /* SharedUI */; };
+		DEFC41CD2EFFEBAD009AA81A /* Utilities in Frameworks */ = {isa = PBXBuildFile; productRef = DEFC41CC2EFFEBAD009AA81A /* Utilities */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,6 +59,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DEFC41CA2EFFEBA2009AA81A /* SharedUI in Frameworks */,
+				DEFC41CD2EFFEBAD009AA81A /* Utilities in Frameworks */,
 				DE0EA2DF2EF9882C0037FB3A /* DesignSystem in Frameworks */,
 				DE0EA2E82EF98E7C0037FB3A /* Onboarding in Frameworks */,
 			);
@@ -121,6 +125,8 @@
 			packageProductDependencies = (
 				DE0EA2DE2EF9882C0037FB3A /* DesignSystem */,
 				DE0EA2E72EF98E7C0037FB3A /* Onboarding */,
+				DEFC41C92EFFEBA2009AA81A /* SharedUI */,
+				DEFC41CC2EFFEBAD009AA81A /* Utilities */,
 			);
 			productName = Diameris;
 			productReference = DE0EA2AA2EF963440037FB3A /* Diameris.app */;
@@ -207,6 +213,8 @@
 			packageReferences = (
 				DE0EA2DD2EF9882C0037FB3A /* XCLocalSwiftPackageReference "Packages/Core/DesignSystem" */,
 				DE0EA2E62EF98E7C0037FB3A /* XCLocalSwiftPackageReference "Packages/Features/Onboarding" */,
+				DEFC41C82EFFEBA2009AA81A /* XCLocalSwiftPackageReference "Packages/Core/SharedUI" */,
+				DEFC41CB2EFFEBAD009AA81A /* XCLocalSwiftPackageReference "Packages/Core/Utilities" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = DE0EA2AB2EF963440037FB3A /* Products */;
@@ -603,6 +611,14 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/Features/Onboarding;
 		};
+		DEFC41C82EFFEBA2009AA81A /* XCLocalSwiftPackageReference "Packages/Core/SharedUI" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/Core/SharedUI;
+		};
+		DEFC41CB2EFFEBAD009AA81A /* XCLocalSwiftPackageReference "Packages/Core/Utilities" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/Core/Utilities;
+		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -613,6 +629,14 @@
 		DE0EA2E72EF98E7C0037FB3A /* Onboarding */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Onboarding;
+		};
+		DEFC41C92EFFEBA2009AA81A /* SharedUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SharedUI;
+		};
+		DEFC41CC2EFFEBAD009AA81A /* Utilities */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Utilities;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

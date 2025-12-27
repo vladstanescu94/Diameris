@@ -1,5 +1,6 @@
 import SwiftUI
 import DesignSystem
+import Utilities
 
 struct NameScreen: View {
     @Bindable var viewModel: OnboardingViewModel

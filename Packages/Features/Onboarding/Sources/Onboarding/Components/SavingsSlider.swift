@@ -1,5 +1,6 @@
 import SwiftUI
 import DesignSystem
+import Utilities
 
 /// Custom slider for selecting savings percentage with haptic feedback.
 public struct SavingsSlider: View {

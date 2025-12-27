@@ -1,5 +1,6 @@
 import Foundation
 
+/// Supported currencies for the app.
 public enum Currency: String, CaseIterable, Identifiable, Sendable {
     case ron = "RON"
     case eur = "EUR"

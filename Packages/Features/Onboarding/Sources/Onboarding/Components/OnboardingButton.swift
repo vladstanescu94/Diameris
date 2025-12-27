@@ -1,5 +1,6 @@
 import SwiftUI
 import DesignSystem
+import Utilities
 
 /// Primary onboarding button with haptic feedback
 struct OnboardingButton: View {

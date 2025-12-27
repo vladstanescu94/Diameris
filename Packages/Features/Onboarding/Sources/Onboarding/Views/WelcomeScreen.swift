@@ -1,5 +1,6 @@
 import SwiftUI
 import DesignSystem
+import Utilities
 
 /// Welcome screen - warm introduction to Diameris.
 struct WelcomeScreen: View {

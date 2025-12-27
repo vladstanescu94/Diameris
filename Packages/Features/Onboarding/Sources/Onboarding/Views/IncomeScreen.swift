@@ -1,5 +1,7 @@
 import SwiftUI
 import DesignSystem
+import SharedUI
+import Utilities
 
 struct IncomeScreen: View {
     @Bindable var viewModel: OnboardingViewModel

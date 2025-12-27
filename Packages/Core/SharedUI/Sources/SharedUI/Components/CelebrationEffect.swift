@@ -1,19 +1,20 @@
 import SwiftUI
 import DesignSystem
+import Utilities
 
-/// Particle for confetti animation
-struct ConfettiParticle: Identifiable {
-    let id = UUID()
-    var position: CGPoint
-    var color: Color
-    var rotation: Double
-    var scale: CGFloat
-    var velocity: CGVector
-    var angularVelocity: Double
+/// Particle for confetti animation.
+public struct ConfettiParticle: Identifiable {
+    public let id = UUID()
+    public var position: CGPoint
+    public var color: Color
+    public var rotation: Double
+    public var scale: CGFloat
+    public var velocity: CGVector
+    public var angularVelocity: Double
 }
 
-/// Confetti celebration effect
-struct ConfettiView: View {
+/// Confetti celebration effect.
+public struct ConfettiView: View {
     @State private var particles: [ConfettiParticle] = []
     @State private var animationTimer: Timer?
 
@@ -29,7 +30,9 @@ struct ConfettiView: View {
         .cyan
     ]
 
-    var body: some View {
+    public init() {}
+
+    public var body: some View {
         GeometryReader { geometry in
             ZStack {
                 ForEach(particles) { particle in
@@ -86,8 +89,8 @@ struct ConfettiView: View {
     }
 }
 
-/// Ripple rings celebration effect
-struct CelebrationRingsView: View {
+/// Ripple rings celebration effect.
+public struct CelebrationRingsView: View {
     @State private var ring1Scale: CGFloat = 0.1
     @State private var ring2Scale: CGFloat = 0.1
     @State private var ring3Scale: CGFloat = 0.1
@@ -97,7 +100,9 @@ struct CelebrationRingsView: View {
 
     private let expandedScale: CGFloat = 2.5
 
-    var body: some View {
+    public init() {}
+
+    public var body: some View {
         ZStack {
             Circle()
                 .stroke(DiamerisColors.accentPrimary, lineWidth: 3)
@@ -137,13 +142,15 @@ struct CelebrationRingsView: View {
     }
 }
 
-/// Success checkmark with bounce animation
-struct AnimatedCheckmark: View {
+/// Success checkmark with bounce animation.
+public struct AnimatedCheckmark: View {
     @State private var scale: CGFloat = 0.1
     @State private var rotation: Double = -30
     @State private var opacity: CGFloat = 0
 
-    var body: some View {
+    public init() {}
+
+    public var body: some View {
         Image(systemName: "checkmark.circle.fill")
             .iconHero()
             .foregroundStyle(DiamerisColors.accentSecondary)
@@ -160,12 +167,14 @@ struct AnimatedCheckmark: View {
     }
 }
 
-/// Combined celebration view for completion screen
-struct CompletionCelebration: View {
+/// Combined celebration view for completion screens.
+public struct CompletionCelebration: View {
     @State private var showConfetti = false
     @State private var showRings = false
 
-    var body: some View {
+    public init() {}
+
+    public var body: some View {
         ZStack {
             if showRings {
                 CelebrationRingsView()

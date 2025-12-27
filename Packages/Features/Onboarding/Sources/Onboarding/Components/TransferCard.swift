@@ -1,5 +1,6 @@
 import SwiftUI
 import DesignSystem
+import Utilities
 
 /// A card displaying a single transfer in the transfer plan.
 public struct TransferCard: View {

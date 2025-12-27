@@ -14,12 +14,14 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(path: "../../Core/DesignSystem")
+        .package(path: "../../Core/DesignSystem"),
+        .package(path: "../../Core/SharedUI"),
+        .package(path: "../../Core/Utilities")
     ],
     targets: [
         .target(
             name: "Onboarding",
-            dependencies: ["DesignSystem"],
+            dependencies: ["DesignSystem", "SharedUI", "Utilities"],
             swiftSettings: [
                 .swiftLanguageMode(.v6)
             ]

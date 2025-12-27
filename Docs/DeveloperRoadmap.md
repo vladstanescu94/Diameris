@@ -58,6 +58,9 @@ This document tracks implementation progress. **Update this file after completin
 | Adaptive color migration | 2025-12-27 | Updated 16 onboarding files to use `accentPrimary`/`accentSecondary` instead of `*Light` variants |
 | Clean code refactoring | 2025-12-27 | Extracted subviews, split files, applied SRP to TransferCalculator, views, and components |
 | Clean body pattern | 2025-12-27 | All onboarding screens now have clean bodies with view props in private extensions |
+| Core/Utilities package | 2025-12-27 | Created with HapticManager, AmountFormatter, Currency |
+| Core/SharedUI package | 2025-12-27 | Created with CelebrationEffect, ProgressRing, CurrencyAmountField |
+| SPM architecture alignment | 2025-12-27 | Moved shared components from Onboarding to proper Core layer packages |
 
 ### In Progress
 
@@ -105,8 +108,8 @@ Based on [Architecture.md](./Architecture.md)
 | Layer | Package | Status | Notes |
 |-------|---------|--------|-------|
 | Core | DesignSystem | Done | Colors, spacing, corner radii, icon sizes, glass helpers, animation constants |
-| Core | Utilities | Not Started | Extensions, formatters |
-| Core | SharedUI | Not Started | Reusable view components |
+| Core | Utilities | Done | HapticManager, AmountFormatter, Currency |
+| Core | SharedUI | Done | CelebrationEffect, ProgressRing, CurrencyAmountField |
 | Domain | Entities | Not Started | Pure Swift business models (may extract from Onboarding later) |
 | Domain | UseCases | Not Started | Business logic |
 | Domain | Repositories | Not Started | Protocol definitions |
@@ -288,6 +291,42 @@ var body: some View {
 - Use `@ToolbarContentBuilder` for conditional toolbar items
 - Extract sheets >40 lines to own files
 - Computed properties go in their own MARK section (`// MARK: - Computed Properties`)
+
+### 2025-12-27 - SPM Architecture Alignment Session
+
+**Focus:** Align package structure with Architecture.md - create Core/Utilities and Core/SharedUI, move shared components from Onboarding.
+
+**Packages Created:**
+1. `Core/Utilities` - Framework-agnostic utilities
+   - `HapticManager` - Centralized haptic feedback
+   - `AmountFormatter` - Monetary amount formatting
+   - `Currency` - Currency enum (RON, EUR, USD)
+
+2. `Core/SharedUI` - Reusable view components (depends on DesignSystem + Utilities)
+   - `CelebrationEffect` - Confetti, rings, checkmark animations
+   - `ProgressRing` - Circular progress with animated fill
+   - `CurrencyAmountField` - Money input with currency picker
+
+**Key Changes:**
+- Updated Onboarding to depend on SharedUI + Utilities
+- Removed duplicate files from Onboarding
+- Added `import Utilities` and `import SharedUI` to 17 files
+
+**Architecture Principle Applied:**
+- "Don't make multiple packages that have the same role"
+- "Make a package as soon as a new feature demands it"
+- Reusable UI → SharedUI, Framework-agnostic helpers → Utilities
+
+**Package Structure Now:**
+```
+Packages/
+├── Core/
+│   ├── DesignSystem/     # Design tokens, glass effects
+│   ├── SharedUI/         # Reusable view components
+│   └── Utilities/        # Haptics, formatters, value types
+└── Features/
+    └── Onboarding/       # Feature-specific views & models
+```
 
 ---
 

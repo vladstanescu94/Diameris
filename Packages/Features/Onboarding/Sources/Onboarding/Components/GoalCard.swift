@@ -1,5 +1,7 @@
 import SwiftUI
 import DesignSystem
+import SharedUI
+import Utilities
 
 /// A card displaying a savings goal with progress and optional balance input.
 public struct GoalCard: View {

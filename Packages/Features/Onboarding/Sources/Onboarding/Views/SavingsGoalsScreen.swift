@@ -1,5 +1,7 @@
 import SwiftUI
 import DesignSystem
+import SharedUI
+import Utilities
 
 /// Screen for setting up savings goals and allocation percentage.
 struct SavingsGoalsScreen: View {

@@ -1,5 +1,6 @@
 import SwiftUI
 import DesignSystem
+import Utilities
 
 /// Picker for selecting goal target type and value.
 public struct GoalTargetPicker: View {

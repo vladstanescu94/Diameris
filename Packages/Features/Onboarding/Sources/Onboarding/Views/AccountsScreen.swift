@@ -1,5 +1,6 @@
 import SwiftUI
 import DesignSystem
+import Utilities
 
 /// Screen for setting up accounts with smart defaults.
 struct AccountsScreen: View {

@@ -27,33 +27,9 @@ public struct ProgressRing: View {
 
     public var body: some View {
         ZStack {
-            // Background ring
-            Circle()
-                .stroke(
-                    Color.secondary.opacity(0.15),
-                    lineWidth: lineWidth
-                )
-
-            // Progress ring
-            Circle()
-                .trim(from: 0, to: animatedProgress)
-                .stroke(
-                    color,
-                    style: StrokeStyle(
-                        lineWidth: lineWidth,
-                        lineCap: .round
-                    )
-                )
-                .rotationEffect(.degrees(-90))
-
-            // Percentage label
-            if showLabel {
-                Text("\(Int(animatedProgress * 100))%")
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(color)
-                    .contentTransition(.numericText())
-            }
+            backgroundRing
+            progressRing
+            percentageLabel
         }
         .frame(width: size, height: size)
         .onAppear {
@@ -71,11 +47,47 @@ public struct ProgressRing: View {
     }
 }
 
+// MARK: - Subviews
+
+private extension ProgressRing {
+    var backgroundRing: some View {
+        Circle()
+            .stroke(
+                Color.secondary.opacity(0.15),
+                lineWidth: lineWidth
+            )
+    }
+
+    var progressRing: some View {
+        Circle()
+            .trim(from: 0, to: animatedProgress)
+            .stroke(
+                color,
+                style: StrokeStyle(
+                    lineWidth: lineWidth,
+                    lineCap: .round
+                )
+            )
+            .rotationEffect(.degrees(-90))
+    }
+
+    @ViewBuilder
+    var percentageLabel: some View {
+        if showLabel {
+            Text("\(Int(animatedProgress * 100))%")
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(color)
+                .contentTransition(.numericText())
+        }
+    }
+}
+
 // MARK: - Variants
 
-extension ProgressRing {
+public extension ProgressRing {
     /// Small progress ring (40pt)
-    public static func small(
+    static func small(
         progress: Double,
         color: Color = DiamerisColors.accentSecondary
     ) -> ProgressRing {
@@ -89,7 +101,7 @@ extension ProgressRing {
     }
 
     /// Medium progress ring (60pt) - default
-    public static func medium(
+    static func medium(
         progress: Double,
         showLabel: Bool = true,
         color: Color = DiamerisColors.accentSecondary
@@ -104,7 +116,7 @@ extension ProgressRing {
     }
 
     /// Large progress ring (80pt)
-    public static func large(
+    static func large(
         progress: Double,
         showLabel: Bool = true,
         color: Color = DiamerisColors.accentSecondary

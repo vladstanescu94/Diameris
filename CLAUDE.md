@@ -89,6 +89,29 @@ Diameris/
 - **Localization**: English + Romanian (use `String(localized:)` for all user-facing text)
 - **Design**: iOS 26 Liquid Glass - use `.glassEffect()`, `GlassEffectContainer`, `.buttonStyle(.glass)`
 
+## Code Standards
+
+### No Magic Numbers
+All numeric values (sizes, durations, thresholds) must use named constants from DesignSystem:
+- `Spacing.xs`, `Spacing.sm`, `Spacing.md`, `Spacing.lg`, `Spacing.xl`
+- `CornerRadius.small`, `CornerRadius.medium`, `CornerRadius.large`
+- `AnimationDuration.fast`, `AnimationDuration.standard`, `AnimationDuration.slow`
+- `ComponentSize.buttonHeight`, `ComponentSize.iconMedium`, etc.
+
+### All Strings Must Be Localized
+Every user-facing string must use localization:
+- In SPM packages: `"String".localized` (uses the `.localized` extension with `bundle: .module`)
+- For interpolation: `String(localized: "Hello, \(name)!", bundle: .module)`
+- Never hardcode user-visible text directly
+
+### Leverage SPM Packages - No Duplication
+Before creating new components or utilities:
+1. **Check DesignSystem** - Colors, spacing, typography, glass effects, animation constants
+2. **Check SharedUI** - Reusable view components (ProgressRing, CelebrationEffect, CurrencyAmountField)
+3. **Check Utilities** - Helpers (HapticManager, AmountFormatter, Currency)
+
+If a component could be reused across features, add it to the appropriate Core package rather than duplicating in feature packages.
+
 ## After Deep Changes
 
 After completing significant refactoring, feature implementation, or architectural changes:

@@ -77,6 +77,12 @@ public enum ComponentSize {
 // MARK: - Opacity Constants
 
 public enum Opacity {
+    /// 0.1 - Very faint background tint
+    public static let faint: Double = 0.1
+
+    /// 0.15 - Light background highlight
+    public static let light: Double = 0.15
+
     /// 0.3 - Subtle/inactive state
     public static let subtle: Double = 0.3
 

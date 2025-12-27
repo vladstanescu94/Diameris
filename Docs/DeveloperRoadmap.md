@@ -61,6 +61,9 @@ This document tracks implementation progress. **Update this file after completin
 | Core/Utilities package | 2025-12-27 | Created with HapticManager, AmountFormatter, Currency |
 | Core/SharedUI package | 2025-12-27 | Created with CelebrationEffect, ProgressRing, CurrencyAmountField |
 | SPM architecture alignment | 2025-12-27 | Moved shared components from Onboarding to proper Core layer packages |
+| Localization infrastructure | 2025-12-27 | String Catalog (xcstrings), `.localized` extension, CFBundleAllowMixedLocalizations |
+| GoalCard UX polish | 2025-12-27 | Added chevron affordance, styled input background, improved placeholder visibility |
+| Opacity constants | 2025-12-27 | Added `Opacity.faint` (0.1), `Opacity.light` (0.15) to DesignSystem |
 
 ### In Progress
 
@@ -326,6 +329,48 @@ Packages/
 │   └── Utilities/        # Haptics, formatters, value types
 └── Features/
     └── Onboarding/       # Feature-specific views & models
+```
+
+### 2025-12-27 - Localization Session
+
+**Focus:** Implement proper localization for SPM packages with English and Romanian translations.
+
+**Infrastructure Created:**
+1. **String Catalog (`Localizable.xcstrings`)** - JSON-based localization with 95+ strings, explicit en/ro translations
+2. **`.localized` extension** - Clean syntax: `"Continue".localized` instead of `String(localized:bundle:.module)`
+3. **`CFBundleAllowMixedLocalizations`** - Required for package localizations when main app isn't fully localized
+
+**Key Learnings:**
+1. **SPM localization requires `bundle: .module`:** Default `String(localized:)` looks in `Bundle.main`, not package bundle
+2. **`LocalizedStringKey` won't work:** SwiftUI's `LocalizedStringKey` type always looks in `Bundle.main`. Must use `String` with explicit bundle
+3. **Both en.lproj and ro.lproj needed:** String Catalog must have explicit translations for both languages, not just target
+4. **`knownRegions` in project.pbxproj:** Target language must be in project's `knownRegions` array
+5. **`CFBundleAllowMixedLocalizations`:** Without this, iOS may ignore package localizations if main app isn't localized
+
+**Files Created:**
+- `Onboarding/Utils/Localization.swift` - String extension for clean localization syntax
+- `Onboarding/Resources/Localizable.xcstrings` - String Catalog with en/ro translations
+- `Supporting/Info.plist` - App Info.plist with `CFBundleAllowMixedLocalizations = true`
+
+**Files Updated:**
+- 20+ files converted from `String(localized:bundle:.module)` to `.localized`
+- `project.pbxproj` - Added `ro` to `knownRegions`, configured `INFOPLIST_FILE`
+
+**Pattern for SPM Localization:**
+```swift
+// Utils/Localization.swift
+extension String {
+    var localized: String {
+        String(localized: String.LocalizationValue(self), bundle: .module)
+    }
+}
+
+// Usage in views
+Text("Continue".localized)
+OnboardingButton("Let's Go".localized, ...)
+
+// For interpolation (can't use .localized)
+String(localized: "Hello, \(name)!", bundle: .module)
 ```
 
 ---

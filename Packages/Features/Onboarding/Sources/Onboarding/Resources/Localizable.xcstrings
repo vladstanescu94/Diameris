@@ -222,6 +222,23 @@
         }
       }
     },
+    "Already saved:" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Already saved:"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deja economisit:"
+          }
+        }
+      }
+    },
     "Almost there!" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1323,6 +1340,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Preia controlul banilor tăi"
+          }
+        }
+      }
+    },
+    "Tap to add" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap to add"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apasă pentru a adăuga"
           }
         }
       }

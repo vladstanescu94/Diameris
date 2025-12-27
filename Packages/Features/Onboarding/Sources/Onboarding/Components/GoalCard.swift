@@ -76,31 +76,7 @@ public struct GoalCard: View {
 
                 // Current balance input or display
                 if isEditable {
-                    HStack(spacing: Spacing.xs) {
-                        Text("Current:".localized)
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-
-                        TextField(
-                            "0",
-                            text: $balanceText
-                        )
-                        .keyboardType(.decimalPad)
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .frame(width: 80)
-                        .multilineTextAlignment(.trailing)
-                        .focused($isBalanceFocused)
-                        .onChange(of: balanceText) { _, newValue in
-                            if let decimal = Decimal(string: newValue.replacingOccurrences(of: ",", with: ".")) {
-                                onBalanceChange?(decimal)
-                            }
-                        }
-
-                        Text(currency)
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                    }
+                    currentBalanceInput
                 } else if goal.currentBalance > 0 {
                     Text(String(localized: "Saved: \(AmountFormatter.formatForDisplay(goal.currentBalance, currency: currency))", bundle: .module))
                         .font(.caption)
@@ -118,6 +94,51 @@ public struct GoalCard: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityDescription)
+    }
+
+    private var currentBalanceInput: some View {
+        HStack(spacing: Spacing.xs) {
+            Text("Already saved:".localized)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: Spacing.xxs) {
+                TextField(
+                    "0",
+                    text: $balanceText,
+                    prompt: Text("0")
+                        .foregroundStyle(.secondary)
+                )
+                .keyboardType(.decimalPad)
+                .font(.caption)
+                .fontWeight(.medium)
+                .frame(minWidth: ComponentSize.amountInputWidth)
+                .multilineTextAlignment(.trailing)
+                .focused($isBalanceFocused)
+                .onChange(of: balanceText) { _, newValue in
+                    if let decimal = Decimal(string: newValue.replacingOccurrences(of: ",", with: ".")) {
+                        onBalanceChange?(decimal)
+                    } else if newValue.isEmpty {
+                        onBalanceChange?(0)
+                    }
+                }
+
+                Text(currency)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Image(systemName: "chevron.right")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(.horizontal, Spacing.sm)
+            .padding(.vertical, Spacing.xs)
+            .background(Color.secondary.opacity(Opacity.light))
+            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.small))
+        }
+        .onTapGesture {
+            isBalanceFocused = true
+        }
     }
 
     private func targetDescription(target: Decimal) -> String {

@@ -70,13 +70,13 @@ private extension TransferPlanScreen {
                 .opacity(headerAppeared ? 1 : 0)
                 .scaleEffect(headerAppeared ? 1 : 0.5)
 
-            Text(String(localized: "Your First Month"))
+            Text("Your First Month".localized)
                 .font(.largeTitle)
                 .fontWeight(.bold)
                 .opacity(headerAppeared ? 1 : 0)
                 .offset(y: headerAppeared ? 0 : SlideOffset.small)
 
-            Text(String(localized: "Here's your personalized transfer plan, \(viewModel.trimmedName)!"))
+            Text(String(localized: "Here's your personalized transfer plan, \(viewModel.trimmedName)!", bundle: .module))
                 .font(.title3)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -92,7 +92,7 @@ private extension TransferPlanScreen {
 private extension TransferPlanScreen {
     var incomeHeroCard: some View {
         VStack(spacing: Spacing.xs) {
-            Text(String(localized: "Monthly Income"))
+            Text("Monthly Income".localized)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
@@ -121,7 +121,7 @@ private extension TransferPlanScreen {
     }
 
     var sectionHeader: some View {
-        Text(String(localized: "Your Transfers"))
+        Text("Your Transfers".localized)
             .font(.headline)
             .frame(maxWidth: .infinity, alignment: .leading)
             .opacity(transfersAppeared ? 1 : 0)
@@ -180,12 +180,12 @@ private extension TransferPlanScreen {
             Image(systemName: transferPlan.isBalanced ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                 .foregroundStyle(transferPlan.isBalanced ? .green : .orange)
 
-            Text(String(localized: "Total: \(AmountFormatter.formatForDisplay(transferPlan.income, currency: viewModel.currency.rawValue))"))
+            Text(String(localized: "Total: \(AmountFormatter.formatForDisplay(transferPlan.income, currency: viewModel.currency.rawValue))", bundle: .module))
                 .font(.subheadline)
                 .fontWeight(.medium)
 
             if transferPlan.isBalanced {
-                Text(String(localized: "All accounted for!"))
+                Text("All accounted for!".localized)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -203,7 +203,7 @@ private extension TransferPlanScreen {
             Image(systemName: "lightbulb.fill")
                 .foregroundStyle(.yellow)
 
-            Text(String(localized: "Tip: Do these transfers right after payday for best results!"))
+            Text("Tip: Do these transfers right after payday for best results!".localized)
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -217,7 +217,7 @@ private extension TransferPlanScreen {
 
 private extension TransferPlanScreen {
     var completeButton: some View {
-        OnboardingButton("Start Using Diameris", isEnabled: true) {
+        OnboardingButton("Start Using Diameris".localized, isEnabled: true) {
             HapticManager.success()
             onComplete()
         }

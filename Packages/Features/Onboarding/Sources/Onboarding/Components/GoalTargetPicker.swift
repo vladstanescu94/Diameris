@@ -40,7 +40,7 @@ public struct GoalTargetPicker: View {
             // Multiplier selector for income-based targets
             if targetType == .incomeMultiplier {
                 VStack(alignment: .leading, spacing: Spacing.xs) {
-                    Text(String(localized: "Target multiplier"))
+                    Text("Target multiplier".localized)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
 
@@ -60,7 +60,7 @@ public struct GoalTargetPicker: View {
                     // Show calculated target
                     if let target = calculatedTarget {
                         HStack {
-                            Text(String(localized: "Target:"))
+                            Text("Target:".localized)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
 
@@ -101,7 +101,7 @@ private struct MultiplierButton: View {
                 }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(String(localized: "\(Int(truncating: multiplier as NSNumber)) times income"))
+        .accessibilityLabel(String(localized: "\(Int(truncating: multiplier as NSNumber)) times income", bundle: .module))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

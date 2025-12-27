@@ -68,7 +68,7 @@ public struct GoalCard: View {
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                 } else {
-                    Text(String(localized: "No limit - keep saving!"))
+                    Text("No limit - keep saving!".localized)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -77,7 +77,7 @@ public struct GoalCard: View {
                 // Current balance input or display
                 if isEditable {
                     HStack(spacing: Spacing.xs) {
-                        Text(String(localized: "Current:"))
+                        Text("Current:".localized)
                             .font(.caption)
                             .foregroundStyle(.tertiary)
 
@@ -102,7 +102,7 @@ public struct GoalCard: View {
                             .foregroundStyle(.tertiary)
                     }
                 } else if goal.currentBalance > 0 {
-                    Text(String(localized: "Saved: \(AmountFormatter.formatForDisplay(goal.currentBalance, currency: currency))"))
+                    Text(String(localized: "Saved: \(AmountFormatter.formatForDisplay(goal.currentBalance, currency: currency))", bundle: .module))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -125,11 +125,11 @@ public struct GoalCard: View {
         switch goal.targetType {
         case .incomeMultiplier:
             let multiplier = Int(truncating: (goal.targetValue ?? 0) as NSNumber)
-            return String(localized: "\(multiplier)x income (\(formattedTarget))")
+            return String(localized: "\(multiplier)x income (\(formattedTarget))", bundle: .module)
         case .fixedAmount:
-            return String(localized: "Target: \(formattedTarget)")
+            return String(localized: "Target: \(formattedTarget)", bundle: .module)
         case .unlimited:
-            return String(localized: "No target limit")
+            return "No target limit".localized
         }
     }
 

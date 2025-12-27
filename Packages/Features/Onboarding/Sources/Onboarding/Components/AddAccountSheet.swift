@@ -19,7 +19,7 @@ struct AddAccountSheet: View {
                 }
                 .padding(Spacing.lg)
             }
-            .navigationTitle(String(localized: "Add Account"))
+            .navigationTitle("Add Account".localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 cancelButton
@@ -35,9 +35,9 @@ struct AddAccountSheet: View {
 private extension AddAccountSheet {
     var nameField: some View {
         OnboardingTextField(
-            String(localized: "Account Name"),
+            "Account Name".localized,
             text: $accountName,
-            prompt: String(localized: "e.g., Joint Account")
+            prompt: "e.g., Joint Account".localized
         )
     }
 
@@ -50,7 +50,7 @@ private extension AddAccountSheet {
 
     var quickSuggestions: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            Text(String(localized: "Quick suggestions"))
+            Text("Quick suggestions".localized)
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -77,7 +77,7 @@ private extension AddAccountSheet {
 private extension AddAccountSheet {
     var cancelButton: some ToolbarContent {
         ToolbarItem(placement: .cancellationAction) {
-            Button(String(localized: "Cancel")) {
+            Button("Cancel".localized) {
                 dismiss()
             }
         }

@@ -35,8 +35,8 @@ private extension AccountsScreen {
         OnboardingHeader(
             icon: "building.columns.fill",
             iconColor: DiamerisColors.accentSecondary,
-            title: String(localized: "Where does your money live?"),
-            subtitle: String(localized: "We've set up some common accounts. Adjust them to match your setup.")
+            title: "Where does your money live?".localized,
+            subtitle: "We've set up some common accounts. Adjust them to match your setup.".localized
         )
     }
 
@@ -50,7 +50,7 @@ private extension AccountsScreen {
     }
 
     var sectionTitle: some View {
-        Text(String(localized: "Your Accounts"))
+        Text("Your Accounts".localized)
             .font(.headline)
             .opacity(accountsAppeared ? 1 : 0)
     }
@@ -88,7 +88,7 @@ private extension AccountsScreen {
             showingAddAccount = true
         } label: {
             Label {
-                Text(String(localized: "Add Another Account"))
+                Text("Add Another Account".localized)
             } icon: {
                 Image(systemName: "plus.circle.fill")
             }
@@ -96,7 +96,7 @@ private extension AccountsScreen {
         }
         .buttonStyle(.glass)
         .opacity(accountsAppeared ? 1 : 0)
-        .accessibilityHint(String(localized: "Opens a sheet to add a new account"))
+        .accessibilityHint("Opens a sheet to add a new account".localized)
     }
 
     var helperText: some View {
@@ -105,7 +105,7 @@ private extension AccountsScreen {
                 .font(.caption)
                 .foregroundStyle(DiamerisColors.accentSecondary)
 
-            Text(String(localized: "Your primary account is where your salary lands"))
+            Text("Your primary account is where your salary lands".localized)
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -113,7 +113,7 @@ private extension AccountsScreen {
     }
 
     var continueButton: some View {
-        OnboardingButton("Continue", isEnabled: viewModel.canAdvance) {
+        OnboardingButton("Continue".localized, isEnabled: viewModel.canAdvance) {
             viewModel.advance()
         }
         .padding(.top, Spacing.xl)

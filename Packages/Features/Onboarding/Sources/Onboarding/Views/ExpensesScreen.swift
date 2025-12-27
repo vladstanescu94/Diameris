@@ -43,8 +43,8 @@ private extension ExpensesScreen {
         OnboardingHeader(
             icon: "creditcard.fill",
             iconColor: DiamerisColors.accentPrimary,
-            title: String(localized: "Almost there!"),
-            subtitle: String(localized: "A quick look at your main expenses. Don't worry about being exact — estimates are fine.")
+            title: "Almost there!".localized,
+            subtitle: "A quick look at your main expenses. Don't worry about being exact — estimates are fine.".localized
         )
     }
 
@@ -64,7 +64,7 @@ private extension ExpensesScreen {
             }
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(String(localized: "Expense categories"))
+        .accessibilityLabel("Expense categories".localized)
     }
 
     @ViewBuilder
@@ -89,7 +89,7 @@ private extension ExpensesScreen {
             Image(systemName: availableForGoals > 0 ? "arrow.right.circle.fill" : "exclamationmark.triangle.fill")
                 .foregroundStyle(availableForGoals > 0 ? DiamerisColors.accentSecondary : .orange)
 
-            Text(String(localized: "After expenses"))
+            Text("After expenses".localized)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
@@ -103,7 +103,7 @@ private extension ExpensesScreen {
                 .foregroundStyle(availableForGoals > 0 ? DiamerisColors.accentSecondary : .orange)
                 .contentTransition(.numericText())
 
-            Text(String(localized: "available for your goals"))
+            Text("available for your goals".localized)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
@@ -115,7 +115,7 @@ private extension ExpensesScreen {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            Text(String(localized: "These stay in your main account for automatic payments"))
+            Text("These stay in your main account for automatic payments".localized)
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -124,18 +124,18 @@ private extension ExpensesScreen {
 
     var actionButtons: some View {
         VStack(spacing: Spacing.sm) {
-            OnboardingButton("Continue", isEnabled: true) {
+            OnboardingButton("Continue".localized, isEnabled: true) {
                 viewModel.advance()
             }
-            .accessibilityHint(String(localized: "Continues to the accounts step"))
+            .accessibilityHint("Continues to the accounts step".localized)
 
-            OnboardingSecondaryButton("Skip for now") {
+            OnboardingSecondaryButton("Skip for now".localized) {
                 for index in viewModel.expenses.indices {
                     viewModel.expenses[index].amount = 0
                 }
                 viewModel.advance()
             }
-            .accessibilityHint(String(localized: "Skips expense entry and continues"))
+            .accessibilityHint("Skips expense entry and continues".localized)
         }
         .padding(.top, Spacing.xl)
     }
@@ -166,10 +166,10 @@ private extension ExpensesScreen {
     vm.name = "Vlad"
     vm.monthlyIncome = 14303
     vm.expenses = [
-        ExpenseEntry(name: String(localized: "Food & Groceries"), amount: 0, icon: "cart.fill"),
-        ExpenseEntry(name: String(localized: "Rent / Housing"), amount: 0, icon: "house.fill"),
-        ExpenseEntry(name: String(localized: "Transportation"), amount: 0, icon: "car.fill"),
-        ExpenseEntry(name: String(localized: "Subscriptions"), amount: 0, icon: "repeat.circle.fill")
+        ExpenseEntry(name: "Food & Groceries".localized, amount: 0, icon: "cart.fill"),
+        ExpenseEntry(name: "Rent / Housing".localized, amount: 0, icon: "house.fill"),
+        ExpenseEntry(name: "Transportation".localized, amount: 0, icon: "car.fill"),
+        ExpenseEntry(name: "Subscriptions".localized, amount: 0, icon: "repeat.circle.fill")
     ]
     return ExpensesScreen(viewModel: vm)
 }

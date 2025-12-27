@@ -69,6 +69,6 @@ extension SavingsAllocationEntry {
 
     /// Description of the recommendation
     public static var recommendationText: String {
-        String(localized: "Financial experts recommend saving 20-30% of your income")
+        String(localized: "Financial experts recommend saving 20-30% of your income", bundle: .module)
     }
 }

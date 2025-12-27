@@ -27,38 +27,38 @@ public struct AccountEntry: Identifiable, Sendable {
 
 extension AccountEntry {
     /// Primary checking account where salary lands
-    public static func primaryChecking(name: String = String(localized: "Main Checking")) -> AccountEntry {
+    public static func primaryChecking(name: String? = nil) -> AccountEntry {
         AccountEntry(
-            name: name,
-            purpose: String(localized: "Where your salary lands"),
+            name: name ?? "Main Checking".localized,
+            purpose: "Where your salary lands".localized,
             accountType: .checking,
             isPrimary: true
         )
     }
 
     /// Savings account for general savings
-    public static func savings(name: String = String(localized: "Savings")) -> AccountEntry {
+    public static func savings(name: String? = nil) -> AccountEntry {
         AccountEntry(
-            name: name,
-            purpose: String(localized: "For your savings goals"),
+            name: name ?? "Savings".localized,
+            purpose: "For your savings goals".localized,
             accountType: .savings
         )
     }
 
     /// Personal account for flexible spending
-    public static func personal(name: String = String(localized: "Personal")) -> AccountEntry {
+    public static func personal(name: String? = nil) -> AccountEntry {
         AccountEntry(
-            name: name,
-            purpose: String(localized: "Flexible spending money"),
+            name: name ?? "Personal".localized,
+            purpose: "Flexible spending money".localized,
             accountType: .personal
         )
     }
 
     /// Joint account for shared expenses
-    public static func joint(name: String = String(localized: "Joint")) -> AccountEntry {
+    public static func joint(name: String? = nil) -> AccountEntry {
         AccountEntry(
-            name: name,
-            purpose: String(localized: "Shared expenses"),
+            name: name ?? "Joint".localized,
+            purpose: "Shared expenses".localized,
             accountType: .joint
         )
     }

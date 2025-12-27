@@ -40,8 +40,8 @@ private extension SavingsGoalsScreen {
         OnboardingHeader(
             icon: "target",
             iconColor: DiamerisColors.accentSecondary,
-            title: String(localized: "Let's build your savings plan"),
-            subtitle: String(localized: "Your goals fill in priority order. When one completes, money flows to the next!")
+            title: "Let's build your savings plan".localized,
+            subtitle: "Your goals fill in priority order. When one completes, money flows to the next!".localized
         )
     }
 }
@@ -59,7 +59,7 @@ private extension SavingsGoalsScreen {
     }
 
     var goalsSectionTitle: some View {
-        Text(String(localized: "Your Goals"))
+        Text("Your Goals".localized)
             .font(.headline)
             .opacity(goalsAppeared ? 1 : 0)
     }
@@ -89,7 +89,7 @@ private extension SavingsGoalsScreen {
                 .font(.caption)
                 .foregroundStyle(DiamerisColors.accentSecondary)
 
-            Text(String(localized: "Emergency fund fills first, then regular savings"))
+            Text("Emergency fund fills first, then regular savings".localized)
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -113,7 +113,7 @@ private extension SavingsGoalsScreen {
 private extension SavingsGoalsScreen {
     var allocationSection: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            Text(String(localized: "How much to save?"))
+            Text("How much to save?".localized)
                 .font(.headline)
 
             SavingsSlider(
@@ -144,11 +144,11 @@ private extension SavingsGoalsScreen {
                     .foregroundStyle(viewModel.savingsAllocation.boostEnabled ? .yellow : .secondary)
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Text(String(localized: "Savings Boost"))
+                    Text("Savings Boost".localized)
                         .font(.subheadline)
                         .fontWeight(.medium)
 
-                    Text(String(localized: "Triple your savings temporarily"))
+                    Text("Triple your savings temporarily".localized)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -168,7 +168,7 @@ private extension SavingsGoalsScreen {
                     .font(.caption)
                     .foregroundStyle(.orange)
 
-                Text(String(localized: "Boost is great for catching up, but not sustainable long-term"))
+                Text("Boost is great for catching up, but not sustainable long-term".localized)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -188,7 +188,7 @@ private extension SavingsGoalsScreen {
             let savingsAmount = viewModel.savingsAllocation.calculateSavings(availableIncome: availableIncome)
 
             VStack(alignment: .leading, spacing: Spacing.sm) {
-                Text(String(localized: "This month's savings"))
+                Text("This month's savings".localized)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
@@ -198,7 +198,7 @@ private extension SavingsGoalsScreen {
                         .fontWeight(.bold)
                         .foregroundStyle(DiamerisColors.accentSecondary)
 
-                    Text(String(localized: "going to your goals"))
+                    Text("going to your goals".localized)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -217,11 +217,11 @@ private extension SavingsGoalsScreen {
 private extension SavingsGoalsScreen {
     var actionButtons: some View {
         VStack(spacing: Spacing.sm) {
-            OnboardingButton("Continue", isEnabled: viewModel.canAdvance) {
+            OnboardingButton("Continue".localized, isEnabled: viewModel.canAdvance) {
                 viewModel.advance()
             }
 
-            OnboardingSecondaryButton("Skip for now") {
+            OnboardingSecondaryButton("Skip for now".localized) {
                 viewModel.savingsGoals = SavingsGoalEntry.defaults
                 viewModel.savingsAllocation = SavingsAllocationEntry()
                 viewModel.advance()

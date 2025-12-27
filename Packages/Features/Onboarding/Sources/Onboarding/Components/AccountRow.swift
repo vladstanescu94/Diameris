@@ -62,7 +62,7 @@ private extension AccountRow {
     }
 
     var nameTextField: some View {
-        TextField(String(localized: "Account name"), text: $editedName)
+        TextField("Account name".localized, text: $editedName)
             .font(.headline)
             .textFieldStyle(.plain)
             .onSubmit {
@@ -87,7 +87,7 @@ private extension AccountRow {
     }
 
     var primaryBadge: some View {
-        Text(String(localized: "Primary"))
+        Text("Primary".localized)
             .font(.caption2)
             .fontWeight(.medium)
             .foregroundStyle(DiamerisColors.accentPrimary)
@@ -107,7 +107,7 @@ private extension AccountRow {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(String(localized: "Remove \(account.name)"))
+            .accessibilityLabel(String(localized: "Remove \(account.name)", bundle: .module))
         }
     }
 }

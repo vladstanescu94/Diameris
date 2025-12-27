@@ -77,7 +77,7 @@ extension SavingsGoalEntry {
     /// Default emergency fund goal (3x monthly income, priority 1)
     public static func emergencyFund() -> SavingsGoalEntry {
         SavingsGoalEntry(
-            name: String(localized: "Emergency Fund"),
+            name: "Emergency Fund".localized,
             icon: "shield.checkered",
             targetType: .incomeMultiplier,
             targetValue: 3,
@@ -88,7 +88,7 @@ extension SavingsGoalEntry {
     /// Default regular savings goal (unlimited, priority 2)
     public static func regularSavings() -> SavingsGoalEntry {
         SavingsGoalEntry(
-            name: String(localized: "Savings"),
+            name: "Savings".localized,
             icon: "banknote.fill",
             targetType: .unlimited,
             priority: 2

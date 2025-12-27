@@ -13,10 +13,10 @@ public final class OnboardingViewModel {
     public var monthlyIncome: Decimal = 0
 
     public var expenses: [ExpenseEntry] = [
-        ExpenseEntry(name: String(localized: "Food & Groceries"), amount: 0, icon: "cart.fill"),
-        ExpenseEntry(name: String(localized: "Rent / Housing"), amount: 0, icon: "house.fill"),
-        ExpenseEntry(name: String(localized: "Transportation"), amount: 0, icon: "car.fill"),
-        ExpenseEntry(name: String(localized: "Subscriptions"), amount: 0, icon: "repeat.circle.fill")
+        ExpenseEntry(name: "Food & Groceries".localized, amount: 0, icon: "cart.fill"),
+        ExpenseEntry(name: "Rent / Housing".localized, amount: 0, icon: "house.fill"),
+        ExpenseEntry(name: "Transportation".localized, amount: 0, icon: "car.fill"),
+        ExpenseEntry(name: "Subscriptions".localized, amount: 0, icon: "repeat.circle.fill")
     ]
 
     public var accounts: [AccountEntry] = AccountEntry.defaults
@@ -138,7 +138,7 @@ public final class OnboardingViewModel {
 
         // Save income
         let income = Income(
-            name: String(localized: "Salary"),
+            name: "Salary".localized,
             amount: monthlyIncome,
             frequency: "monthly"
         )

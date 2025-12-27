@@ -74,7 +74,7 @@ private extension WelcomeScreen {
     }
 
     var titleText: some View {
-        Text(String(localized: "Take control of your money"))
+        Text("Take control of your money".localized)
             .font(.largeTitle)
             .fontWeight(.bold)
             .multilineTextAlignment(.center)
@@ -83,7 +83,7 @@ private extension WelcomeScreen {
     }
 
     var subtitleText: some View {
-        Text(String(localized: "In the next few minutes, we'll build your personalized transfer plan — so payday becomes effortless."))
+        Text("In the next few minutes, we'll build your personalized transfer plan — so payday becomes effortless.".localized)
             .font(.title3)
             .foregroundStyle(.secondary)
             .multilineTextAlignment(.center)
@@ -100,7 +100,7 @@ private extension WelcomeScreen {
         VStack(alignment: .leading, spacing: Spacing.md) {
             ValueBullet(
                 icon: "target",
-                text: String(localized: "Set savings goals that fill automatically"),
+                text: "Set savings goals that fill automatically".localized,
                 color: DiamerisColors.accentSecondary,
                 appeared: contentAppeared,
                 delay: 0.1
@@ -108,7 +108,7 @@ private extension WelcomeScreen {
 
             ValueBullet(
                 icon: "arrow.left.arrow.right",
-                text: String(localized: "Know exactly where to transfer your money"),
+                text: "Know exactly where to transfer your money".localized,
                 color: DiamerisColors.accentPrimary,
                 appeared: contentAppeared,
                 delay: 0.2
@@ -116,7 +116,7 @@ private extension WelcomeScreen {
 
             ValueBullet(
                 icon: "chart.line.uptrend.xyaxis",
-                text: String(localized: "Watch your progress grow"),
+                text: "Watch your progress grow".localized,
                 color: DiamerisColors.accentSecondary,
                 appeared: contentAppeared,
                 delay: 0.3
@@ -131,7 +131,7 @@ private extension WelcomeScreen {
 
 private extension WelcomeScreen {
     var ctaButton: some View {
-        OnboardingButton("Let's Go", isEnabled: true) {
+        OnboardingButton("Let's Go".localized, isEnabled: true) {
             viewModel.advance()
         }
         .opacity(buttonAppeared ? 1 : 0)

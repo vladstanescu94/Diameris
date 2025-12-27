@@ -55,13 +55,13 @@ public struct AccountTypeSelector: View {
             }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(String(localized: "Account type"))
+        .accessibilityLabel("Account type".localized)
         .accessibilityValue(selectedType.displayName)
     }
 
     private var fullPicker: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            Text(String(localized: "Account type"))
+            Text("Account type".localized)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 

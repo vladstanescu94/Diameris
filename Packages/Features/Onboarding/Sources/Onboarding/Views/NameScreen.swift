@@ -27,8 +27,8 @@ private extension NameScreen {
         OnboardingHeader(
             icon: "person.circle.fill",
             iconColor: DiamerisColors.accentPrimary,
-            title: String(localized: "First, let's get acquainted"),
-            subtitle: String(localized: "What should we call you?")
+            title: "First, let's get acquainted".localized,
+            subtitle: "What should we call you?".localized
         )
     }
 
@@ -36,7 +36,7 @@ private extension NameScreen {
         OnboardingTextField(
             "",
             text: $viewModel.name,
-            prompt: String(localized: "Your name")
+            prompt: "Your name".localized
         )
         .focused($isNameFocused)
         .submitLabel(.continue)
@@ -50,12 +50,12 @@ private extension NameScreen {
     }
 
     var continueButton: some View {
-        OnboardingButton("Continue", isEnabled: viewModel.canAdvance) {
+        OnboardingButton("Continue".localized, isEnabled: viewModel.canAdvance) {
             viewModel.advance()
         }
         .opacity(contentAppeared ? 1 : 0)
         .offset(y: contentAppeared ? 0 : SlideOffset.standard)
-        .accessibilityHint(String(localized: "Continues to the next step"))
+        .accessibilityHint("Continues to the next step".localized)
     }
 }
 

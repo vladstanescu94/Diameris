@@ -56,7 +56,7 @@ public struct ExpenseRow: View {
                             amountText = AmountFormatter.formatForEditing(amount)
                         }
                     }
-                    .accessibilityLabel(String(localized: "\(name) amount"))
+                    .accessibilityLabel(String(localized: "\(name) amount", bundle: .module))
             }
         }
         .padding(Spacing.md)

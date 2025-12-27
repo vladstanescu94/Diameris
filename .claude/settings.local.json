@@ -8,7 +8,9 @@
       "Bash(cat:*)",
       "Bash(swift build:*)",
       "Bash(xcodebuild:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(plutil:*)",
+      "Bash(ls:*)"
     ]
   }
 }

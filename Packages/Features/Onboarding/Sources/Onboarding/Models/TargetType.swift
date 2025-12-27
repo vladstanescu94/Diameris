@@ -13,17 +13,17 @@ public enum TargetType: String, CaseIterable, Identifiable, Codable, Sendable {
 
     public var displayName: String {
         switch self {
-        case .incomeMultiplier: return String(localized: "Based on income")
-        case .fixedAmount: return String(localized: "Fixed amount")
-        case .unlimited: return String(localized: "No limit")
+        case .incomeMultiplier: return String(localized: "Based on income", bundle: .module)
+        case .fixedAmount: return String(localized: "Fixed amount", bundle: .module)
+        case .unlimited: return String(localized: "No limit", bundle: .module)
         }
     }
 
     public var description: String {
         switch self {
-        case .incomeMultiplier: return String(localized: "Target is a multiple of your monthly income")
-        case .fixedAmount: return String(localized: "Target is a specific amount")
-        case .unlimited: return String(localized: "Keep saving with no upper limit")
+        case .incomeMultiplier: return String(localized: "Target is a multiple of your monthly income", bundle: .module)
+        case .fixedAmount: return String(localized: "Target is a specific amount", bundle: .module)
+        case .unlimited: return String(localized: "Keep saving with no upper limit", bundle: .module)
         }
     }
 }

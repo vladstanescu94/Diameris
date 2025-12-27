@@ -22,6 +22,9 @@ let package = Package(
         .target(
             name: "Onboarding",
             dependencies: ["DesignSystem", "SharedUI", "Utilities"],
+            resources: [
+                .process("Resources")
+            ],
             swiftSettings: [
                 .swiftLanguageMode(.v6)
             ]

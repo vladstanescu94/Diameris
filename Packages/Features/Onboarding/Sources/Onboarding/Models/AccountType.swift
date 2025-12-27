@@ -12,11 +12,11 @@ public enum AccountType: String, CaseIterable, Identifiable, Codable, Sendable {
 
     public var displayName: String {
         switch self {
-        case .checking: return String(localized: "Checking")
-        case .savings: return String(localized: "Savings")
-        case .personal: return String(localized: "Personal")
-        case .joint: return String(localized: "Joint")
-        case .other: return String(localized: "Other")
+        case .checking: return "Checking".localized
+        case .savings: return "Savings".localized
+        case .personal: return "Personal".localized
+        case .joint: return "Joint".localized
+        case .other: return "Other".localized
         }
     }
 
@@ -32,11 +32,11 @@ public enum AccountType: String, CaseIterable, Identifiable, Codable, Sendable {
 
     public var description: String {
         switch self {
-        case .checking: return String(localized: "Where your salary lands")
-        case .savings: return String(localized: "For your savings goals")
-        case .personal: return String(localized: "Flexible spending money")
-        case .joint: return String(localized: "Shared with someone else")
-        case .other: return String(localized: "Custom account")
+        case .checking: return "Where your salary lands".localized
+        case .savings: return "For your savings goals".localized
+        case .personal: return "Flexible spending money".localized
+        case .joint: return "Shared with someone else".localized
+        case .other: return "Custom account".localized
         }
     }
 }

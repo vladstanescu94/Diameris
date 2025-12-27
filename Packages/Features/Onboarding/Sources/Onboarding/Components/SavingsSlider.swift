@@ -50,7 +50,7 @@ public struct SavingsSlider: View {
             .animation(SpringPreset.responsive, value: displayPercentage)
 
             // Savings amount
-            Text(String(localized: "That's \(AmountFormatter.formatForDisplay(savingsAmount, currency: currency))/month"))
+            Text(String(localized: "That's \(AmountFormatter.formatForDisplay(savingsAmount, currency: currency))/month", bundle: .module))
                 .font(.headline)
                 .foregroundStyle(.secondary)
 
@@ -135,7 +135,7 @@ public struct SavingsSlider: View {
 
                 Spacer()
 
-                Text(String(localized: "25% recommended"))
+                Text("25% recommended".localized)
                     .font(.caption)
                     .foregroundStyle(DiamerisColors.accentSecondary)
 
@@ -151,7 +151,7 @@ public struct SavingsSlider: View {
                 HStack(spacing: Spacing.xxs) {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(DiamerisColors.accentSecondary)
-                    Text(String(localized: "Great savings rate!"))
+                    Text("Great savings rate!".localized)
                         .font(.caption)
                         .fontWeight(.medium)
                         .foregroundStyle(DiamerisColors.accentSecondary)
@@ -163,8 +163,8 @@ public struct SavingsSlider: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(String(localized: "Savings percentage"))
-        .accessibilityValue(String(localized: "\(displayPercentage) percent, \(AmountFormatter.formatForDisplay(savingsAmount, currency: currency)) per month"))
+        .accessibilityLabel("Savings percentage".localized)
+        .accessibilityValue(String(localized: "\(displayPercentage) percent, \(AmountFormatter.formatForDisplay(savingsAmount, currency: currency)) per month", bundle: .module))
         .accessibilityAdjustableAction { direction in
             let step: Double = 0.05
             switch direction {

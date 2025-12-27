@@ -59,7 +59,7 @@ public struct TransferCard: View {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.caption)
                             .foregroundStyle(.green)
-                            .accessibilityLabel(String(localized: "Complete"))
+                            .accessibilityLabel("Complete".localized)
                     }
                 }
 
@@ -143,7 +143,7 @@ extension TransferCard {
     ) {
         self.init(
             title: allocation.goalName,
-            subtitle: allocation.isComplete ? String(localized: "Goal complete this month!") : nil,
+            subtitle: allocation.isComplete ? "Goal complete this month!".localized : nil,
             amount: allocation.amount,
             currency: currency,
             icon: allocation.goalIcon,
@@ -162,8 +162,8 @@ extension TransferCard {
         currency: String
     ) -> TransferCard {
         TransferCard(
-            title: String(localized: "Personal"),
-            subtitle: String(localized: "Flexible spending money"),
+            title: "Personal".localized,
+            subtitle: "Flexible spending money".localized,
             amount: amount,
             currency: currency,
             icon: "person.fill",
@@ -177,8 +177,8 @@ extension TransferCard {
         currency: String
     ) -> TransferCard {
         TransferCard(
-            title: String(localized: "Stays in Main"),
-            subtitle: String(localized: "For automatic payments"),
+            title: "Stays in Main".localized,
+            subtitle: "For automatic payments".localized,
             amount: amount,
             currency: currency,
             icon: "building.columns.fill",

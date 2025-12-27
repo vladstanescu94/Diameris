@@ -29,14 +29,14 @@ private extension IncomeScreen {
         OnboardingHeader(
             icon: "banknote.fill",
             iconColor: DiamerisColors.accentSecondary,
-            title: String(localized: "Nice to meet you, \(viewModel.trimmedName)!"),
-            subtitle: String(localized: "How much lands in your account each month after taxes?")
+            title: String(localized: "Nice to meet you, \(viewModel.trimmedName)!", bundle: .module),
+            subtitle: "How much lands in your account each month after taxes?".localized
         )
     }
 
     var incomeInputSection: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text("Monthly net income", comment: "Label for income input field")
+            Text("Monthly net income".localized)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
@@ -44,14 +44,14 @@ private extension IncomeScreen {
                 amount: $viewModel.monthlyIncome,
                 currency: $viewModel.currency
             )
-            .accessibilityLabel(String(localized: "Monthly income amount"))
+            .accessibilityLabel("Monthly income amount".localized)
         }
         .opacity(contentAppeared ? 1 : 0)
         .offset(y: contentAppeared ? 0 : SlideOffset.standard)
     }
 
     var helperText: some View {
-        Text("This is your starting point — we'll help you decide where every unit goes.", comment: "Helper text explaining why we need income")
+        Text("This is your starting point — we'll help you decide where every unit goes.".localized)
             .font(.caption)
             .foregroundStyle(.secondary)
             .multilineTextAlignment(.center)
@@ -60,12 +60,12 @@ private extension IncomeScreen {
     }
 
     var continueButton: some View {
-        OnboardingButton("Continue", isEnabled: viewModel.canAdvance) {
+        OnboardingButton("Continue".localized, isEnabled: viewModel.canAdvance) {
             viewModel.advance()
         }
         .opacity(contentAppeared ? 1 : 0)
         .offset(y: contentAppeared ? 0 : SlideOffset.standard)
-        .accessibilityHint(String(localized: "Continues to the expenses step"))
+        .accessibilityHint("Continues to the expenses step".localized)
     }
 }
 

@@ -4,12 +4,12 @@ import Utilities
 
 /// Primary onboarding button with haptic feedback
 struct OnboardingButton: View {
-    let title: LocalizedStringKey
+    let title: String
     let isEnabled: Bool
     let action: () -> Void
 
     init(
-        _ title: LocalizedStringKey,
+        _ title: String,
         isEnabled: Bool = true,
         action: @escaping () -> Void
     ) {
@@ -41,10 +41,10 @@ struct OnboardingButton: View {
 
 /// Secondary onboarding button (skip, etc.)
 struct OnboardingSecondaryButton: View {
-    let title: LocalizedStringKey
+    let title: String
     let action: () -> Void
 
-    init(_ title: LocalizedStringKey, action: @escaping () -> Void) {
+    init(_ title: String, action: @escaping () -> Void) {
         self.title = title
         self.action = action
     }

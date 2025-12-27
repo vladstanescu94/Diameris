@@ -96,7 +96,11 @@ public struct ExpenseRow: View {
                     linkedAccountId = nil
                     HapticManager.selectionChanged()
                 } label: {
-                    Label("Main".localized, systemImage: linkedAccountId == nil ? "checkmark" : "")
+                    if linkedAccountId == nil {
+                        Label("Main".localized, systemImage: "checkmark")
+                    } else {
+                        Text("Main".localized)
+                    }
                 }
 
                 Divider()
@@ -107,7 +111,11 @@ public struct ExpenseRow: View {
                         linkedAccountId = account.id
                         HapticManager.selectionChanged()
                     } label: {
-                        Label(account.name, systemImage: linkedAccountId == account.id ? "checkmark" : "")
+                        if linkedAccountId == account.id {
+                            Label(account.name, systemImage: "checkmark")
+                        } else {
+                            Text(account.name)
+                        }
                     }
                 }
             } label: {

@@ -21,8 +21,8 @@ struct ConfettiView: View {
     private let gravity: CGFloat = 0.3
 
     let colors: [Color] = [
-        DiamerisColors.accentPrimaryLight,
-        DiamerisColors.accentSecondaryLight,
+        DiamerisColors.accentPrimary,
+        DiamerisColors.accentSecondary,
         .yellow,
         .orange,
         .pink,
@@ -100,17 +100,17 @@ struct CelebrationRingsView: View {
     var body: some View {
         ZStack {
             Circle()
-                .stroke(DiamerisColors.accentPrimaryLight, lineWidth: 3)
+                .stroke(DiamerisColors.accentPrimary, lineWidth: 3)
                 .scaleEffect(ring1Scale)
                 .opacity(ring1Opacity)
 
             Circle()
-                .stroke(DiamerisColors.accentSecondaryLight, lineWidth: 2)
+                .stroke(DiamerisColors.accentSecondary, lineWidth: 2)
                 .scaleEffect(ring2Scale)
                 .opacity(ring2Opacity)
 
             Circle()
-                .stroke(DiamerisColors.accentPrimaryLight.opacity(Opacity.half), lineWidth: 1.5)
+                .stroke(DiamerisColors.accentPrimary.opacity(Opacity.half), lineWidth: 1.5)
                 .scaleEffect(ring3Scale)
                 .opacity(ring3Opacity)
         }
@@ -146,7 +146,7 @@ struct AnimatedCheckmark: View {
     var body: some View {
         Image(systemName: "checkmark.circle.fill")
             .iconHero()
-            .foregroundStyle(DiamerisColors.accentSecondaryLight)
+            .foregroundStyle(DiamerisColors.accentSecondary)
             .scaleEffect(scale)
             .rotationEffect(.degrees(rotation))
             .opacity(opacity)

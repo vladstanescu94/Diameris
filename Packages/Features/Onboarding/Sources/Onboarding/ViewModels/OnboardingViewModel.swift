@@ -14,22 +14,27 @@ public final class OnboardingViewModel {
     public var expenses: [ExpenseEntry] = [
         ExpenseEntry(name: String(localized: "Food & Groceries"), amount: 0, icon: "cart.fill"),
         ExpenseEntry(name: String(localized: "Rent / Housing"), amount: 0, icon: "house.fill"),
-        ExpenseEntry(name: String(localized: "Transportation"), amount: 0, icon: "car.fill")
+        ExpenseEntry(name: String(localized: "Transportation"), amount: 0, icon: "car.fill"),
+        ExpenseEntry(name: String(localized: "Subscriptions"), amount: 0, icon: "repeat.circle.fill")
     ]
 
-    public var primaryAccountName: String = String(localized: "Main Checking")
-    public var additionalAccounts: [AccountEntry] = []
+    public var accounts: [AccountEntry] = AccountEntry.defaults
+
+    public var savingsGoals: [SavingsGoalEntry] = SavingsGoalEntry.defaults
+    public var savingsAllocation = SavingsAllocationEntry()
 
     // MARK: - Flow State
 
-    public var currentStep: OnboardingStep = .name
+    public var currentStep: OnboardingStep = .welcome
 
     public enum OnboardingStep: Int, CaseIterable, Sendable {
+        case welcome
         case name
         case income
-        case expenses
+        case savingsGoals
         case accounts
-        case complete
+        case expenses
+        case transferPlan
     }
 
     // MARK: - Initialization
@@ -61,15 +66,19 @@ public final class OnboardingViewModel {
 
     public var canAdvance: Bool {
         switch currentStep {
+        case .welcome:
+            return true
         case .name:
             return trimmedName.count >= 1 && trimmedName.count <= 50
         case .income:
             return monthlyIncome > 0
-        case .expenses:
-            return true
+        case .savingsGoals:
+            return true // Goals are optional
         case .accounts:
-            return !primaryAccountName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        case .complete:
+            return accounts.contains { $0.isPrimary }
+        case .expenses:
+            return true // Expenses are optional
+        case .transferPlan:
             return true
         }
     }
@@ -78,15 +87,55 @@ public final class OnboardingViewModel {
         name.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    // MARK: - Computed Properties
+
+    /// All accounts including primary and additional
+    public var allAccounts: [AccountEntry] {
+        accounts
+    }
+
+    /// The primary account where salary lands
+    public var primaryAccount: AccountEntry? {
+        accounts.first { $0.isPrimary }
+    }
+
+    /// Calculated transfer plan based on current inputs
+    public var transferPlan: TransferPlan {
+        TransferCalculator.calculate(
+            income: monthlyIncome,
+            expenses: expenses,
+            goals: savingsGoals,
+            allocation: savingsAllocation,
+            accounts: accounts
+        )
+    }
+
+    // MARK: - Progress Tracking
+
+    public var totalSteps: Int {
+        OnboardingStep.allCases.count
+    }
+
+    public var currentStepIndex: Int {
+        currentStep.rawValue
+    }
+
+    public var progress: Double {
+        guard totalSteps > 1 else { return 0 }
+        return Double(currentStepIndex) / Double(totalSteps - 1)
+    }
+
     // MARK: - Persistence
 
     public func save(context: ModelContext) {
+        // Save user profile
         let userProfile = UserProfile(
             name: trimmedName,
             currencyCode: currency.rawValue
         )
         context.insert(userProfile)
 
+        // Save income
         let income = Income(
             name: String(localized: "Salary"),
             amount: monthlyIncome,
@@ -94,6 +143,7 @@ public final class OnboardingViewModel {
         )
         context.insert(income)
 
+        // Save expenses
         for expense in expenses where expense.amount > 0 {
             let expenseModel = Expense(
                 name: expense.name,
@@ -104,24 +154,40 @@ public final class OnboardingViewModel {
             context.insert(expenseModel)
         }
 
-        let trimmedPrimaryName = primaryAccountName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let primaryAccount = Account(
-            name: trimmedPrimaryName,
-            purpose: nil,
-            isPrimary: true,
-            sortOrder: 0
-        )
-        context.insert(primaryAccount)
-
-        for (index, accountEntry) in additionalAccounts.enumerated() {
+        // Save accounts with types
+        for (index, accountEntry) in accounts.enumerated() {
             let account = Account(
                 name: accountEntry.name,
                 purpose: accountEntry.purpose,
-                isPrimary: false,
-                sortOrder: index + 1
+                isPrimary: accountEntry.isPrimary,
+                sortOrder: index
             )
+            account.accountType = accountEntry.accountType
             context.insert(account)
         }
+
+        // Save savings goals
+        for goal in savingsGoals where goal.isActive {
+            let savingsGoal = SavingsGoal(
+                name: goal.name,
+                icon: goal.icon,
+                targetType: goal.targetType,
+                targetValue: goal.targetValue,
+                currentBalance: goal.currentBalance,
+                priority: goal.priority,
+                linkedAccountId: nil,
+                isActive: goal.isActive
+            )
+            context.insert(savingsGoal)
+        }
+
+        // Save savings allocation
+        let allocation = SavingsAllocation(
+            percentage: savingsAllocation.percentage,
+            boostEnabled: savingsAllocation.boostEnabled,
+            boostMultiplier: savingsAllocation.boostMultiplier
+        )
+        context.insert(allocation)
 
         try? context.save()
     }
@@ -130,3 +196,5 @@ public final class OnboardingViewModel {
 // Supporting types are defined in:
 // - Models/ExpenseEntry.swift
 // - Models/AccountEntry.swift
+// - Models/SavingsGoalEntry.swift
+// - Models/SavingsAllocationEntry.swift

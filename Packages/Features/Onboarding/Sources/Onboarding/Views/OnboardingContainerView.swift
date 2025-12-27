@@ -13,30 +13,83 @@ public struct OnboardingContainerView: View {
     }
 
     public var body: some View {
+        NavigationStack {
+            screenContainer
+                .toolbar { progressToolbarItem }
+                .toolbarVisibility(toolbarVisibility, for: .navigationBar)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { viewModel.dismissKeyboard() }
+        .onChange(of: viewModel.currentStep) { _, _ in
+            HapticManager.selectionChanged()
+        }
+    }
+}
+
+// MARK: - Subviews
+
+private extension OnboardingContainerView {
+    var screenContainer: some View {
         ZStack {
             currentScreen
                 .id(viewModel.currentStep)
                 .transition(screenTransition)
         }
         .animation(SpringPreset.smooth, value: viewModel.currentStep)
-        .safeAreaInset(edge: .top) {
-            OnboardingProgressIndicator(
-                currentStep: viewModel.currentStep,
-                totalSteps: OnboardingViewModel.OnboardingStep.allCases.count
-            )
-            .padding(.top, Spacing.md)
-            .padding(.horizontal, Spacing.lg)
+    }
+
+    @ViewBuilder
+    var currentScreen: some View {
+        switch viewModel.currentStep {
+        case .welcome:
+            WelcomeScreen(viewModel: viewModel)
+        case .name:
+            NameScreen(viewModel: viewModel)
+        case .income:
+            IncomeScreen(viewModel: viewModel)
+        case .savingsGoals:
+            SavingsGoalsScreen(viewModel: viewModel)
+        case .accounts:
+            AccountsScreen(viewModel: viewModel)
+        case .expenses:
+            ExpensesScreen(viewModel: viewModel)
+        case .transferPlan:
+            TransferPlanScreen(viewModel: viewModel) {
+                viewModel.save(context: modelContext)
+                onComplete()
+            }
         }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            viewModel.dismissKeyboard()
-        }
-        .onChange(of: viewModel.currentStep) { _, _ in
-            HapticManager.selectionChanged()
+    }
+}
+
+// MARK: - Toolbar
+
+private extension OnboardingContainerView {
+    @ToolbarContentBuilder
+    var progressToolbarItem: some ToolbarContent {
+        if showsProgressIndicator {
+            ToolbarItem(placement: .principal) {
+                OnboardingProgressIndicator(
+                    currentStep: viewModel.currentStep,
+                    totalSteps: OnboardingViewModel.OnboardingStep.allCases.count - 2
+                )
+            }
         }
     }
 
-    private var screenTransition: AnyTransition {
+    var showsProgressIndicator: Bool {
+        viewModel.currentStep != .welcome && viewModel.currentStep != .transferPlan
+    }
+
+    var toolbarVisibility: Visibility {
+        showsProgressIndicator ? .visible : .hidden
+    }
+}
+
+// MARK: - Transitions
+
+private extension OnboardingContainerView {
+    var screenTransition: AnyTransition {
         .asymmetric(
             insertion: .opacity
                 .combined(with: .scale(scale: ScaleEffect.pressed))
@@ -46,28 +99,16 @@ public struct OnboardingContainerView: View {
                 .combined(with: .offset(x: -SlideOffset.large))
         )
     }
-
-    @ViewBuilder
-    private var currentScreen: some View {
-        switch viewModel.currentStep {
-        case .name:
-            NameScreen(viewModel: viewModel)
-        case .income:
-            IncomeScreen(viewModel: viewModel)
-        case .expenses:
-            ExpensesScreen(viewModel: viewModel)
-        case .accounts:
-            AccountsScreen(viewModel: viewModel)
-        case .complete:
-            CompleteScreen(viewModel: viewModel) {
-                viewModel.save(context: modelContext)
-                onComplete()
-            }
-        }
-    }
 }
 
 #Preview {
     OnboardingContainerView(onComplete: {})
-        .modelContainer(for: [UserProfile.self, Income.self, Expense.self, Account.self], inMemory: true)
+        .modelContainer(for: [
+            UserProfile.self,
+            Income.self,
+            Expense.self,
+            Account.self,
+            SavingsGoal.self,
+            SavingsAllocation.self
+        ], inMemory: true)
 }

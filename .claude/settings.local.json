@@ -7,7 +7,8 @@
       "WebFetch(domain:medium.com)",
       "Bash(cat:*)",
       "Bash(swift build:*)",
-      "Bash(xcodebuild:*)"
+      "Bash(xcodebuild:*)",
+      "Bash(grep:*)"
     ]
   }
 }

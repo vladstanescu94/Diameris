@@ -88,3 +88,11 @@ Diameris/
 - **Testing**: Swift Testing (`import Testing`) for unit tests, XCTest for UI tests
 - **Localization**: English + Romanian (use `String(localized:)` for all user-facing text)
 - **Design**: iOS 26 Liquid Glass - use `.glassEffect()`, `GlassEffectContainer`, `.buttonStyle(.glass)`
+
+## After Deep Changes
+
+After completing significant refactoring, feature implementation, or architectural changes:
+
+1. **Update `Docs/DeveloperRoadmap.md`** - Add completed tasks to the "Completed" table with date and notes
+2. **Add session notes** - Document key learnings, patterns discovered, and files added/modified
+3. **Update relevant docs** - If you learned something new about APIs or patterns, update the relevant documentation file

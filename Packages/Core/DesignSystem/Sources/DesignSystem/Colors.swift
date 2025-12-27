@@ -1,26 +1,34 @@
 import SwiftUI
+import UIKit
 
 // MARK: - Brand Colors
 
-/// Diameris brand color palette
+/// Diameris brand color palette using programmatic adaptive colors.
+/// Colors automatically adapt to light/dark mode without asset catalogs.
 public enum DiamerisColors {
     // MARK: Primary Accent - Magenta/Fuchsia
 
     /// Primary brand accent color (Magenta/Fuchsia)
-    /// Light: #D946EF (Fuchsia-500), Dark: #E879F9 (Fuchsia-400)
-    public static let accentPrimary = Color("AccentPrimary", bundle: .main)
+    /// Automatically adapts: Light #D946EF (Fuchsia-500), Dark #E879F9 (Fuchsia-400)
+    public static let accentPrimary = Color(
+        light: Color(hex: 0xD946EF),
+        dark: Color(hex: 0xE879F9)
+    )
 
-    /// Primary accent as hex for programmatic use
+    /// Primary accent fixed values (for cases where you need non-adaptive colors)
     public static let accentPrimaryLight = Color(hex: 0xD946EF)
     public static let accentPrimaryDark = Color(hex: 0xE879F9)
 
     // MARK: Secondary Accent - Teal/Cyan
 
     /// Secondary brand accent color (Teal/Cyan)
-    /// Light: #06B6D4 (Cyan-500), Dark: #22D3EE (Cyan-400)
-    public static let accentSecondary = Color("AccentSecondary", bundle: .main)
+    /// Automatically adapts: Light #06B6D4 (Cyan-500), Dark #22D3EE (Cyan-400)
+    public static let accentSecondary = Color(
+        light: Color(hex: 0x06B6D4),
+        dark: Color(hex: 0x22D3EE)
+    )
 
-    /// Secondary accent as hex for programmatic use
+    /// Secondary accent fixed values (for cases where you need non-adaptive colors)
     public static let accentSecondaryLight = Color(hex: 0x06B6D4)
     public static let accentSecondaryDark = Color(hex: 0x22D3EE)
 }
@@ -29,7 +37,7 @@ public enum DiamerisColors {
 
 public extension DiamerisColors {
     /// Positive values (income, gains) - uses secondary accent (teal)
-    static let positive = accentSecondaryLight
+    static let positive = accentSecondary
 
     /// Negative values (expenses, losses)
     static let negative = Color.red
@@ -50,6 +58,19 @@ public extension Color {
         let green = Double((hex >> 8) & 0xFF) / 255.0
         let blue = Double(hex & 0xFF) / 255.0
         self.init(red: red, green: green, blue: blue, opacity: opacity)
+    }
+
+    /// Initialize an adaptive Color with separate light and dark mode values.
+    /// Uses UIColor's dynamic provider for proper system integration.
+    init(light: Color, dark: Color) {
+        self.init(UIColor { traitCollection in
+            switch traitCollection.userInterfaceStyle {
+            case .dark:
+                return UIColor(dark)
+            default:
+                return UIColor(light)
+            }
+        })
     }
 }
 

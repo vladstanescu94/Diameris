@@ -1,195 +1,151 @@
 import SwiftUI
 import DesignSystem
 
+/// Screen for setting up accounts with smart defaults.
 struct AccountsScreen: View {
     @Bindable var viewModel: OnboardingViewModel
     @State private var showingAddAccount = false
-    @State private var newAccountName = ""
-    @State private var newAccountPurpose = ""
     @State private var contentAppeared = false
+    @State private var accountsAppeared = false
 
     var body: some View {
-        VStack(spacing: Spacing.xl) {
-            Spacer()
-
-            OnboardingHeader(
-                icon: "building.columns.fill",
-                iconColor: DiamerisColors.accentSecondaryLight,
-                title: String(localized: "Where does your income arrive?"),
-                subtitle: String(localized: "Set up your accounts to track where your money goes.")
-            )
-
-            VStack(alignment: .leading, spacing: Spacing.md) {
-                VStack(alignment: .leading, spacing: Spacing.xs) {
-                    Text("Primary Account", comment: "Label for primary bank account input")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-
-                    OnboardingTextField(
-                        "",
-                        text: $viewModel.primaryAccountName,
-                        prompt: String(localized: "Main Checking")
-                    )
-                    .accessibilityLabel(String(localized: "Primary account name"))
-
-                    Text("This is where your salary lands.", comment: "Helper text for primary account")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
-
-                if !viewModel.additionalAccounts.isEmpty {
-                    Divider()
-
-                    Text("Additional Accounts", comment: "Section header for additional accounts")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-
-                    GlassEffectContainer {
-                        VStack(spacing: Spacing.sm) {
-                            ForEach(viewModel.additionalAccounts) { account in
-                                HStack {
-                                    VStack(alignment: .leading, spacing: Spacing.xxs) {
-                                        Text(account.name)
-                                            .font(.body)
-                                        if let purpose = account.purpose, !purpose.isEmpty {
-                                            Text(purpose)
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                        }
-                                    }
-                                    Spacer()
-                                    Button {
-                                        withAnimation(SpringPreset.responsive) {
-                                            viewModel.additionalAccounts.removeAll { $0.id == account.id }
-                                        }
-                                        HapticManager.lightTap()
-                                    } label: {
-                                        Image(systemName: "xmark.circle.fill")
-                                            .foregroundStyle(.secondary)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .accessibilityLabel(String(localized: "Remove \(account.name)"))
-                                }
-                                .padding(Spacing.sm)
-                                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: CornerRadius.small))
-                                .transition(.scale.combined(with: .opacity))
-                            }
-                        }
-                    }
-                }
-
-                Button {
-                    HapticManager.lightTap()
-                    showingAddAccount = true
-                } label: {
-                    Label {
-                        Text("Add Account", comment: "Button to add a new account")
-                    } icon: {
-                        Image(systemName: "plus.circle.fill")
-                    }
-                    .font(.subheadline)
-                }
-                .buttonStyle(.glass)
-                .accessibilityHint(String(localized: "Opens a sheet to add a new account"))
+        ScrollView {
+            VStack(spacing: Spacing.xl) {
+                header
+                accountsSection
+                helperText
+                continueButton
             }
-            .opacity(contentAppeared ? 1 : 0)
-            .offset(y: contentAppeared ? 0 : SlideOffset.standard)
-
-            Spacer()
-
-            OnboardingButton("Continue", isEnabled: viewModel.canAdvance) {
-                viewModel.advance()
-            }
-            .opacity(contentAppeared ? 1 : 0)
-            .offset(y: contentAppeared ? 0 : SlideOffset.standard)
-            .accessibilityHint(String(localized: "Continues to complete onboarding"))
+            .padding(Spacing.lg)
         }
-        .padding(Spacing.lg)
         .sheet(isPresented: $showingAddAccount) {
-            addAccountSheet
-        }
-        .onAppear {
-            withAnimation(SpringPreset.smooth.delay(StaggerDelay.initial)) {
-                contentAppeared = true
+            AddAccountSheet(isPresented: $showingAddAccount) { name, type in
+                addAccount(name: name, type: type)
             }
+        }
+        .onAppear { triggerAnimations() }
+    }
+}
+
+// MARK: - Subviews
+
+private extension AccountsScreen {
+    var header: some View {
+        OnboardingHeader(
+            icon: "building.columns.fill",
+            iconColor: DiamerisColors.accentSecondary,
+            title: String(localized: "Where does your money live?"),
+            subtitle: String(localized: "We've set up some common accounts. Adjust them to match your setup.")
+        )
+    }
+
+    var accountsSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            sectionTitle
+            accountsList
+            addAccountButton
+        }
+        .opacity(contentAppeared ? 1 : 0)
+    }
+
+    var sectionTitle: some View {
+        Text(String(localized: "Your Accounts"))
+            .font(.headline)
+            .opacity(accountsAppeared ? 1 : 0)
+    }
+
+    var accountsList: some View {
+        ForEach(Array(viewModel.accounts.enumerated()), id: \.element.id) { index, account in
+            AccountRow(
+                account: account,
+                isPrimary: account.isPrimary,
+                onTypeChange: { newType in
+                    viewModel.accounts[index].accountType = newType
+                },
+                onNameChange: { newName in
+                    viewModel.accounts[index].name = newName
+                },
+                onDelete: account.isPrimary ? nil : {
+                    withAnimation(SpringPreset.responsive) {
+                        viewModel.accounts.remove(at: index)
+                    }
+                    HapticManager.lightTap()
+                }
+            )
+            .opacity(accountsAppeared ? 1 : 0)
+            .offset(y: accountsAppeared ? 0 : SlideOffset.small)
+            .animation(
+                SpringPreset.responsive.delay(Double(index) * StaggerDelay.standard),
+                value: accountsAppeared
+            )
         }
     }
 
-    private var addAccountSheet: some View {
-        NavigationStack {
-            VStack(spacing: Spacing.lg) {
-                OnboardingTextField(
-                    String(localized: "Account Name"),
-                    text: $newAccountName,
-                    prompt: String(localized: "e.g., Emergency Fund")
-                )
-                .accessibilityLabel(String(localized: "Account name"))
-
-                OnboardingTextField(
-                    String(localized: "Purpose (optional)"),
-                    text: $newAccountPurpose,
-                    prompt: String(localized: "e.g., 3x salary safety net")
-                )
-                .accessibilityLabel(String(localized: "Account purpose"))
-
-                Text("Quick suggestions", comment: "Label for account name suggestions")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                HStack(spacing: Spacing.sm) {
-                    ForEach([
-                        String(localized: "Emergency"),
-                        String(localized: "Savings"),
-                        String(localized: "Joint")
-                    ], id: \.self) { suggestion in
-                        Button(suggestion) {
-                            newAccountName = suggestion
-                        }
-                        .buttonStyle(.glass)
-                        .font(.caption)
-                    }
-                }
-
-                Spacer()
+    var addAccountButton: some View {
+        Button {
+            HapticManager.lightTap()
+            showingAddAccount = true
+        } label: {
+            Label {
+                Text(String(localized: "Add Another Account"))
+            } icon: {
+                Image(systemName: "plus.circle.fill")
             }
-            .padding(Spacing.lg)
-            .navigationTitle(String(localized: "Add Account"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(String(localized: "Cancel")) {
-                        newAccountName = ""
-                        newAccountPurpose = ""
-                        showingAddAccount = false
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(String(localized: "Add")) {
-                        let trimmedName = newAccountName.trimmingCharacters(in: .whitespacesAndNewlines)
-                        let trimmedPurpose = newAccountPurpose.trimmingCharacters(in: .whitespacesAndNewlines)
-                        if !trimmedName.isEmpty {
-                            viewModel.additionalAccounts.append(
-                                AccountEntry(
-                                    name: trimmedName,
-                                    purpose: trimmedPurpose.isEmpty ? nil : trimmedPurpose
-                                )
-                            )
-                        }
-                        newAccountName = ""
-                        newAccountPurpose = ""
-                        showingAddAccount = false
-                    }
-                    .disabled(newAccountName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-            }
+            .font(.subheadline)
         }
-        .presentationDetents([.medium])
+        .buttonStyle(.glass)
+        .opacity(accountsAppeared ? 1 : 0)
+        .accessibilityHint(String(localized: "Opens a sheet to add a new account"))
+    }
+
+    var helperText: some View {
+        HStack(spacing: Spacing.xs) {
+            Image(systemName: "info.circle")
+                .font(.caption)
+                .foregroundStyle(DiamerisColors.accentSecondary)
+
+            Text(String(localized: "Your primary account is where your salary lands"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .opacity(contentAppeared ? 1 : 0)
+    }
+
+    var continueButton: some View {
+        OnboardingButton("Continue", isEnabled: viewModel.canAdvance) {
+            viewModel.advance()
+        }
+        .padding(.top, Spacing.xl)
+    }
+}
+
+// MARK: - Actions
+
+private extension AccountsScreen {
+    func addAccount(name: String, type: AccountType) {
+        viewModel.accounts.append(
+            AccountEntry(name: name, accountType: type)
+        )
+    }
+}
+
+// MARK: - Animations
+
+private extension AccountsScreen {
+    func triggerAnimations() {
+        withAnimation(SpringPreset.smooth.delay(StaggerDelay.initial)) {
+            contentAppeared = true
+        }
+
+        withAnimation(SpringPreset.responsive.delay(StaggerDelay.initial + AnimationDuration.fast)) {
+            accountsAppeared = true
+        }
     }
 }
 
 #Preview {
     let vm = OnboardingViewModel()
     vm.name = "Vlad"
+    vm.accounts = AccountEntry.defaults
     return AccountsScreen(viewModel: vm)
 }

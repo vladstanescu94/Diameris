@@ -43,6 +43,21 @@ This document tracks implementation progress. **Update this file after completin
 | Tap-to-dismiss keyboard | 2025-12-22 | `.contentShape(Rectangle())` + `.onTapGesture` on OnboardingContainerView |
 | Keyboard-aware transitions | 2025-12-22 | Dismiss keyboard + 150ms delay before screen transitions |
 | Swift 6 concurrency fix | 2025-12-22 | `@MainActor` on ViewModel, `Task.sleep` instead of DispatchQueue |
+| Onboarding redesign | 2025-12-27 | 7-screen flow: Welcome → Name → Income → Savings Goals → Accounts → Expenses → Transfer Plan |
+| WelcomeScreen | 2025-12-27 | Hero icon with glow, value proposition bullets, animated entrance |
+| SavingsGoalsScreen | 2025-12-27 | Goal cards with progress rings, savings percentage slider, boost toggle |
+| TransferPlanScreen | 2025-12-27 | Personalized transfer plan with celebration effects, replaces CompleteScreen |
+| New SwiftData models | 2025-12-27 | SavingsGoal, SavingsAllocation models for persistence |
+| New onboarding models | 2025-12-27 | SavingsGoalEntry, SavingsAllocationEntry, AccountType enum |
+| TransferCalculator | 2025-12-27 | Utility to calculate monthly transfer plan from income/expenses/goals |
+| New UI components | 2025-12-27 | ProgressRing, GoalCard, TransferCard, SavingsSlider, GoalTargetPicker, AccountTypeSelector |
+| Programmatic adaptive colors | 2025-12-27 | `Color(light:dark:)` initializer using `UIColor(dynamicProvider:)` - best practice for SPM |
+| Colors.swift refactor | 2025-12-27 | Replaced asset catalog lookup (`bundle: .main`) with programmatic adaptive colors |
+| Progress bar constants | 2025-12-27 | Added `progressBarMaxWidth`, `progressIndicatorHeight`, `progressBarWidthFraction`, `progressMinFillScale` |
+| Toolbar progress indicator | 2025-12-27 | Moved progress indicator to NavigationStack toolbar for native scroll edge blur |
+| Adaptive color migration | 2025-12-27 | Updated 16 onboarding files to use `accentPrimary`/`accentSecondary` instead of `*Light` variants |
+| Clean code refactoring | 2025-12-27 | Extracted subviews, split files, applied SRP to TransferCalculator, views, and components |
+| Clean body pattern | 2025-12-27 | All onboarding screens now have clean bodies with view props in private extensions |
 
 ### In Progress
 
@@ -181,6 +196,98 @@ Based on [Architecture.md](./Architecture.md)
 - Removed auto-focus from `NameScreen`
 - Added `RootView` in `DiamerisApp.swift` with proper state management for transitions
 - Added `onChange` to sync `showMainTab` when onboarding is reset
+
+### 2025-12-27 - Onboarding Redesign & Color System Session
+
+**Focus:** Complete redesign of onboarding flow with savings goals, transfer planning, and proper SPM color handling.
+
+**Major Changes:**
+1. **7-screen onboarding flow:** Welcome → Name → Income → Savings Goals → Accounts → Expenses → Transfer Plan
+2. **New SwiftData models:** `SavingsGoal`, `SavingsAllocation` for persisting user's savings configuration
+3. **Transfer Calculator:** Computes personalized monthly transfer plan based on income, expenses, and goals
+4. **Programmatic adaptive colors:** Replaced `Color("Name", bundle: .main)` with `Color(light:dark:)` using `UIColor(dynamicProvider:)` - works in both app and SPM previews
+
+**New Components:**
+- `ProgressRing` - Circular progress with animated fill
+- `GoalCard` - Displays savings goal with progress and balance input
+- `TransferCard` - Shows individual transfer in the plan
+- `SavingsSlider` - Custom slider for savings percentage (5-50%)
+- `GoalTargetPicker` - Multiplier selector for income-based targets
+- `AccountTypeSelector` - Compact/full picker for account types
+
+**Key Learnings:**
+1. **SPM + Asset Catalog colors:** `bundle: .main` works at runtime but fails in SPM previews. Best practice is programmatic adaptive colors via `UIColor(dynamicProvider:)`.
+2. **containerRelativeFrame in toolbars:** Doesn't work - toolbars don't provide a container context. Use fixed widths for toolbar items.
+3. **NavigationStack toolbar for scroll blur:** Placing progress indicator in `.toolbar(.principal)` gives native iOS 26 scroll edge blur effect.
+
+**Files Added:**
+- Views: `WelcomeScreen`, `SavingsGoalsScreen`, `TransferPlanScreen`
+- Components: `ProgressRing`, `GoalCard`, `TransferCard`, `SavingsSlider`, `GoalTargetPicker`, `AccountTypeSelector`
+- Models: `SavingsGoal`, `SavingsAllocation`, `SavingsGoalEntry`, `SavingsAllocationEntry`, `AccountType`
+- Utils: `TransferCalculator`
+
+**Files Removed:**
+- `CompleteScreen.swift` - Replaced by `TransferPlanScreen`
+
+### 2025-12-27 - Clean Code Refactoring Session
+
+**Focus:** Apply SOLID principles and clean code practices to onboarding files without changing functionality.
+
+**Refactoring Applied:**
+1. **Single Responsibility Principle:** Extracted types to their own files
+2. **Private Extensions with MARK:** Organized large views into logical sections
+3. **Smaller Files:** Split complex files into focused components
+
+**Files Created:**
+- `Models/TransferPlan.swift` - Extracted from TransferCalculator (TransferPlan struct, GoalAllocation, ProgressInfo)
+- `Models/TargetType.swift` - Extracted from SavingsGoalEntry (enum for goal target types)
+- `Components/AccountRow.swift` - Extracted from AccountsScreen (reusable account row with type selector)
+
+**Files Refactored:**
+- `TransferCalculator.swift` - Now only contains calculator logic; private extension with helpers (`distributeToGoals`, `calculateAllocation`, etc.)
+- `TransferPlanScreen.swift` - Organized with private extensions: Main Content, Header Section, Income Hero Card, Transfer Cards Section, Verification & Tip, Complete Button, Animations
+- `SavingsGoalsScreen.swift` - Organized with private extensions: Header, Goals Section, Divider, Allocation Section, Savings Preview, Action Buttons, Animations
+- `WelcomeScreen.swift` - Organized with private extensions: Hero Icon, Content Section, Value Bullets, CTA Button, Animations
+- `AccountsScreen.swift` - Removed AccountRow (now in separate file), cleaned up structure
+
+**Key Patterns:**
+- Use `private extension` to group related computed properties and methods
+- Use `// MARK: -` comments for clear section navigation in Xcode
+- Extract nested structs/enums to separate files when they represent distinct concepts
+- Keep convenience initializers and static factory methods in extensions
+
+### 2025-12-27 - Clean Body Pattern Session
+
+**Focus:** Apply clean body pattern to all SwiftUI views - extract subviews as view props, move larger components to own files.
+
+**Pattern Applied:**
+```swift
+var body: some View {
+    VStack {
+        header           // View prop
+        contentSection   // View prop
+        actionButtons    // View prop
+    }
+    .onAppear { triggerAnimations() }
+}
+```
+
+**Files Refactored:**
+- `NameScreen.swift` - Extracted `header`, `nameTextField`, `continueButton`
+- `IncomeScreen.swift` - Extracted `header`, `incomeInputSection`, `helperText`, `continueButton`
+- `ExpensesScreen.swift` - Extracted `header`, `expensesList`, `impactDisplay`, `impactHeader`, `impactAmount`, `helperText`, `actionButtons`
+- `AccountsScreen.swift` - Extracted `header`, `accountsSection`, `sectionTitle`, `accountsList`, `addAccountButton`, `helperText`, `continueButton`
+- `OnboardingContainerView.swift` - Extracted `screenContainer`, `currentScreen`, `progressToolbarItem`, `showsProgressIndicator`, `toolbarVisibility`, `screenTransition`
+
+**Files Created:**
+- `Components/AddAccountSheet.swift` - Extracted large sheet from AccountsScreen (60+ lines)
+
+**Key Learnings:**
+- Bodies should read like an outline of the view's structure
+- Use `@ViewBuilder` for conditional content (`impactDisplay`)
+- Use `@ToolbarContentBuilder` for conditional toolbar items
+- Extract sheets >40 lines to own files
+- Computed properties go in their own MARK section (`// MARK: - Computed Properties`)
 
 ---
 

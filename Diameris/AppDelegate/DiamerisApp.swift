@@ -17,7 +17,9 @@ struct DiamerisApp: App {
             UserProfile.self,
             Income.self,
             Expense.self,
-            Account.self
+            Account.self,
+            SavingsGoal.self,
+            SavingsAllocation.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

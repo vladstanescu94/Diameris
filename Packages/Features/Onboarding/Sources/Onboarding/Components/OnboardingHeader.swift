@@ -108,7 +108,7 @@ private struct IconSizeModifier: ViewModifier {
     VStack(spacing: Spacing.xxl) {
         OnboardingHeader(
             icon: "person.circle.fill",
-            iconColor: DiamerisColors.accentPrimaryLight,
+            iconColor: DiamerisColors.accentPrimary,
             title: "What should we call you?",
             subtitle: "We'll use this to personalize your experience."
         )
@@ -117,7 +117,7 @@ private struct IconSizeModifier: ViewModifier {
 
         OnboardingHeader(
             icon: "checkmark.circle.fill",
-            iconColor: DiamerisColors.accentSecondaryLight,
+            iconColor: DiamerisColors.accentSecondary,
             title: "You're all set!",
             subtitle: nil,
             useHeroIcon: true

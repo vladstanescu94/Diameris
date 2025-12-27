@@ -61,8 +61,17 @@ public enum ComponentSize {
     /// 18pt - Progress indicator outer ring size
     public static let progressRingSize: CGFloat = 18
 
-    /// 200pt - Maximum progress bar width
-    public static let progressBarMaxWidth: CGFloat = 200
+    /// 280pt - Maximum progress bar width
+    public static let progressBarMaxWidth: CGFloat = 280
+
+    /// 24pt - Progress indicator container height
+    public static let progressIndicatorHeight: CGFloat = 24
+
+    /// 0.6 - Progress bar width as fraction of container
+    public static let progressBarWidthFraction: CGFloat = 0.6
+
+    /// 0.05 - Minimum progress fill scale (ensures visibility at 0%)
+    public static let progressMinFillScale: CGFloat = 0.05
 }
 
 // MARK: - Opacity Constants

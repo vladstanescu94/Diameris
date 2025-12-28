@@ -2,6 +2,7 @@ import SwiftUI
 import DesignSystem
 import SharedUI
 import Utilities
+import Domain
 
 /// A row displaying an account with editable properties based on account type.
 struct AccountRow: View {

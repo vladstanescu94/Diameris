@@ -1,6 +1,7 @@
 import SwiftUI
 import DesignSystem
 import Utilities
+import Domain
 
 /// Screen for entering main expenses with impact display.
 struct ExpensesScreen: View {

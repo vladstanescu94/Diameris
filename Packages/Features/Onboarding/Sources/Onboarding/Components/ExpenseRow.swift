@@ -1,6 +1,7 @@
 import SwiftUI
 import DesignSystem
 import Utilities
+import Domain
 
 public struct ExpenseRow: View {
     let icon: String

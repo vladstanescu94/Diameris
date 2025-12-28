@@ -1,6 +1,7 @@
 import SwiftUI
 import DesignSystem
 import Utilities
+import Domain
 
 /// Screen for setting up accounts with guided prompts for emergency and savings.
 struct AccountsScreen: View {

@@ -1,16 +1,14 @@
 // swift-tools-version: 6.2
-
 import PackageDescription
 
 let package = Package(
-    name: "Onboarding",
-    platforms: [
-        .iOS(.v26)
-    ],
+    name: "Dashboard",
+    defaultLocalization: "en",
+    platforms: [.iOS(.v26)],
     products: [
         .library(
-            name: "Onboarding",
-            targets: ["Onboarding"]
+            name: "Dashboard",
+            targets: ["Dashboard"]
         )
     ],
     dependencies: [
@@ -21,8 +19,13 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "Onboarding",
-            dependencies: ["DesignSystem", "SharedUI", "Utilities", "Domain"],
+            name: "Dashboard",
+            dependencies: [
+                "DesignSystem",
+                "SharedUI",
+                "Utilities",
+                "Domain"
+            ],
             resources: [
                 .process("Resources")
             ],
@@ -31,8 +34,8 @@ let package = Package(
             ]
         ),
         .testTarget(
-            name: "OnboardingTests",
-            dependencies: ["Onboarding"]
+            name: "DashboardTests",
+            dependencies: ["Dashboard"]
         )
     ]
 )

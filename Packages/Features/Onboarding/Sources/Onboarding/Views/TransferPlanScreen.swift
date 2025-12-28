@@ -2,6 +2,7 @@ import SwiftUI
 import DesignSystem
 import SharedUI
 import Utilities
+import Domain
 
 /// The payoff screen - shows the user's personalized transfer plan.
 struct TransferPlanScreen: View {

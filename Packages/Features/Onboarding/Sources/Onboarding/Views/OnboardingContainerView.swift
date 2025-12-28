@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 import DesignSystem
 import Utilities
+import Domain
 
 public struct OnboardingContainerView: View {
     @State private var viewModel = OnboardingViewModel()

@@ -18,6 +18,9 @@ public enum ComponentSize {
     /// 120pt - Medium input field width
     public static let mediumInputWidth: CGFloat = 120
 
+    /// 160pt - Balance input field width (for currency amounts with formatting)
+    public static let balanceInputWidth: CGFloat = 160
+
     // MARK: - Progress Indicators
 
     /// 8pt - Small progress dot size

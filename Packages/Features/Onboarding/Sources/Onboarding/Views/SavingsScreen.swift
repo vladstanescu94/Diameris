@@ -2,6 +2,7 @@ import SwiftUI
 import DesignSystem
 import SharedUI
 import Utilities
+import Domain
 
 /// Screen for setting up savings allocation percentage.
 /// Simplified version - account types now drive savings distribution.

@@ -1,6 +1,7 @@
 import SwiftUI
 import DesignSystem
 import Utilities
+import Domain
 
 /// Picker for selecting where remaining money after savings should go.
 struct RemainingMoneyPicker: View {

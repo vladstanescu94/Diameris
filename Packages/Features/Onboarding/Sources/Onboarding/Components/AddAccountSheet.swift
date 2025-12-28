@@ -1,6 +1,7 @@
 import SwiftUI
 import DesignSystem
 import Utilities
+import Domain
 
 /// Sheet for adding a new account during onboarding.
 struct AddAccountSheet: View {

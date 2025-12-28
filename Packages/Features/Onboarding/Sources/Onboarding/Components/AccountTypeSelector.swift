@@ -1,6 +1,7 @@
 import SwiftUI
 import DesignSystem
 import Utilities
+import Domain
 
 /// Selector for choosing account type.
 public struct AccountTypeSelector: View {

@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import Domain
 
 @Model
 public final class Account {

@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		DE0EA2DF2EF9882C0037FB3A /* DesignSystem in Frameworks */ = {isa = PBXBuildFile; productRef = DE0EA2DE2EF9882C0037FB3A /* DesignSystem */; };
 		DE0EA2E82EF98E7C0037FB3A /* Onboarding in Frameworks */ = {isa = PBXBuildFile; productRef = DE0EA2E72EF98E7C0037FB3A /* Onboarding */; };
+		DE6CCDBF2F018349005B3DFA /* Domain in Frameworks */ = {isa = PBXBuildFile; productRef = DE6CCDBE2F018349005B3DFA /* Domain */; };
+		DE6CCDC22F018354005B3DFA /* Dashboard in Frameworks */ = {isa = PBXBuildFile; productRef = DE6CCDC12F018354005B3DFA /* Dashboard */; };
 		DEFC41CA2EFFEBA2009AA81A /* SharedUI in Frameworks */ = {isa = PBXBuildFile; productRef = DEFC41C92EFFEBA2009AA81A /* SharedUI */; };
 		DEFC41CD2EFFEBAD009AA81A /* Utilities in Frameworks */ = {isa = PBXBuildFile; productRef = DEFC41CC2EFFEBAD009AA81A /* Utilities */; };
 /* End PBXBuildFile section */
@@ -59,10 +61,12 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DE6CCDBF2F018349005B3DFA /* Domain in Frameworks */,
 				DEFC41CA2EFFEBA2009AA81A /* SharedUI in Frameworks */,
 				DEFC41CD2EFFEBAD009AA81A /* Utilities in Frameworks */,
 				DE0EA2DF2EF9882C0037FB3A /* DesignSystem in Frameworks */,
 				DE0EA2E82EF98E7C0037FB3A /* Onboarding in Frameworks */,
+				DE6CCDC22F018354005B3DFA /* Dashboard in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -127,6 +131,8 @@
 				DE0EA2E72EF98E7C0037FB3A /* Onboarding */,
 				DEFC41C92EFFEBA2009AA81A /* SharedUI */,
 				DEFC41CC2EFFEBAD009AA81A /* Utilities */,
+				DE6CCDBE2F018349005B3DFA /* Domain */,
+				DE6CCDC12F018354005B3DFA /* Dashboard */,
 			);
 			productName = Diameris;
 			productReference = DE0EA2AA2EF963440037FB3A /* Diameris.app */;
@@ -216,6 +222,8 @@
 				DE0EA2E62EF98E7C0037FB3A /* XCLocalSwiftPackageReference "Packages/Features/Onboarding" */,
 				DEFC41C82EFFEBA2009AA81A /* XCLocalSwiftPackageReference "Packages/Core/SharedUI" */,
 				DEFC41CB2EFFEBAD009AA81A /* XCLocalSwiftPackageReference "Packages/Core/Utilities" */,
+				DE6CCDBD2F018349005B3DFA /* XCLocalSwiftPackageReference "Packages/Core/Domain" */,
+				DE6CCDC02F018354005B3DFA /* XCLocalSwiftPackageReference "Packages/Features/Dashboard" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = DE0EA2AB2EF963440037FB3A /* Products */;
@@ -614,6 +622,14 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/Features/Onboarding;
 		};
+		DE6CCDBD2F018349005B3DFA /* XCLocalSwiftPackageReference "Packages/Core/Domain" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/Core/Domain;
+		};
+		DE6CCDC02F018354005B3DFA /* XCLocalSwiftPackageReference "Packages/Features/Dashboard" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/Features/Dashboard;
+		};
 		DEFC41C82EFFEBA2009AA81A /* XCLocalSwiftPackageReference "Packages/Core/SharedUI" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/Core/SharedUI;
@@ -632,6 +648,14 @@
 		DE0EA2E72EF98E7C0037FB3A /* Onboarding */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Onboarding;
+		};
+		DE6CCDBE2F018349005B3DFA /* Domain */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Domain;
+		};
+		DE6CCDC12F018354005B3DFA /* Dashboard */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Dashboard;
 		};
 		DEFC41C92EFFEBA2009AA81A /* SharedUI */ = {
 			isa = XCSwiftPackageProductDependency;

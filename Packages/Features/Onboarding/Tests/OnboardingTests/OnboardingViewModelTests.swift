@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import Onboarding
 import Utilities
+import Domain
 
 /// Tests for OnboardingViewModel - validates the 7-screen onboarding flow,
 /// state management, and computed properties.

@@ -47,9 +47,11 @@ private extension CurrencyAmountField {
                 HStack(spacing: Spacing.xxs) {
                     Text(currency.rawValue)
                         .font(.headline)
+                        .lineLimit(1)
                     Image(systemName: "chevron.up.chevron.down")
                         .font(.caption)
                 }
+                .fixedSize(horizontal: true, vertical: false)
             }
             .buttonStyle(.glass)
             .accessibilityLabel(String(localized: "Currency: \(currency.displayName)"))
@@ -57,6 +59,8 @@ private extension CurrencyAmountField {
         } else {
             Text(currency.rawValue)
                 .font(.headline)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
                 .padding(.horizontal, Spacing.sm)
         }
     }

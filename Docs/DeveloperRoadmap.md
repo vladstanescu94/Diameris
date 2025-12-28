@@ -78,18 +78,25 @@ This document tracks implementation progress. **Update this file after completin
 | Savings boost safeguard | 2025-12-28 | Prevent enabling 3x boost if boosted savings would exceed available income (>33.3%) |
 | Romanian localization update | 2025-12-28 | Added 46 new Romanian translations for account system redesign strings; fixed "se umple" → "se completează" for consistency |
 | Test coverage expansion | 2025-12-28 | Added 217 tests across Onboarding (158) and Utilities (49) packages; Swift Testing framework patterns |
+| Core/Domain package | 2025-12-28 | Extracted business logic from Onboarding: AccountType, AccountEntry, ExpenseEntry, SavingsAllocationEntry, RemainingMoneyDestination, TransferPlan, TransferCalculator |
+| Dashboard package | 2025-12-28 | `Packages/Features/Dashboard/` with DashboardView, DashboardViewModel, NewMonthSheet, 3-step flow |
+| Dashboard components | 2025-12-28 | SummaryCard, EmergencyProgressCard, AccountBalancesRow, ExpenseBreakdownCard |
+| NewMonthFlow | 2025-12-28 | 3-step modal: SalaryEntryStep → ReconcileAccountsStep → TransferPlanStep |
+| MonthlyRecord model | 2025-12-28 | SwiftData model for tracking monthly financial snapshots |
+| Dashboard integration | 2025-12-28 | MainTabView updated to use real DashboardView; data bridging from SwiftData to Dashboard |
 
 ### In Progress
 
 | Task | Notes |
 |------|-------|
-| — | — |
+| Link Dashboard to target | Add Dashboard framework to Diameris target in Xcode (Frameworks, Libraries, and Embedded Content) |
 
 ### Next Up
 
 | Priority | Task | Reference |
 |----------|------|-----------|
-| 1 | Implement Dashboard feature | Main summary view after onboarding |
+| 1 | Link Dashboard in Xcode | Add Dashboard to target's "Frameworks, Libraries, and Embedded Content" |
+| 2 | Test Dashboard integration | Run app and verify Dashboard displays data |
 | 3 | Implement Budget feature | Income/expense management |
 
 ---
@@ -127,12 +134,11 @@ Based on [Architecture.md](./Architecture.md)
 | Core | DesignSystem | Done | Colors, spacing, corner radii, icon sizes, glass helpers, animation constants |
 | Core | Utilities | Done | HapticManager, AmountFormatter, Currency |
 | Core | SharedUI | Done | CelebrationEffect, ProgressRing, CurrencyAmountField |
-| Domain | Entities | Not Started | Pure Swift business models (may extract from Onboarding later) |
-| Domain | UseCases | Not Started | Business logic |
+| Core | Domain | Done | AccountType, AccountEntry, ExpenseEntry, SavingsAllocationEntry, RemainingMoneyDestination, TransferPlan, TransferCalculator |
 | Domain | Repositories | Not Started | Protocol definitions |
 | Platform | Persistence | Not Started | SwiftData implementations |
-| Features | Onboarding | Done | 5-screen flow, SwiftData models, ViewModel, microinteractions, celebrations |
-| Features | Dashboard | Not Started | Placeholder view created |
+| Features | Onboarding | Done | 7-screen flow, SwiftData models, ViewModel, microinteractions, celebrations |
+| Features | Dashboard | Done | DashboardView, NewMonthSheet, 3-step flow, MonthlyRecord model |
 | Features | Budget | Not Started | Placeholder view created |
 | Features | Goals | Not Started | Placeholder view created |
 | Features | Transfers | Not Started | Placeholder view created |
@@ -608,6 +614,63 @@ Package/Tests/PackageTests/
 ├── ModuleNameTests.swift       # Main test file for that module
 └── FeatureNameTests.swift      # Feature-specific tests
 ```
+
+### 2025-12-28 - Dashboard Feature Implementation Session
+
+**Focus:** Build the Dashboard feature as the central hub for monthly financial flow.
+
+**Architecture Changes:**
+1. **Created Core/Domain package:** Extracted shared business logic from Onboarding to ensure Dashboard doesn't duplicate code
+   - Moved: AccountType, AccountEntry, ExpenseEntry, SavingsAllocationEntry, RemainingMoneyDestination, TransferPlan, TransferCalculator
+   - Updated Onboarding to depend on Domain
+   - All 158 Onboarding tests still pass after extraction
+
+2. **Created Features/Dashboard package:** New feature package with proper dependencies
+   - Dependencies: Domain, DesignSystem, SharedUI, Utilities
+   - Folder structure: Views, ViewModels, Components, Models, Utils, Resources
+
+**Dashboard Components Created:**
+- `DashboardView` - Main tab content with financial summary
+- `DashboardViewModel` - State management and data bridging
+- `SummaryCard` - Income/expenses/available breakdown
+- `EmergencyProgressCard` - Progress ring + emergency fund info
+- `AccountBalancesRow` - Compact account balance display
+- `ExpenseBreakdownCard` - Expense category breakdown
+
+**NewMonthFlow (3-step modal):**
+- `NewMonthSheet` - Container with step navigation
+- `SalaryEntryStep` - Enter monthly salary
+- `ReconcileAccountsStep` - Update account balances (emergency, savings, personal)
+- `TransferPlanStep` - Review and confirm transfers
+
+**Data Models:**
+- `MonthlyRecord` (SwiftData) - Tracks monthly financial snapshots
+- `AccountSnapshot` (Codable) - Embedded in MonthlyRecord
+- `DashboardAccount` / `DashboardExpense` - Simplified view models
+
+**Integration:**
+- MainTabView updated to use real DashboardView
+- Data bridging: SwiftData models → DashboardViewModel via direct property assignment
+- Dashboard package added to Xcode project
+
+**Package Structure After Session:**
+```
+Packages/
+├── Core/
+│   ├── DesignSystem/     # Design tokens, glass effects
+│   ├── SharedUI/         # Reusable view components
+│   ├── Utilities/        # Haptics, formatters, value types
+│   └── Domain/           # Business logic & entities (NEW)
+└── Features/
+    ├── Onboarding/       # Depends on Domain
+    └── Dashboard/        # Depends on Domain (NEW)
+```
+
+**Remaining Step:**
+- Add Dashboard framework to Diameris target in Xcode:
+  1. Select Diameris target → General tab
+  2. Scroll to "Frameworks, Libraries, and Embedded Content"
+  3. Click "+" and add "Dashboard"
 
 ---
 

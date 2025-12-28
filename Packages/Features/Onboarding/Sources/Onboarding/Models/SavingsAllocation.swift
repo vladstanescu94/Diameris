@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import Domain
 
 /// Settings for how much of available income goes to savings goals.
 @Model

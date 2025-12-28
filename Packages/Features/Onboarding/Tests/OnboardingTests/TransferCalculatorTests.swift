@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 @testable import Onboarding
+import Domain
 
 /// Tests for TransferCalculator - the core business logic that determines
 /// how money flows from income through accounts based on account types.

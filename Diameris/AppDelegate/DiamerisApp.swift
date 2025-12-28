@@ -8,6 +8,7 @@
 import SwiftUI
 import SwiftData
 import Onboarding
+import Dashboard
 import DesignSystem
 
 @main
@@ -18,7 +19,8 @@ struct DiamerisApp: App {
             Income.self,
             Expense.self,
             Account.self,
-            SavingsAllocation.self
+            SavingsAllocation.self,
+            MonthlyRecord.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

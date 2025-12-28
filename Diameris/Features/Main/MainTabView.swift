@@ -14,6 +14,7 @@ struct MainTabView: View {
     @Query private var savingsAllocations: [SavingsAllocation]
 
     @State private var dashboardViewModel = DashboardViewModel()
+    @State private var showSettings = false
 
     #if DEBUG
     @State private var showDevTools = false
@@ -24,20 +25,20 @@ struct MainTabView: View {
 
     var body: some View {
         TabView {
-            Tab("Dashboard", systemImage: "chart.pie.fill") {
-                DashboardView(viewModel: dashboardViewModel, onDevToolsTapped: devToolsTappedHandler)
+            Tab("Dashboard".localized, systemImage: "chart.pie.fill") {
+                DashboardView(
+                    viewModel: dashboardViewModel,
+                    onSettingsTapped: { showSettings = true },
+                    onDevToolsTapped: devToolsTappedHandler
+                )
             }
 
-            Tab("Budget", systemImage: "list.bullet.rectangle") {
-                BudgetPlaceholder()
+            Tab("Expenses".localized, systemImage: "list.bullet.rectangle") {
+                ExpensesPlaceholder()
             }
 
-            Tab("Goals", systemImage: "target") {
-                GoalsPlaceholder()
-            }
-
-            Tab("Transfers", systemImage: "arrow.left.arrow.right") {
-                TransfersPlaceholder()
+            Tab("Insights".localized, systemImage: "lightbulb.max") {
+                InsightsPlaceholder()
             }
         }
         .tabBarMinimizeBehavior(.onScrollDown)
@@ -46,6 +47,9 @@ struct MainTabView: View {
         }
         .sheet(isPresented: $dashboardViewModel.showNewMonthSheet) {
             NewMonthSheet(viewModel: dashboardViewModel)
+        }
+        .sheet(isPresented: $showSettings) {
+            SettingsSheet()
         }
         #if DEBUG
         .sheet(isPresented: $showDevTools) {
@@ -154,68 +158,46 @@ struct MainTabView: View {
 
 // MARK: - Placeholder Views
 
-private struct BudgetPlaceholder: View {
+private struct ExpensesPlaceholder: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: Spacing.lg) {
                 Image(systemName: "list.bullet.rectangle")
                     .iconXxl()
-                    .foregroundStyle(DiamerisColors.accentSecondaryLight)
+                    .foregroundStyle(DiamerisColors.accentSecondary)
 
-                Text("Budget")
+                Text("Expenses".localized)
                     .font(.title)
                     .fontWeight(.bold)
 
-                Text("Coming soon")
+                Text("Coming soon".localized)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .navigationTitle("Budget")
+            .navigationTitle("Expenses".localized)
         }
     }
 }
 
-private struct GoalsPlaceholder: View {
+private struct InsightsPlaceholder: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: Spacing.lg) {
-                Image(systemName: "target")
+                Image(systemName: "lightbulb.max")
                     .iconXxl()
-                    .foregroundStyle(DiamerisColors.accentPrimaryLight)
+                    .foregroundStyle(DiamerisColors.accentPrimary)
 
-                Text("Goals")
+                Text("Insights".localized)
                     .font(.title)
                     .fontWeight(.bold)
 
-                Text("Coming soon")
+                Text("Coming soon".localized)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .navigationTitle("Goals")
-        }
-    }
-}
-
-private struct TransfersPlaceholder: View {
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: Spacing.lg) {
-                Image(systemName: "arrow.left.arrow.right")
-                    .iconXxl()
-                    .foregroundStyle(DiamerisColors.accentSecondaryLight)
-
-                Text("Transfers")
-                    .font(.title)
-                    .fontWeight(.bold)
-
-                Text("Coming soon")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .navigationTitle("Transfers")
+            .navigationTitle("Insights".localized)
         }
     }
 }

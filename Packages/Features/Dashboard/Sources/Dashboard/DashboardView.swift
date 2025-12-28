@@ -5,10 +5,16 @@ import Utilities
 /// The main Dashboard tab view showing financial summary and actions.
 public struct DashboardView: View {
     @Bindable var viewModel: DashboardViewModel
+    var onSettingsTapped: (() -> Void)?
     var onDevToolsTapped: (() -> Void)?
 
-    public init(viewModel: DashboardViewModel, onDevToolsTapped: (() -> Void)? = nil) {
+    public init(
+        viewModel: DashboardViewModel,
+        onSettingsTapped: (() -> Void)? = nil,
+        onDevToolsTapped: (() -> Void)? = nil
+    ) {
         self.viewModel = viewModel
+        self.onSettingsTapped = onSettingsTapped
         self.onDevToolsTapped = onDevToolsTapped
     }
 
@@ -19,7 +25,7 @@ public struct DashboardView: View {
             }
             .navigationTitle(viewModel.currentMonthDisplay)
             .toolbar {
-                devToolsButton
+                toolbarButtons
             }
         }
     }
@@ -29,14 +35,26 @@ public struct DashboardView: View {
 
 private extension DashboardView {
     @ToolbarContentBuilder
-    var devToolsButton: some ToolbarContent {
-        if let onDevToolsTapped {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    onDevToolsTapped()
-                } label: {
-                    Image(systemName: "hammer.fill")
+    var toolbarButtons: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            HStack(spacing: Spacing.sm) {
+                if let onSettingsTapped {
+                    Button {
+                        onSettingsTapped()
+                    } label: {
+                        Image(systemName: "gearshape")
+                    }
                 }
+
+                #if DEBUG
+                if let onDevToolsTapped {
+                    Button {
+                        onDevToolsTapped()
+                    } label: {
+                        Image(systemName: "hammer.fill")
+                    }
+                }
+                #endif
             }
         }
     }

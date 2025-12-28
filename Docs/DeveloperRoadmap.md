@@ -95,6 +95,9 @@ This document tracks implementation progress. **Update this file after completin
 | iOS 26 TabBar enhancements | 2025-12-28 | Tab bar minimizes on scroll, "New Month" as tab accessory, Dev tools moved to Dashboard toolbar |
 | Tab accessory button fix | 2025-12-28 | Fixed tap area with `.frame(maxWidth: .infinity)` + `.contentShape(.rect)` |
 | Main app localization | 2025-12-28 | Added `Diameris/Utils/Localization.swift` and `Resources/Localizable.xcstrings` with "New Month" en/ro |
+| Tab structure redesign | 2025-12-28 | Simplified from 4 tabs to 3: Dashboard, Expenses, Insights; removed Goals/Transfers (redundant with NewMonthFlow) |
+| Settings sheet | 2025-12-28 | SettingsSheet accessible from Dashboard toolbar (gear icon); Profile, Savings, Accounts, Remaining Money sections |
+| Settings coding standards | 2025-12-28 | Fixed magic numbers, removed duplicated AccountType extensions, fixed hardcoded currency |
 
 ### In Progress
 
@@ -107,8 +110,9 @@ This document tracks implementation progress. **Update this file after completin
 | Priority | Task | Reference |
 |----------|------|-----------|
 | 1 | Test full onboarding → Dashboard flow | Verify balances update correctly after completion |
-| 2 | Implement Budget feature | Income/expense management |
-| 3 | Add Dashboard unit tests | DashboardViewModelTests.swift |
+| 2 | Implement Expenses feature | Categories, subcategories, add/edit expenses (like Python script) |
+| 3 | Implement Insights feature | Stats, AI tips (Foundation Models), scenario analysis |
+| 4 | Add Dashboard unit tests | DashboardViewModelTests.swift |
 
 ---
 
@@ -128,7 +132,7 @@ Based on [MVP Overview](./MVP/00-MVP-Overview.md)
 | 08 | Accounts | In Progress | [08-Accounts.md](./MVP/08-Accounts.md) | Account types with behavioral meaning; Dashboard display |
 | 09 | Transfer Planning | In Progress | [09-TransferPlanning.md](./MVP/09-TransferPlanning.md) | TransferCalculator + NewMonthFlow |
 | 10 | Budget Analysis | Not Started | [10-BudgetAnalysis.md](./MVP/10-BudgetAnalysis.md) | |
-| 11 | Settings | Not Started | [11-Settings.md](./MVP/11-Settings.md) | |
+| 11 | Settings | Done | [11-Settings.md](./MVP/11-Settings.md) | Dashboard toolbar sheet; Profile, Savings, Accounts, Remaining Money |
 
 **Status Legend:** Not Started → In Progress → Done
 
@@ -150,10 +154,9 @@ Based on [Architecture.md](./Architecture.md)
 | Platform | Persistence | Not Started | SwiftData implementations |
 | Features | Onboarding | Done | 7-screen flow, SwiftData models, ViewModel, microinteractions, celebrations |
 | Features | Dashboard | Done | DashboardView, NewMonthSheet, 3-step flow, MonthlyRecord model |
-| Features | Budget | Not Started | Placeholder view created |
-| Features | Goals | Not Started | Placeholder view created |
-| Features | Transfers | Not Started | Placeholder view created |
-| Features | Settings | Not Started | |
+| Features | Expenses | Not Started | Placeholder view; will have categories/subcategories like Python script |
+| Features | Insights | Not Started | Placeholder view; AI tips via Foundation Models, scenario analysis |
+| Features | Settings | Done | SettingsSheet in Dashboard toolbar; Profile, Savings, Accounts, Remaining Money; coding standards compliant |
 
 ### App Infrastructure
 
@@ -161,7 +164,7 @@ Based on [Architecture.md](./Architecture.md)
 |-----------|--------|-------|
 | DependencyContainer | Not Started | Manual DI composition root |
 | AppRouter | Not Started | Navigation state management |
-| MainTabView | Done | 4 tabs + Dev tab (DEBUG only) |
+| MainTabView | Done | 3 tabs (Dashboard, Expenses, Insights) + NewMonth accessory |
 | Onboarding flow | Done | Forward-only, UserDefaults flag, SwiftData persistence, polished UX |
 
 ---
@@ -761,6 +764,103 @@ Packages/
 4. Verified both packages' tests pass
 
 **Principle Applied:** Tests should live with the code they test. Domain entities and calculators now have their tests in the Domain package.
+
+### 2025-12-28 - Tab Structure Redesign Session
+
+**Focus:** Simplify tab structure based on feature analysis vs Python script.
+
+**Analysis:**
+The Python script (`expensesScriptDetailed.py`) provides:
+- Expense tracking with categories (auto, subscriptii, pisica, sala, lifestyle)
+- Emergency fund tracking with 3x income target
+- Savings with boost mode
+- Transfer planning to sub-accounts (Joint, Emergency, Savings, Personal)
+- Budget analysis and optimization tips (`analiza_optimizari()`)
+- Scenario analysis and financial benchmarks
+
+**Finding:** With Onboarding capturing initial data and NewMonthSheet handling monthly transfers, the original 4-tab structure had redundancy:
+- Goals tab → Emergency fund already on Dashboard
+- Transfers tab → NewMonthSheet already handles this
+
+**New Tab Structure:**
+| Tab | Purpose |
+|-----|---------|
+| **Dashboard** | Overview, emergency progress, quick actions, NewMonth trigger |
+| **Expenses** | CRUD for expenses with categories/subcategories |
+| **Insights** | Deep stats, AI-powered tips (Foundation Models), scenario analysis |
+
+**Key Decisions:**
+1. **Loans = Expenses**: Loans tracked as recurring expenses, not separate feature
+2. **Settings in toolbar**: Not a separate tab, accessible from Dashboard
+3. **AI-enhanced Insights**: Foundation Models for personalized tips when available, with fallback to rule-based tips
+
+**Files Modified:**
+- `Docs/ProjectDefinition.md` - Updated UI Structure section
+- `Diameris/Features/Main/MainTabView.swift` - 3 tabs, renamed placeholders
+- `Diameris/Resources/Localizable.xcstrings` - Added Dashboard, Expenses, Insights, Coming soon translations
+
+**Romanian Translations:**
+- Dashboard → Panou
+- Expenses → Cheltuieli
+- Insights → Analize
+- Coming soon → În curând
+
+### 2025-12-28 - Settings Sheet Implementation
+
+**Focus:** Add settings accessible from Dashboard toolbar to edit configuration values.
+
+**Decision:** Option B chosen - gear icon in Dashboard toolbar opens a settings sheet. Keeps 3-tab simplicity while providing full access to configuration.
+
+**Settings Sections:**
+1. **Profile** - Name, Currency
+2. **Savings** - Percentage slider (5-50%), Boost toggle, Boost multiplier (2×/3×)
+3. **Accounts** - List of accounts with tap-to-edit; AccountEditorSheet for type, name, balance, emergency multiplier
+4. **Remaining Money** - Destination picker (Primary Savings, Personal, Primary)
+
+**Architecture:**
+- `DashboardView` receives `onSettingsTapped` callback (like `onDevToolsTapped`)
+- `SettingsSheet` lives in main app (`Diameris/Features/Settings/`) where SwiftData is available
+- Changes save directly to SwiftData models
+
+**Files Created:**
+- `Diameris/Features/Settings/SettingsSheet.swift` - Main settings with AccountEditorSheet
+
+**Files Modified:**
+- `Dashboard/DashboardView.swift` - Added `onSettingsTapped` parameter and toolbar button
+- `Diameris/Features/Main/MainTabView.swift` - Wired up settings sheet
+- `Diameris/Resources/Localizable.xcstrings` - 40+ new localized strings for settings UI
+
+### 2025-12-28 - Settings Coding Standards Session
+
+**Focus:** Ensure SettingsSheet follows project coding standards from CLAUDE.md.
+
+**Issues Found & Fixed:**
+
+1. **Magic numbers:**
+   - `spacing: 2` → `Spacing.xxs` (4pt grid system)
+   - `.frame(width: 100)` → `ComponentSize.segmentedControlCompact`
+   - `.frame(width: 120)` → `ComponentSize.mediumInputWidth`
+
+2. **New constant added to DesignSystem:**
+   - `ComponentSize.segmentedControlCompact: CGFloat = 100` - for compact 2-option segmented controls
+
+3. **Duplicated extensions removed:**
+   - AccountType.icon and AccountType.displayName already exist in Domain
+   - Removed duplicates from SettingsSheet, kept only `.color` (SwiftUI-specific, not in Domain)
+
+4. **Hardcoded currency fixed:**
+   - AccountEditorSheet was hardcoded to "RON" for emergency target display
+   - Added `currency: Currency` parameter to AccountEditorSheet
+   - Now uses user's selected currency from SettingsSheet
+
+**Key Principles Applied:**
+- No magic numbers: Use constants from DesignSystem (Spacing, ComponentSize)
+- No duplication: Domain package is source of truth for AccountType properties
+- Leverage SPM: Check existing packages before adding code
+
+**Files Modified:**
+- `DesignSystem/ComponentSize.swift` - Added segmentedControlCompact
+- `Diameris/Features/Settings/SettingsSheet.swift` - All fixes applied
 
 ---
 

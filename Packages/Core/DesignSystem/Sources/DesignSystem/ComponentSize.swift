@@ -29,6 +29,11 @@ public enum ComponentSize {
     /// 12pt - Medium progress dot size
     public static let progressDotMedium: CGFloat = 12
 
+    // MARK: - Segmented Controls
+
+    /// 100pt - Compact segmented control width (2 options)
+    public static let segmentedControlCompact: CGFloat = 100
+
     // MARK: - Touch Targets
 
     /// 44pt - Minimum touch target size (Apple HIG)

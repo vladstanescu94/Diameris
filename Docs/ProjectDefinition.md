@@ -155,36 +155,34 @@ Settings
 ## UI Structure
 
 ### Tab Bar (Liquid Glass)
-1. **Dashboard** - Overview, quick stats, health score
-2. **Budget** - Income/expenses management
-3. **Goals** - Emergency fund, savings goals, loans
-4. **Transfers** - Bank transfer planning
-5. **Settings** - App configuration
+1. **Dashboard** - Overview, quick stats, NewMonth flow trigger
+2. **Expenses** - Add/edit expenses with categories and subcategories
+3. **Insights** - Deep stats, AI-powered tips, scenario analysis
+
+**Note:** Settings will be accessible from Dashboard toolbar, not as a separate tab.
 
 ### Key Screens
 
 **Dashboard:**
 - Quick summary card (income, expenses, savings, remaining)
 - Emergency fund progress ring
-- Loan payoff countdown
-- This month's top expenses
-- Financial health indicators
+- Account balances overview
+- This month's expense breakdown
+- "New Month" flow (tab bar accessory)
 
-**Budget:**
-- Income section
-- Monthly expenses list (grouped by category)
-- Annual expenses list
+**Expenses:**
+- Expense list grouped by category
+- Category management (auto, subscriptions, lifestyle, housing, pets, etc.)
 - Add/edit expense sheets (Liquid Glass)
+- Loans tracked as recurring expenses
 
-**Goals:**
-- Emergency fund card with progress
-- Active loans with payoff timeline
-- Custom savings goals grid
-
-**Transfers:**
-- Payday transfer checklist
-- Account allocation breakdown
-- Copy-friendly transfer amounts
+**Insights (AI-Enhanced):**
+- Spending breakdown by category with percentages
+- Personalized tips and recommendations (Foundation Models when available)
+- Scenario simulator ("What if I reduce food by 300 RON?")
+- Monthly recap and trend analysis
+- Financial health benchmarks
+- Priority-based action plans
 
 ---
 

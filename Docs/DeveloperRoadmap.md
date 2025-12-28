@@ -99,6 +99,7 @@ This document tracks implementation progress. **Update this file after completin
 | Settings sheet | 2025-12-28 | SettingsSheet accessible from Dashboard toolbar (gear icon); Profile, Savings, Accounts, Remaining Money sections |
 | Settings coding standards | 2025-12-28 | Fixed magic numbers, removed duplicated AccountType extensions, fixed hardcoded currency |
 | Hide scroll indicators | 2025-12-28 | Added `.scrollIndicators(.hidden)` to all ScrollViews/Forms app-wide; UIScrollView.appearance fallback |
+| Settings→Dashboard refresh fix | 2025-12-28 | Added `onChange(of: showSettings)` to reload dashboard when settings sheet dismisses; fixes property mutations not triggering @Query onChange |
 
 ### In Progress
 

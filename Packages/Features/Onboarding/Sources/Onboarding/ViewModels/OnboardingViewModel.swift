@@ -33,8 +33,8 @@ public final class OnboardingViewModel {
         case name
         case income
         case savingsGoals
-        case expenses      // Expenses before accounts so user can link them
         case accounts
+        case expenses      // Accounts first, then link expenses to them here
         case transferPlan
     }
 

@@ -6,7 +6,6 @@ import Utilities
 struct AccountRow: View {
     let account: AccountEntry
     let isPrimary: Bool
-    let linkedExpenses: [ExpenseEntry]
     let onTypeChange: (AccountType) -> Void
     let onNameChange: (String) -> Void
     let onDelete: (() -> Void)?
@@ -14,34 +13,12 @@ struct AccountRow: View {
     @State private var isEditing = false
     @State private var editedName: String = ""
 
-    init(
-        account: AccountEntry,
-        isPrimary: Bool,
-        linkedExpenses: [ExpenseEntry] = [],
-        onTypeChange: @escaping (AccountType) -> Void,
-        onNameChange: @escaping (String) -> Void,
-        onDelete: (() -> Void)?
-    ) {
-        self.account = account
-        self.isPrimary = isPrimary
-        self.linkedExpenses = linkedExpenses
-        self.onTypeChange = onTypeChange
-        self.onNameChange = onNameChange
-        self.onDelete = onDelete
-    }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
-            HStack(spacing: Spacing.md) {
-                accountIcon
-                accountContent
-                Spacer()
-                deleteButton
-            }
-
-            if !linkedExpenses.isEmpty {
-                linkedExpensesChips
-            }
+        HStack(spacing: Spacing.md) {
+            accountIcon
+            accountContent
+            Spacer()
+            deleteButton
         }
         .padding(Spacing.md)
         .glassCard()
@@ -133,31 +110,6 @@ private extension AccountRow {
             .accessibilityLabel(String(localized: "Remove \(account.name)", bundle: .module))
         }
     }
-
-    var linkedExpensesChips: some View {
-        HStack(spacing: Spacing.xs) {
-            Image(systemName: "creditcard.fill")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-
-            ForEach(linkedExpenses.prefix(3)) { expense in
-                Text(expense.name)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, Spacing.xs)
-                    .padding(.vertical, 2)
-                    .background(Color.secondary.opacity(0.1))
-                    .clipShape(Capsule())
-            }
-
-            if linkedExpenses.count > 3 {
-                Text("+\(linkedExpenses.count - 3)")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
-        }
-        .padding(.leading, 44 + Spacing.md)
-    }
 }
 
 // MARK: - AccountType Color Extension
@@ -179,10 +131,6 @@ extension AccountType {
         AccountRow(
             account: AccountEntry(name: "Main Account", accountType: .checking, isPrimary: true),
             isPrimary: true,
-            linkedExpenses: [
-                ExpenseEntry(name: "Food", amount: 500, icon: "cart.fill"),
-                ExpenseEntry(name: "Rent", amount: 1000, icon: "house.fill")
-            ],
             onTypeChange: { _ in },
             onNameChange: { _ in },
             onDelete: nil

@@ -7,10 +7,8 @@ struct AddAccountSheet: View {
     @Binding var isPresented: Bool
     @State private var accountName = ""
     @State private var accountType: AccountType = .other
-    @State private var selectedExpenseIds: Set<UUID> = []
 
-    let expenses: [ExpenseEntry]
-    let onAdd: (String, AccountType, Set<UUID>) -> Void
+    let onAdd: (String, AccountType) -> Void
 
     var body: some View {
         NavigationStack {
@@ -19,9 +17,6 @@ struct AddAccountSheet: View {
                     nameField
                     typeSelector
                     quickSuggestions
-                    if hasLinkableExpenses {
-                        expenseLinkingSection
-                    }
                 }
                 .padding(Spacing.lg)
             }
@@ -32,16 +27,7 @@ struct AddAccountSheet: View {
                 addButton
             }
         }
-        .presentationDetents([.medium, .large])
-    }
-
-    /// Expenses that aren't already linked to another account
-    private var linkableExpenses: [ExpenseEntry] {
-        expenses.filter { $0.linkedAccountId == nil }
-    }
-
-    private var hasLinkableExpenses: Bool {
-        !linkableExpenses.isEmpty
+        .presentationDetents([.medium])
     }
 }
 
@@ -85,34 +71,6 @@ private extension AddAccountSheet {
             }
         }
     }
-
-    var expenseLinkingSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
-            Text("Link expenses (optional)".localized)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            Text("These expenses will be paid from this account".localized)
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-
-            VStack(spacing: Spacing.xs) {
-                ForEach(linkableExpenses) { expense in
-                    ExpenseLinkRow(
-                        expense: expense,
-                        isSelected: selectedExpenseIds.contains(expense.id),
-                        onToggle: {
-                            if selectedExpenseIds.contains(expense.id) {
-                                selectedExpenseIds.remove(expense.id)
-                            } else {
-                                selectedExpenseIds.insert(expense.id)
-                            }
-                        }
-                    )
-                }
-            }
-        }
-    }
 }
 
 // MARK: - Toolbar
@@ -150,13 +108,12 @@ private extension AddAccountSheet {
     func dismiss() {
         accountName = ""
         accountType = .other
-        selectedExpenseIds = []
         isPresented = false
     }
 
     func addAccount() {
         guard !trimmedName.isEmpty else { return }
-        onAdd(trimmedName, accountType, selectedExpenseIds)
+        onAdd(trimmedName, accountType)
         HapticManager.lightTap()
         dismiss()
     }
@@ -180,46 +137,8 @@ private struct SuggestionChip: View {
     }
 }
 
-// MARK: - Expense Link Row
-
-private struct ExpenseLinkRow: View {
-    let expense: ExpenseEntry
-    let isSelected: Bool
-    let onToggle: () -> Void
-
-    var body: some View {
-        Button(action: onToggle) {
-            HStack(spacing: Spacing.sm) {
-                Image(systemName: expense.icon)
-                    .font(.subheadline)
-                    .foregroundStyle(isSelected ? DiamerisColors.accentPrimary : .secondary)
-                    .frame(width: ComponentSize.iconContainer)
-
-                Text(expense.name)
-                    .font(.subheadline)
-                    .foregroundStyle(isSelected ? .primary : .secondary)
-
-                Spacer()
-
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.title3)
-                    .foregroundStyle(isSelected ? DiamerisColors.accentPrimary : Color.secondary.opacity(Opacity.subtle))
-            }
-            .padding(.vertical, Spacing.xs)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-}
-
 #Preview {
     AddAccountSheet(
-        isPresented: .constant(true),
-        expenses: [
-            ExpenseEntry(name: "Food & Groceries", amount: 0, icon: "cart.fill"),
-            ExpenseEntry(name: "Rent / Housing", amount: 0, icon: "house.fill"),
-            ExpenseEntry(name: "Transportation", amount: 0, icon: "car.fill"),
-            ExpenseEntry(name: "Subscriptions", amount: 0, icon: "repeat.circle.fill")
-        ]
-    ) { _, _, _ in }
+        isPresented: .constant(true)
+    ) { _, _ in }
 }

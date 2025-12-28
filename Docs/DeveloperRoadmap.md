@@ -44,6 +44,7 @@ This document tracks implementation progress. **Update this file after completin
 | Keyboard-aware transitions | 2025-12-22 | Dismiss keyboard + 150ms delay before screen transitions |
 | Swift 6 concurrency fix | 2025-12-22 | `@MainActor` on ViewModel, `Task.sleep` instead of DispatchQueue |
 | Onboarding redesign | 2025-12-27 | 7-screen flow: Welcome → Name → Income → Savings Goals → Accounts → Expenses → Transfer Plan |
+| Onboarding flow simplification | 2025-12-28 | Reordered: Accounts before Expenses; removed expense-to-account linking from Accounts screen (linking now only on Expenses) |
 | WelcomeScreen | 2025-12-27 | Hero icon with glow, value proposition bullets, animated entrance |
 | SavingsGoalsScreen | 2025-12-27 | Goal cards with progress rings, savings percentage slider, boost toggle |
 | TransferPlanScreen | 2025-12-27 | Personalized transfer plan with celebration effects, replaces CompleteScreen |
@@ -382,18 +383,29 @@ String(localized: "Hello, \(name)!", bundle: .module)
 **Design Principle:** Optional, not forced. All expenses default to Main/Primary account. Users can optionally change which account an expense is paid from.
 
 **Changes Made:**
-1. **Flow reorder:** Expenses → Accounts (so users define expenses first, then can link them)
-2. **ExpenseEntry/Expense models:** Added `linkedAccountId: UUID?` (nil = Primary account)
-3. **ExpenseRow:** Added account picker Menu on left side with `.buttonStyle(.glass)`
-4. **AccountRow:** Added `linkedExpenses` parameter, shows expense names as chips
-5. **AccountsScreen:** Computes linked expenses per account (Primary gets nil-linked ones)
-6. **AddAccountSheet:** Shows all expenses (removed amount > 0 filter), multiple can be selected
-7. **TransferCalculator:** Added `distributeExpenses()` for expense-aware transfer planning
-8. **Localization:** Added "From:", "Main" strings in en/ro
+1. **ExpenseEntry/Expense models:** Added `linkedAccountId: UUID?` (nil = Primary account)
+2. **ExpenseRow:** Added account picker Menu on left side with `.buttonStyle(.glass)`
+3. **TransferCalculator:** Added `distributeExpenses()` for expense-aware transfer planning
+4. **Localization:** Added "From:", "Main" strings in en/ro
 
 **Key Learnings:**
 1. **Menu glass glitch:** Manual `.glassEffect(.interactive())` on Menu labels causes dismiss animation glitch. Solution: Use `.buttonStyle(.glass)` per `SwiftUI-Implementing-Liquid-Glass-Design.md` troubleshooting section.
-2. **Bidirectional UX:** Expense linking works from both directions - edit on expense row OR view on account card.
+
+### 2025-12-28 - Onboarding Flow Simplification
+
+**Focus:** Simplify onboarding by reordering screens and removing bidirectional expense linking.
+
+**Rationale:** The original flow (Expenses → Accounts) with bidirectional linking was too complex. Simpler approach: create accounts first, then link expenses to them on the Expenses screen.
+
+**Changes Made:**
+1. **Screen reorder:** Accounts now comes before Expenses in `OnboardingStep` enum
+2. **AccountRow:** Removed `linkedExpenses` parameter and chips display
+3. **AccountsScreen:** Removed `linkedExpenses(for:)` helper function
+4. **AddAccountSheet:** Removed expense linking section, simplified to just name + type + suggestions
+
+**New Flow:** Welcome → Name → Income → Savings Goals → **Accounts** → **Expenses** → Transfer Plan
+
+**Key Principle:** Linking happens in one place only (Expenses screen), not bidirectionally.
 
 ---
 

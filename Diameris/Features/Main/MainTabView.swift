@@ -15,38 +15,43 @@ struct MainTabView: View {
 
     @State private var dashboardViewModel = DashboardViewModel()
 
+    #if DEBUG
+    @State private var showDevTools = false
+    #endif
+
     private var userProfile: UserProfile? { userProfiles.first }
     private var savingsAllocation: SavingsAllocation? { savingsAllocations.first }
 
     var body: some View {
         TabView {
-            DashboardView(viewModel: dashboardViewModel)
-                .tabItem {
-                    Label("Dashboard", systemImage: "chart.pie.fill")
-                }
+            Tab("Dashboard", systemImage: "chart.pie.fill") {
+                DashboardView(viewModel: dashboardViewModel, onDevToolsTapped: devToolsTappedHandler)
+            }
 
-            BudgetPlaceholder()
-                .tabItem {
-                    Label("Budget", systemImage: "list.bullet.rectangle")
-                }
+            Tab("Budget", systemImage: "list.bullet.rectangle") {
+                BudgetPlaceholder()
+            }
 
-            GoalsPlaceholder()
-                .tabItem {
-                    Label("Goals", systemImage: "target")
-                }
+            Tab("Goals", systemImage: "target") {
+                GoalsPlaceholder()
+            }
 
-            TransfersPlaceholder()
-                .tabItem {
-                    Label("Transfers", systemImage: "arrow.left.arrow.right")
-                }
-
-            #if DEBUG
-            DevDebugView()
-                .tabItem {
-                    Label("Dev", systemImage: "hammer.fill")
-                }
-            #endif
+            Tab("Transfers", systemImage: "arrow.left.arrow.right") {
+                TransfersPlaceholder()
+            }
         }
+        .tabBarMinimizeBehavior(.onScrollDown)
+        .tabViewBottomAccessory {
+            newMonthAccessoryButton
+        }
+        .sheet(isPresented: $dashboardViewModel.showNewMonthSheet) {
+            NewMonthSheet(viewModel: dashboardViewModel)
+        }
+        #if DEBUG
+        .sheet(isPresented: $showDevTools) {
+            DevDebugView()
+        }
+        #endif
         .onAppear {
             loadDashboardData()
         }
@@ -62,6 +67,30 @@ struct MainTabView: View {
         .onChange(of: savingsAllocations) { _, _ in
             loadDashboardData()
         }
+    }
+
+    // MARK: - Tab Bar Accessory
+
+    private var newMonthAccessoryButton: some View {
+        Button {
+            dashboardViewModel.openNewMonthFlow()
+        } label: {
+            HStack {
+                Image(systemName: "calendar.badge.plus")
+                Text("New Month".localized)
+            }
+            .frame(maxWidth: .infinity)
+            .contentShape(.rect)
+        }
+        .disabled(!dashboardViewModel.hasCompletedOnboarding)
+    }
+
+    private var devToolsTappedHandler: (() -> Void)? {
+        #if DEBUG
+        return { showDevTools = true }
+        #else
+        return nil
+        #endif
     }
 
     private func loadDashboardData() {

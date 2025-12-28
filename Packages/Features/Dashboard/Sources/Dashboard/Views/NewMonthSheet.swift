@@ -3,8 +3,12 @@ import DesignSystem
 import Utilities
 
 /// Modal flow for processing a new month's salary.
-struct NewMonthSheet: View {
+public struct NewMonthSheet: View {
     @Bindable var viewModel: DashboardViewModel
+
+    public init(viewModel: DashboardViewModel) {
+        self.viewModel = viewModel
+    }
     @Environment(\.dismiss) private var dismiss
 
     @State private var currentStep: NewMonthStep = .salaryEntry
@@ -25,7 +29,7 @@ struct NewMonthSheet: View {
         }
     }
 
-    var body: some View {
+    public var body: some View {
         NavigationStack {
             content
                 .navigationTitle(stepTitle)

@@ -89,6 +89,7 @@
       }
     },
     "Complete onboarding to start tracking your finances" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -200,38 +201,6 @@
         }
       }
     },
-    "for %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "for %@"
-          }
-        },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "pentru %@"
-          }
-        }
-      }
-    },
-    "Transfer to %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transfer to %@"
-          }
-        },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transfer către %@"
-          }
-        }
-      }
-    },
     "Expense Breakdown" : {
       "localizations" : {
         "en" : {
@@ -260,6 +229,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cheltuieli"
+          }
+        }
+      }
+    },
+    "for %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "for %@"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "pentru %@"
           }
         }
       }
@@ -313,6 +298,7 @@
       }
     },
     "New Month" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -329,6 +315,7 @@
       }
     },
     "No data yet" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -393,6 +380,7 @@
       }
     },
     "Process this month's salary" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -500,6 +488,22 @@
     },
     "Target: %lld× monthly income" : {
 
+    },
+    "Transfer to %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transfer to %@"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transfer către %@"
+          }
+        }
+      }
     },
     "Transfers to make" : {
       "localizations" : {

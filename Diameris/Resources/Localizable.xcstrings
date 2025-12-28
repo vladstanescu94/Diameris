@@ -1,0 +1,117 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@" : {
+
+    },
+    "%@ (%@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ (%2$@)"
+          }
+        }
+      }
+    },
+    "Accounts (%lld)" : {
+
+    },
+    "App Info" : {
+
+    },
+    "Budget" : {
+
+    },
+    "Build" : {
+
+    },
+    "Bundle ID" : {
+
+    },
+    "Cancel" : {
+
+    },
+    "Clear All Data & Reset" : {
+
+    },
+    "Coming soon" : {
+
+    },
+    "Completed" : {
+
+    },
+    "Currency: %@" : {
+
+    },
+    "Dashboard" : {
+
+    },
+    "Data" : {
+
+    },
+    "Developer" : {
+
+    },
+    "Expenses (%lld)" : {
+
+    },
+    "Goals" : {
+
+    },
+    "Incomes (%lld)" : {
+
+    },
+    "New Month" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Month"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lună nouă"
+          }
+        }
+      }
+    },
+    "Onboarding" : {
+
+    },
+    "PRIMARY" : {
+
+    },
+    "Reset All Data?" : {
+
+    },
+    "Reset Everything" : {
+
+    },
+    "Reset Onboarding Flag" : {
+
+    },
+    "Stored Data" : {
+
+    },
+    "This will delete all your data and show onboarding again. This cannot be undone." : {
+
+    },
+    "Transfers" : {
+
+    },
+    "User Profiles (%lld)" : {
+
+    },
+    "Version" : {
+
+    },
+    "View Stored Data" : {
+
+    }
+  },
+  "version" : "1.0"
+}

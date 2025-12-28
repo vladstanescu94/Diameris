@@ -92,6 +92,9 @@ This document tracks implementation progress. **Update this file after completin
 | AccountBalancesSection redesign | 2025-12-28 | Primary account prominent with badge; other accounts in 2-column grid; emergency excluded |
 | Auto-update balances on completion | 2025-12-28 | Onboarding completion auto-updates account balances based on transfer plan |
 | Domain test migration | 2025-12-28 | Moved 4 test files (112 tests) from Onboarding to Domain package |
+| iOS 26 TabBar enhancements | 2025-12-28 | Tab bar minimizes on scroll, "New Month" as tab accessory, Dev tools moved to Dashboard toolbar |
+| Tab accessory button fix | 2025-12-28 | Fixed tap area with `.frame(maxWidth: .infinity)` + `.contentShape(.rect)` |
+| Main app localization | 2025-12-28 | Added `Diameris/Utils/Localization.swift` and `Resources/Localizable.xcstrings` with "New Month" en/ro |
 
 ### In Progress
 

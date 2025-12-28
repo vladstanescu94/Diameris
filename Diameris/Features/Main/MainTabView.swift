@@ -51,6 +51,11 @@ struct MainTabView: View {
         .sheet(isPresented: $showSettings) {
             SettingsSheet()
         }
+        .onChange(of: showSettings) { _, isShowing in
+            if !isShowing {
+                loadDashboardData()
+            }
+        }
         #if DEBUG
         .sheet(isPresented: $showDevTools) {
             DevDebugView()

@@ -74,6 +74,9 @@ This document tracks implementation progress. **Update this file after completin
 | SavingsSlider boost fix | 2025-12-28 | Slider now shows boosted amount when Savings Boost enabled; added boostEnabled/boostMultiplier params |
 | Onboarding flow reorder | 2025-12-28 | Expenses now comes BEFORE Savings (needed to calculate correct available income) |
 | SavingsScreen messaging | 2025-12-28 | Updated subtitle: "Savings are calculated from your income after expenses" |
+| ExpensesScreen title fix | 2025-12-28 | Changed "Almost there!" to "Where does your money go?" after flow reorder |
+| Savings boost safeguard | 2025-12-28 | Prevent enabling 3x boost if boosted savings would exceed available income (>33.3%) |
+| Romanian localization update | 2025-12-28 | Added 46 new Romanian translations for account system redesign strings; fixed "se umple" → "se completează" for consistency |
 
 ### In Progress
 
@@ -494,10 +497,14 @@ String(localized: "Hello, \(name)!", bundle: .module)
    - **Root cause:** Flow order was Accounts → Savings → Expenses, but savings calculation needs expenses
    - **Solution:** Reordered to Accounts → Expenses → Savings; updated subtitle to clarify "from income after expenses"
 
+5. **Savings boost could exceed income:** User could enable 3x boost at high savings rates (e.g., 40% × 3 = 120%)
+   - **Solution:** Added `canEnableBoost` check (percentage × boostMultiplier ≤ 1.0); disabled toggle when invalid; auto-disable boost if user increases percentage past threshold; show orange warning "Lower your savings rate to enable boost"
+
 **Files Modified:**
 - `AccountsScreen.swift` - ID-based mutations, guard clauses, disabled buttons
 - `SavingsSlider.swift` - Added boost parameters, effectivePercentage calculation
-- `SavingsScreen.swift` - Pass boost state to slider, updated subtitle messaging
+- `SavingsScreen.swift` - Pass boost state to slider, updated subtitle, boost safeguard with auto-disable
+- `ExpensesScreen.swift` - Updated title from "Almost there!" to "Where does your money go?"
 - `OnboardingViewModel.swift` - Swapped expenses/savings order in OnboardingStep enum
 
 **Liquid Glass Enhancement:**

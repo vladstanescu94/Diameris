@@ -11,7 +11,9 @@
       "Bash(grep:*)",
       "Bash(plutil:*)",
       "Bash(ls:*)",
-      "Bash(xcrun simctl:*)"
+      "Bash(xcrun simctl:*)",
+      "Bash(xargs cat:*)",
+      "Bash(swift test:*)"
     ]
   }
 }

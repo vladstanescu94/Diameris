@@ -77,6 +77,7 @@ This document tracks implementation progress. **Update this file after completin
 | ExpensesScreen title fix | 2025-12-28 | Changed "Almost there!" to "Where does your money go?" after flow reorder |
 | Savings boost safeguard | 2025-12-28 | Prevent enabling 3x boost if boosted savings would exceed available income (>33.3%) |
 | Romanian localization update | 2025-12-28 | Added 46 new Romanian translations for account system redesign strings; fixed "se umple" → "se completează" for consistency |
+| Test coverage expansion | 2025-12-28 | Added 217 tests across Onboarding (158) and Utilities (49) packages; Swift Testing framework patterns |
 
 ### In Progress
 
@@ -529,6 +530,83 @@ total_savings_potential = baniLuna * savingsMultiplier
 availableIncome = monthlyIncome - expenses
 effectivePercentage = boostEnabled ? percentage * boostMultiplier : percentage
 savingsAmount = availableIncome * effectivePercentage
+```
+
+### 2025-12-28 - Test Coverage Session
+
+**Focus:** Comprehensive unit test coverage for Onboarding and Utilities packages using Swift Testing framework.
+
+**Test Summary:**
+- **Onboarding package:** 158 tests in 45 suites
+- **Utilities package:** 49 tests in 14 suites
+- **DesignSystem package:** 10 tests in 5 suites (existing)
+- **Total:** 217 new tests
+
+**New Test Files Created:**
+1. `TransferCalculatorTests.swift` (~320 lines) - Core business logic tests
+   - Basic calculations, priority-based allocation
+   - Emergency account fills before savings
+   - Boost mode (3x multiplier)
+   - Expense distribution to linked accounts
+   - Remaining money allocation
+   - Real-world scenarios with typical Romanian salaries
+
+2. `AccountEntryTests.swift` - Account model tests
+   - Emergency target calculations (income × multiplier)
+   - Progress tracking (current balance / target)
+   - Factory methods (.primary(), .emergency(), .savings(), etc.)
+
+3. `SavingsAllocationEntryTests.swift` - Savings configuration tests
+   - Percentage calculations
+   - Boost multiplier logic (effectivePercentage)
+   - Validation rules (5%-50% range)
+   - Display formatting
+
+4. `AccountTypeTests.swift` - Enum behavior tests
+   - Behavioral properties (canBeLinkedToExpenses, hasTarget)
+   - Uniqueness rules (only one primary, one emergency)
+   - Codable/Sendable conformance
+
+5. `OnboardingViewModelTests.swift` (rewritten) - ViewModel tests
+   - 7-screen flow navigation
+   - Step validation (name, income, accounts)
+   - Computed properties (progress, account helpers)
+   - Transfer plan integration
+
+6. `CurrencyTests.swift` - Currency enum tests
+   - Raw values, symbols, display names
+   - Locale detection
+   - Sendable conformance
+
+7. `AmountFormatterTests.swift` - Formatter tests
+   - Display formatting (thousands separator, currency suffix)
+   - Edit formatting (no grouping, preserves decimals)
+   - Parsing (handles both . and , decimal separators)
+   - Round-trip consistency
+
+**Swift Testing Framework Patterns Used:**
+```swift
+@Suite("Feature Tests")
+struct FeatureTests {
+    @Test("Description", arguments: [...])
+    func testName(param: Type) {
+        #expect(result == expected)
+    }
+}
+```
+
+**Key Learnings:**
+1. **`@MainActor` propagation:** Must add `@MainActor` to EVERY nested `@Suite` struct, not just parent
+2. **Floating point comparisons:** Use `#expect(abs(a - b) < 0.0001)` for Decimal precision
+3. **Locale-independent tests:** Check for presence of digits rather than exact formatted strings
+4. **Type inference in arrays:** Explicit type needed: `let accounts: [AccountEntry] = [.primary()]`
+5. **`Decimal(string:)` behavior:** Parses partial strings ("12abc" → 12), doesn't fail on mixed input
+
+**Files Pattern:**
+```
+Package/Tests/PackageTests/
+├── ModuleNameTests.swift       # Main test file for that module
+└── FeatureNameTests.swift      # Feature-specific tests
 ```
 
 ---

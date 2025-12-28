@@ -158,10 +158,12 @@ public struct SavingsSlider: View {
                 }
                 .padding(.vertical, Spacing.xs)
                 .padding(.horizontal, Spacing.sm)
-                .background(DiamerisColors.accentSecondary.opacity(0.1))
+                .background(DiamerisColors.accentSecondary.opacity(Opacity.faint))
                 .clipShape(Capsule())
+                .transition(.scale.combined(with: .opacity))
             }
         }
+        .animation(.easeOut(duration: AnimationDuration.appear), value: percentage >= 0.20 && percentage <= 0.30)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Savings percentage".localized)
         .accessibilityValue(String(localized: "\(displayPercentage) percent, \(AmountFormatter.formatForDisplay(savingsAmount, currency: currency)) per month", bundle: .module))

@@ -20,15 +20,21 @@ struct AccountRow: View {
     @State private var isEditing = false
     @State private var editedName: String = ""
     @State private var isExpanded = false
+    @Namespace private var glassNamespace
 
     var body: some View {
-        VStack(spacing: 0) {
-            mainRow
-            if isExpanded {
-                expandedContent
+        // Single glass surface that morphs as content expands/collapses
+        GlassEffectContainer(spacing: 0) {
+            VStack(spacing: 0) {
+                mainRow
+
+                if isExpanded {
+                    expandedContent
+                }
             }
+            .glassEffect(in: .rect(cornerRadius: CornerRadius.large))
+            .glassEffectID("card-\(account.id)", in: glassNamespace)
         }
-        .glassLarge()
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityDescription)
     }
@@ -48,7 +54,7 @@ private extension AccountRow {
         .contentShape(Rectangle())
         .onTapGesture {
             if shouldShowExpandedContent {
-                withAnimation(SpringPreset.responsive) {
+                withAnimation(.bouncy) {
                     isExpanded.toggle()
                 }
                 HapticManager.lightTap()
@@ -103,10 +109,12 @@ private extension AccountRow {
 
             if account.isPrimary {
                 primaryBadge
+                    .transition(.opacity.animation(.easeOut(duration: AnimationDuration.appear)))
             }
 
             if account.isPrimarySavings {
                 primarySavingsBadge
+                    .transition(.opacity.animation(.easeOut(duration: AnimationDuration.appear)))
             }
         }
         .onTapGesture {
@@ -130,6 +138,7 @@ private extension AccountRow {
         HStack(spacing: Spacing.sm) {
             if shouldShowExpandedContent {
                 expandChevron
+                    .transition(.opacity.animation(.easeOut(duration: AnimationDuration.appear)))
             }
             deleteButton
         }
@@ -141,6 +150,7 @@ private extension AccountRow {
             .font(.caption)
             .foregroundStyle(.secondary)
             .rotationEffect(.degrees(isExpanded ? 180 : 0))
+            .animation(.easeOut(duration: AnimationDuration.appear), value: isExpanded)
     }
 
     @ViewBuilder
@@ -207,7 +217,7 @@ private extension AccountRow {
             .padding(.horizontal, Spacing.md)
             .padding(.bottom, Spacing.md)
         }
-        .transition(.opacity.combined(with: .move(edge: .top)))
+        // GlassEffectContainer handles the morphing animation
     }
 
     var emergencyExpandedContent: some View {
@@ -246,6 +256,7 @@ private extension AccountRow {
             // Progress Display
             if let progress = account.emergencyProgress(monthlyIncome: monthlyIncome) {
                 emergencyProgressView(progress: progress)
+                    .transition(.opacity.animation(.easeOut(duration: AnimationDuration.appear)))
             }
         }
     }
@@ -263,10 +274,13 @@ private extension AccountRow {
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundStyle(progress >= 1.0 ? .green : .orange)
+                    .contentTransition(.numericText())
+                    .animation(.easeOut(duration: AnimationDuration.appear), value: progress)
             }
 
             ProgressView(value: progress)
                 .tint(progress >= 1.0 ? .green : .orange)
+                .animation(.easeOut(duration: AnimationDuration.appear), value: progress)
         }
     }
 
@@ -291,6 +305,7 @@ private extension AccountRow {
                     }
                 }
                 .buttonStyle(.plain)
+                .transition(.opacity.animation(.easeOut(duration: AnimationDuration.appear)))
             } else if account.isPrimarySavings {
                 HStack(spacing: Spacing.xs) {
                     Image(systemName: "checkmark.circle.fill")
@@ -300,6 +315,7 @@ private extension AccountRow {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+                .transition(.opacity.animation(.easeOut(duration: AnimationDuration.appear)))
             }
         }
     }

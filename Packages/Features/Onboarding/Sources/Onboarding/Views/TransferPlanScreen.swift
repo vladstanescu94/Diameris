@@ -261,11 +261,12 @@ private extension TransferPlanScreen {
                 Text("All accounted for!".localized)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .transition(.opacity.animation(.easeOut(duration: AnimationDuration.appear)))
             }
         }
         .padding(Spacing.md)
         .frame(maxWidth: .infinity)
-        .background(transferPlan.isBalanced ? Color.green.opacity(0.1) : Color.orange.opacity(0.1))
+        .background(transferPlan.isBalanced ? Color.green.opacity(Opacity.faint) : Color.orange.opacity(Opacity.faint))
         .clipShape(RoundedRectangle(cornerRadius: CornerRadius.medium))
         .opacity(verificationAppeared ? 1 : 0)
         .scaleEffect(verificationAppeared ? 1 : 0.95)
@@ -363,22 +364,28 @@ private struct AccountAllocationCard: View {
                     Text(progressDisplay)
                         .font(.caption)
                         .foregroundStyle(allocation.isComplete ? .green : .orange)
+                        .contentTransition(.numericText())
 
                     if allocation.isComplete {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.caption)
-                            .foregroundStyle(.green)
+                        HStack(spacing: Spacing.xxs) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.caption)
+                                .foregroundStyle(.green)
 
-                        Text("Target reached!".localized)
-                            .font(.caption)
-                            .foregroundStyle(.green)
+                            Text("Target reached!".localized)
+                                .font(.caption)
+                                .foregroundStyle(.green)
+                        }
+                        .transition(.opacity.animation(.easeOut(duration: AnimationDuration.appear)))
                     }
                 }
+                .transition(.opacity.animation(.easeOut(duration: AnimationDuration.appear)))
             }
 
             if allocation.accountType == .emergency, let target = allocation.targetAmount {
                 ProgressView(value: allocation.progressAfter ?? 0)
                     .tint(allocation.isComplete ? .green : .orange)
+                    .animation(.easeOut(duration: AnimationDuration.appear), value: allocation.progressAfter)
 
                 Text(String(localized: "Target: \(AmountFormatter.formatForDisplay(target, currency: currency))", bundle: .module))
                     .font(.caption)

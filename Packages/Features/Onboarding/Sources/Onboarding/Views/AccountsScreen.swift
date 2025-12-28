@@ -9,6 +9,7 @@ struct AccountsScreen: View {
     @State private var contentAppeared = false
     @State private var accountsAppeared = false
     @State private var promptsAppeared = false
+    @Namespace private var glassNamespace
 
     var body: some View {
         ScrollView {
@@ -65,29 +66,30 @@ private extension AccountsScreen {
 
     var accountsList: some View {
         ForEach(Array(viewModel.accounts.enumerated()), id: \.element.id) { index, account in
+            let accountId = account.id // Capture ID, not index, for safe deletion
             AccountRow(
                 account: account,
                 monthlyIncome: viewModel.monthlyIncome,
                 currency: viewModel.currency.rawValue,
                 hasExistingEmergency: viewModel.hasEmergencyAccount && account.accountType != .emergency,
                 onTypeChange: { newType in
-                    handleTypeChange(index: index, newType: newType)
+                    handleTypeChange(accountId: accountId, newType: newType)
                 },
                 onNameChange: { newName in
-                    viewModel.accounts[index].name = newName
+                    updateAccount(id: accountId) { $0.name = newName }
                 },
                 onMultiplierChange: { newMultiplier in
-                    viewModel.accounts[index].emergencyMultiplier = newMultiplier
+                    updateAccount(id: accountId) { $0.emergencyMultiplier = newMultiplier }
                 },
                 onBalanceChange: { newBalance in
-                    viewModel.accounts[index].currentBalance = newBalance
+                    updateAccount(id: accountId) { $0.currentBalance = newBalance }
                 },
                 onPrimarySavingsToggle: {
-                    togglePrimarySavings(index: index)
+                    togglePrimarySavings(accountId: accountId)
                 },
                 onDelete: account.isPrimary ? nil : {
                     withAnimation(SpringPreset.responsive) {
-                        viewModel.accounts.remove(at: index)
+                        deleteAccount(id: accountId)
                     }
                     HapticManager.lightTap()
                 }
@@ -122,28 +124,38 @@ private extension AccountsScreen {
 // MARK: - Recommended Accounts Section
 
 private extension AccountsScreen {
+    var showEmergencyPrompt: Bool { !viewModel.hasEmergencyAccount }
+    var showSavingsPrompt: Bool { !viewModel.hasPrimarySavingsAccount }
+    var showAnyPrompt: Bool { showEmergencyPrompt || showSavingsPrompt }
+
     @ViewBuilder
     var recommendedAccountsSection: some View {
-        let showEmergencyPrompt = !viewModel.hasEmergencyAccount
-        let showSavingsPrompt = !viewModel.hasPrimarySavingsAccount
-
-        if showEmergencyPrompt || showSavingsPrompt {
-            VStack(alignment: .leading, spacing: Spacing.md) {
+        // GlassEffectContainer stays in hierarchy for morphing to work
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            if showAnyPrompt {
                 Text("Recommended".localized)
                     .font(.headline)
                     .foregroundStyle(.secondary)
+                    .transition(.opacity.animation(.easeOut(duration: AnimationDuration.appear)))
+            }
 
-                if showEmergencyPrompt {
-                    emergencyPromptCard
-                }
+            // Container with spacing matching the VStack spacing for proper morphing
+            GlassEffectContainer(spacing: Spacing.lg) {
+                VStack(spacing: Spacing.md) {
+                    if showEmergencyPrompt {
+                        emergencyPromptCard
+                            .glassEffectID("emergencyPrompt", in: glassNamespace)
+                    }
 
-                if showSavingsPrompt {
-                    savingsPromptCard
+                    if showSavingsPrompt {
+                        savingsPromptCard
+                            .glassEffectID("savingsPrompt", in: glassNamespace)
+                    }
                 }
             }
-            .opacity(promptsAppeared ? 1 : 0)
-            .offset(y: promptsAppeared ? 0 : SlideOffset.small)
         }
+        .opacity(promptsAppeared ? 1 : 0)
+        .offset(y: promptsAppeared ? 0 : SlideOffset.small)
     }
 
     var emergencyPromptCard: some View {
@@ -159,14 +171,16 @@ private extension AccountsScreen {
                 Spacer()
 
                 Button {
-                    addEmergencyAccount()
-                    HapticManager.lightTap()
+                    withAnimation(.bouncy) {
+                        addEmergencyAccount()
+                    }
                 } label: {
                     Text("Add".localized)
                         .font(.caption)
                 }
                 .buttonStyle(.glassProminent)
                 .tint(DiamerisColors.accentPrimary)
+                .disabled(viewModel.hasEmergencyAccount)
             }
 
             Text("Protects you from unexpected expenses. Recommended: 3-6 months of income.".localized)
@@ -174,7 +188,7 @@ private extension AccountsScreen {
                 .foregroundStyle(.secondary)
         }
         .padding(Spacing.md)
-        .glassCard()
+        .glassEffect(in: .rect(cornerRadius: CornerRadius.large))
     }
 
     var savingsPromptCard: some View {
@@ -190,14 +204,16 @@ private extension AccountsScreen {
                 Spacer()
 
                 Button {
-                    addSavingsAccount()
-                    HapticManager.lightTap()
+                    withAnimation(.bouncy) {
+                        addSavingsAccount()
+                    }
                 } label: {
                     Text("Add".localized)
                         .font(.caption)
                 }
                 .buttonStyle(.glassProminent)
                 .tint(DiamerisColors.accentPrimary)
+                .disabled(viewModel.hasPrimarySavingsAccount)
             }
 
             Text("Build wealth over time. After emergency fund is full, savings go here.".localized)
@@ -205,7 +221,7 @@ private extension AccountsScreen {
                 .foregroundStyle(.secondary)
         }
         .padding(Spacing.md)
-        .glassCard()
+        .glassEffect(in: .rect(cornerRadius: CornerRadius.large))
     }
 }
 
@@ -237,6 +253,11 @@ private extension AccountsScreen {
 
 private extension AccountsScreen {
     func addAccount(name: String, type: AccountType) {
+        // Guard against adding duplicate emergency accounts
+        if type == .emergency && viewModel.hasEmergencyAccount {
+            return
+        }
+
         var newAccount = AccountEntry(name: name, accountType: type)
 
         // If adding emergency, set default multiplier
@@ -253,44 +274,62 @@ private extension AccountsScreen {
     }
 
     func addEmergencyAccount() {
+        // Guard against rapid taps adding multiple emergency accounts
+        guard !viewModel.hasEmergencyAccount else { return }
         viewModel.accounts.append(.emergency(multiplier: 3.0))
+        HapticManager.lightTap()
     }
 
     func addSavingsAccount() {
+        // Guard against rapid taps adding multiple primary savings accounts
+        guard !viewModel.hasPrimarySavingsAccount else { return }
         viewModel.accounts.append(.savings(isPrimarySavings: true))
+        HapticManager.lightTap()
     }
 
-    func handleTypeChange(index: Int, newType: AccountType) {
+    /// Safely find and update an account by ID
+    func updateAccount(id: UUID, update: (inout AccountEntry) -> Void) {
+        guard let index = viewModel.accounts.firstIndex(where: { $0.id == id }) else { return }
+        update(&viewModel.accounts[index])
+    }
+
+    /// Safely delete an account by ID (prevents index out of bounds)
+    func deleteAccount(id: UUID) {
+        viewModel.accounts.removeAll { $0.id == id }
+    }
+
+    func handleTypeChange(accountId: UUID, newType: AccountType) {
         // If changing to emergency, check if one already exists
         if newType == .emergency && viewModel.hasEmergencyAccount {
-            // Don't allow multiple emergency accounts
             return
         }
 
-        viewModel.accounts[index].accountType = newType
+        updateAccount(id: accountId) { account in
+            account.accountType = newType
 
-        // If changing to emergency, set default multiplier
-        if newType == .emergency {
-            viewModel.accounts[index].emergencyMultiplier = 3.0
-        } else {
-            viewModel.accounts[index].emergencyMultiplier = nil
-        }
+            // If changing to emergency, set default multiplier
+            if newType == .emergency {
+                account.emergencyMultiplier = 3.0
+            } else {
+                account.emergencyMultiplier = nil
+            }
 
-        // If changing to savings and no primary savings, mark as primary
-        if newType == .savings && !viewModel.hasPrimarySavingsAccount {
-            viewModel.accounts[index].isPrimarySavings = true
-        } else if newType != .savings {
-            viewModel.accounts[index].isPrimarySavings = false
+            // If changing to savings and no primary savings, mark as primary
+            if newType == .savings && !viewModel.hasPrimarySavingsAccount {
+                account.isPrimarySavings = true
+            } else if newType != .savings {
+                account.isPrimarySavings = false
+            }
         }
     }
 
-    func togglePrimarySavings(index: Int) {
+    func togglePrimarySavings(accountId: UUID) {
         // Clear primary savings from other accounts
         for i in viewModel.accounts.indices {
             viewModel.accounts[i].isPrimarySavings = false
         }
         // Set this one as primary savings
-        viewModel.accounts[index].isPrimarySavings = true
+        updateAccount(id: accountId) { $0.isPrimarySavings = true }
         HapticManager.lightTap()
     }
 }

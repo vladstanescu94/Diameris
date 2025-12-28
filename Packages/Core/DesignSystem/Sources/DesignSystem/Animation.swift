@@ -8,6 +8,9 @@ public enum AnimationDuration {
     /// 0.2s - Fast micro-interaction
     public static let fast: Double = 0.2
 
+    /// 0.25s - Smooth appear/disappear transitions
+    public static let appear: Double = 0.25
+
     /// 0.3s - Standard interaction
     public static let standard: Double = 0.3
 

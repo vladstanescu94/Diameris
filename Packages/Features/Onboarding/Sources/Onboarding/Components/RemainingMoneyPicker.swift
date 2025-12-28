@@ -57,12 +57,14 @@ struct RemainingMoneyPicker: View {
                 if selectedDestination == destination {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(.white)
+                        .transition(.opacity.animation(.easeOut(duration: AnimationDuration.appear)))
                 }
             }
             .padding(Spacing.md)
             .background {
                 RoundedRectangle(cornerRadius: CornerRadius.medium)
-                    .fill(selectedDestination == destination ? DiamerisColors.accentSecondary : Color.secondary.opacity(0.1))
+                    .fill(selectedDestination == destination ? DiamerisColors.accentSecondary : Color.secondary.opacity(Opacity.faint))
+                    .animation(.easeOut(duration: AnimationDuration.appear), value: selectedDestination)
             }
         }
         .buttonStyle(.plain)

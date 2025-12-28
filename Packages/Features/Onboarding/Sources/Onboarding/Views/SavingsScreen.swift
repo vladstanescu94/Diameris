@@ -9,6 +9,7 @@ struct SavingsScreen: View {
     @Bindable var viewModel: OnboardingViewModel
 
     @State private var contentAppeared = false
+    @Namespace private var boostNamespace
 
     private var availableIncome: Decimal {
         let expenses = viewModel.expenses.reduce(0) { $0 + $1.amount }
@@ -66,16 +67,31 @@ private extension SavingsScreen {
     }
 
     var boostToggleCard: some View {
-        VStack(spacing: Spacing.sm) {
-            boostToggle
-            boostWarning
+        // GlassEffectContainer enables morphing when warning appears/disappears
+        GlassEffectContainer(spacing: 0) {
+            VStack(spacing: Spacing.sm) {
+                boostToggle
+
+                if viewModel.savingsAllocation.boostEnabled {
+                    boostWarning
+                }
+            }
+            .padding(Spacing.md)
+            .glassEffect(in: .rect(cornerRadius: CornerRadius.large))
+            .glassEffectID("boostCard", in: boostNamespace)
         }
-        .padding(Spacing.md)
-        .glassCard()
     }
 
     var boostToggle: some View {
-        Toggle(isOn: $viewModel.savingsAllocation.boostEnabled) {
+        Toggle(isOn: Binding(
+            get: { viewModel.savingsAllocation.boostEnabled },
+            set: { newValue in
+                withAnimation(.bouncy) {
+                    viewModel.savingsAllocation.boostEnabled = newValue
+                }
+                HapticManager.lightTap()
+            }
+        )) {
             HStack {
                 Image(systemName: "bolt.fill")
                     .foregroundStyle(viewModel.savingsAllocation.boostEnabled ? .yellow : .secondary)
@@ -92,27 +108,21 @@ private extension SavingsScreen {
             }
         }
         .tint(DiamerisColors.accentPrimary)
-        .onChange(of: viewModel.savingsAllocation.boostEnabled) { _, _ in
-            HapticManager.lightTap()
-        }
     }
 
-    @ViewBuilder
     var boostWarning: some View {
-        if viewModel.savingsAllocation.boostEnabled {
-            HStack {
-                Image(systemName: "exclamationmark.triangle")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
+        HStack {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.caption)
+                .foregroundStyle(.orange)
 
-                Text("Boost is great for catching up, but not sustainable long-term".localized)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(Spacing.sm)
-            .background(Color.orange.opacity(0.1))
-            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.small))
+            Text("Boost is great for catching up, but not sustainable long-term".localized)
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
+        .padding(Spacing.sm)
+        .background(Color.orange.opacity(Opacity.faint))
+        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.small))
     }
 }
 
@@ -141,6 +151,7 @@ private extension SavingsScreen {
                             text: "Emergency fund fills first until target reached".localized,
                             icon: "shield.fill"
                         )
+                        .transition(.opacity.animation(.easeOut(duration: AnimationDuration.appear)))
                     }
 
                     if viewModel.hasPrimarySavingsAccount {
@@ -149,6 +160,7 @@ private extension SavingsScreen {
                             text: "Remaining savings go to your savings account".localized,
                             icon: "banknote.fill"
                         )
+                        .transition(.opacity.animation(.easeOut(duration: AnimationDuration.appear)))
                     }
                 }
             }

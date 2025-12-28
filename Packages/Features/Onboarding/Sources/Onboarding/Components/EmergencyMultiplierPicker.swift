@@ -62,6 +62,8 @@ private extension EmergencyMultiplierPicker {
                 .font(.caption)
                 .fontWeight(.medium)
                 .foregroundStyle(.orange)
+                .contentTransition(.numericText())
+                .animation(.easeOut(duration: AnimationDuration.appear), value: multiplier)
 
             Spacer()
 
@@ -70,6 +72,8 @@ private extension EmergencyMultiplierPicker {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
+                .contentTransition(.interpolate)
+                .animation(.easeOut(duration: AnimationDuration.appear), value: multiplier)
         }
     }
 

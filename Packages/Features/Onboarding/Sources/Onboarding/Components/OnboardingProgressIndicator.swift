@@ -92,7 +92,7 @@ struct OnboardingProgressIndicator: View {
             totalSteps: 5
         )
         OnboardingProgressIndicator(
-            currentStep: .savingsGoals,
+            currentStep: .savings,
             totalSteps: 5
         )
         OnboardingProgressIndicator(

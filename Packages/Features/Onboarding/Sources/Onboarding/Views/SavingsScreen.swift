@@ -3,12 +3,12 @@ import DesignSystem
 import SharedUI
 import Utilities
 
-/// Screen for setting up savings goals and allocation percentage.
-struct SavingsGoalsScreen: View {
+/// Screen for setting up savings allocation percentage.
+/// Simplified version - account types now drive savings distribution.
+struct SavingsScreen: View {
     @Bindable var viewModel: OnboardingViewModel
 
     @State private var contentAppeared = false
-    @State private var goalsAppeared = false
 
     private var availableIncome: Decimal {
         let expenses = viewModel.expenses.reduce(0) { $0 + $1.amount }
@@ -19,9 +19,8 @@ struct SavingsGoalsScreen: View {
         ScrollView(.vertical, showsIndicators: true) {
             VStack(spacing: Spacing.xl) {
                 header
-                goalsSection
-                divider
                 allocationSection
+                savingsFlowInfo
                 savingsPreview
                 actionButtons
             }
@@ -35,85 +34,23 @@ struct SavingsGoalsScreen: View {
 
 // MARK: - Header
 
-private extension SavingsGoalsScreen {
+private extension SavingsScreen {
     var header: some View {
         OnboardingHeader(
-            icon: "target",
+            icon: "banknote.fill",
             iconColor: DiamerisColors.accentSecondary,
-            title: "Let's build your savings plan".localized,
-            subtitle: "Your goals fill in priority order. When one completes, money flows to the next!".localized
+            title: "How much do you want to save?".localized,
+            subtitle: "Set a percentage of your available income to save each month.".localized
         )
-    }
-}
-
-// MARK: - Goals Section
-
-private extension SavingsGoalsScreen {
-    var goalsSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.md) {
-            goalsSectionTitle
-            goalCards
-            goalsExplanation
-        }
-        .opacity(contentAppeared ? 1 : 0)
-    }
-
-    var goalsSectionTitle: some View {
-        Text("Your Goals".localized)
-            .font(.headline)
-            .opacity(goalsAppeared ? 1 : 0)
-    }
-
-    var goalCards: some View {
-        ForEach(Array(viewModel.savingsGoals.enumerated()), id: \.element.id) { index, goal in
-            GoalCard(
-                goal: goal,
-                monthlyIncome: viewModel.monthlyIncome,
-                currency: viewModel.currency.rawValue,
-                isEditable: true
-            ) { newBalance in
-                viewModel.savingsGoals[index].currentBalance = newBalance
-            }
-            .opacity(goalsAppeared ? 1 : 0)
-            .offset(y: goalsAppeared ? 0 : SlideOffset.small)
-            .animation(
-                SpringPreset.responsive.delay(Double(index) * StaggerDelay.standard),
-                value: goalsAppeared
-            )
-        }
-    }
-
-    var goalsExplanation: some View {
-        HStack(spacing: Spacing.xs) {
-            Image(systemName: "info.circle")
-                .font(.caption)
-                .foregroundStyle(DiamerisColors.accentSecondary)
-
-            Text("Emergency fund fills first, then regular savings".localized)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .padding(.top, Spacing.xs)
-        .opacity(goalsAppeared ? 1 : 0)
-    }
-}
-
-// MARK: - Divider
-
-private extension SavingsGoalsScreen {
-    var divider: some View {
-        Divider()
-            .padding(.vertical, Spacing.sm)
-            .opacity(contentAppeared ? 1 : 0)
     }
 }
 
 // MARK: - Allocation Section
 
-private extension SavingsGoalsScreen {
+private extension SavingsScreen {
     var allocationSection: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            Text("How much to save?".localized)
+            Text("Monthly Savings".localized)
                 .font(.headline)
 
             SavingsSlider(
@@ -179,9 +116,71 @@ private extension SavingsGoalsScreen {
     }
 }
 
+// MARK: - Savings Flow Info
+
+private extension SavingsScreen {
+    @ViewBuilder
+    var savingsFlowInfo: some View {
+        if viewModel.hasEmergencyAccount || viewModel.hasPrimarySavingsAccount {
+            VStack(alignment: .leading, spacing: Spacing.sm) {
+                HStack(spacing: Spacing.xs) {
+                    Image(systemName: "info.circle")
+                        .font(.caption)
+                        .foregroundStyle(DiamerisColors.accentSecondary)
+
+                    Text("How your savings are distributed".localized)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.secondary)
+                }
+
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    if viewModel.hasEmergencyAccount {
+                        flowItem(
+                            number: "1",
+                            text: "Emergency fund fills first until target reached".localized,
+                            icon: "shield.fill"
+                        )
+                    }
+
+                    if viewModel.hasPrimarySavingsAccount {
+                        flowItem(
+                            number: viewModel.hasEmergencyAccount ? "2" : "1",
+                            text: "Remaining savings go to your savings account".localized,
+                            icon: "banknote.fill"
+                        )
+                    }
+                }
+            }
+            .padding(Spacing.md)
+            .glassCard()
+            .opacity(contentAppeared ? 1 : 0)
+        }
+    }
+
+    func flowItem(number: String, text: String, icon: String) -> some View {
+        HStack(spacing: Spacing.sm) {
+            Text(number)
+                .font(.caption)
+                .fontWeight(.bold)
+                .frame(width: 20, height: 20)
+                .background(DiamerisColors.accentSecondary.opacity(0.2))
+                .clipShape(Circle())
+
+            Image(systemName: icon)
+                .font(.caption)
+                .foregroundStyle(DiamerisColors.accentSecondary)
+
+            Text(text)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
 // MARK: - Savings Preview
 
-private extension SavingsGoalsScreen {
+private extension SavingsScreen {
     @ViewBuilder
     var savingsPreview: some View {
         if viewModel.monthlyIncome > 0 {
@@ -198,7 +197,7 @@ private extension SavingsGoalsScreen {
                         .fontWeight(.bold)
                         .foregroundStyle(DiamerisColors.accentSecondary)
 
-                    Text("going to your goals".localized)
+                    Text("going to your accounts".localized)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -214,7 +213,7 @@ private extension SavingsGoalsScreen {
 
 // MARK: - Action Buttons
 
-private extension SavingsGoalsScreen {
+private extension SavingsScreen {
     var actionButtons: some View {
         VStack(spacing: Spacing.sm) {
             OnboardingButton("Continue".localized, isEnabled: viewModel.canAdvance) {
@@ -222,7 +221,6 @@ private extension SavingsGoalsScreen {
             }
 
             OnboardingSecondaryButton("Skip for now".localized) {
-                viewModel.savingsGoals = SavingsGoalEntry.defaults
                 viewModel.savingsAllocation = SavingsAllocationEntry()
                 viewModel.advance()
             }
@@ -233,14 +231,10 @@ private extension SavingsGoalsScreen {
 
 // MARK: - Animations
 
-private extension SavingsGoalsScreen {
+private extension SavingsScreen {
     func triggerAnimations() {
         withAnimation(SpringPreset.smooth.delay(StaggerDelay.initial)) {
             contentAppeared = true
-        }
-
-        withAnimation(SpringPreset.responsive.delay(StaggerDelay.initial + AnimationDuration.fast)) {
-            goalsAppeared = true
         }
     }
 }
@@ -249,5 +243,10 @@ private extension SavingsGoalsScreen {
     let vm = OnboardingViewModel()
     vm.name = "Vlad"
     vm.monthlyIncome = 14303
-    return SavingsGoalsScreen(viewModel: vm)
+    vm.accounts = [
+        .primary(),
+        .emergency(multiplier: 3.0),
+        .savings(isPrimarySavings: true)
+    ]
+    return SavingsScreen(viewModel: vm)
 }

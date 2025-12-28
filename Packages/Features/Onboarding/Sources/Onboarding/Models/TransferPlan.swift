@@ -1,6 +1,7 @@
 import Foundation
 
 /// The result of a transfer plan calculation.
+/// Shows how money flows from income through accounts based on account types.
 public struct TransferPlan: Sendable {
     /// Monthly income
     public let income: Decimal
@@ -11,23 +12,103 @@ public struct TransferPlan: Sendable {
     /// Available income after expenses
     public let availableIncome: Decimal
 
-    /// Total amount going to savings (before distribution to goals)
+    /// Total amount going to savings (based on savings percentage)
     public let totalSavings: Decimal
 
-    /// Allocations to each goal in priority order
-    public let goalAllocations: [GoalAllocation]
+    /// Allocations to accounts in priority order (emergency first, then savings)
+    public let accountAllocations: [AccountAllocation]
 
-    /// Amount that stays in primary account for automatic payments
+    /// Amount that stays in primary account for automatic expense payments
     public let remainsInPrimary: Decimal
 
     /// Expense transfers to non-primary accounts
     public let accountExpenseTransfers: [AccountExpenseTransfer]
 
-    /// Amount for flexible/personal spending
-    public let flexibleSpending: Decimal
+    /// Amount remaining after expenses and savings
+    public let remainingMoney: Decimal
+
+    /// Where remaining money goes
+    public let remainingDestination: RemainingMoneyDestination
 
     /// Whether all amounts add up correctly
     public let isBalanced: Bool
+
+    public init(
+        income: Decimal,
+        totalExpenses: Decimal,
+        availableIncome: Decimal,
+        totalSavings: Decimal,
+        accountAllocations: [AccountAllocation],
+        remainsInPrimary: Decimal,
+        accountExpenseTransfers: [AccountExpenseTransfer],
+        remainingMoney: Decimal,
+        remainingDestination: RemainingMoneyDestination,
+        isBalanced: Bool
+    ) {
+        self.income = income
+        self.totalExpenses = totalExpenses
+        self.availableIncome = availableIncome
+        self.totalSavings = totalSavings
+        self.accountAllocations = accountAllocations
+        self.remainsInPrimary = remainsInPrimary
+        self.accountExpenseTransfers = accountExpenseTransfers
+        self.remainingMoney = remainingMoney
+        self.remainingDestination = remainingDestination
+        self.isBalanced = isBalanced
+    }
+}
+
+// MARK: - Account Allocation
+
+extension TransferPlan {
+    /// Represents money being allocated to a specific account based on its type.
+    public struct AccountAllocation: Identifiable, Sendable {
+        public let id: UUID
+        public let accountId: UUID
+        public let accountName: String
+        public let accountType: AccountType
+        public let amount: Decimal
+
+        // Progress tracking (for emergency accounts)
+        public let progressBefore: Double?     // 0.0 - 1.0
+        public let progressAfter: Double?      // 0.0 - 1.0
+        public let targetAmount: Decimal?      // Target for emergency accounts
+        public let currentBalance: Decimal
+        public let isComplete: Bool            // Will this allocation complete the target?
+
+        public init(
+            account: AccountEntry,
+            amount: Decimal,
+            progressBefore: Double? = nil,
+            progressAfter: Double? = nil,
+            targetAmount: Decimal? = nil,
+            isComplete: Bool = false
+        ) {
+            self.id = UUID()
+            self.accountId = account.id
+            self.accountName = account.name
+            self.accountType = account.accountType
+            self.amount = amount
+            self.progressBefore = progressBefore
+            self.progressAfter = progressAfter
+            self.targetAmount = targetAmount
+            self.currentBalance = account.currentBalance
+            self.isComplete = isComplete
+        }
+
+        /// Format progress change for display (e.g., "86% → 92%")
+        public var progressChangeDisplay: String? {
+            guard let before = progressBefore, let after = progressAfter else { return nil }
+            let beforeInt = Int(before * 100)
+            let afterInt = Int(after * 100)
+            return "\(beforeInt)% → \(afterInt)%"
+        }
+
+        /// Icon for the account type
+        public var icon: String {
+            accountType.icon
+        }
+    }
 }
 
 // MARK: - Account Expense Transfer
@@ -51,79 +132,27 @@ extension TransferPlan {
     }
 }
 
-// MARK: - Goal Allocation
-
-extension TransferPlan {
-    /// A single goal allocation with progress information.
-    public struct GoalAllocation: Identifiable, Sendable {
-        public let id: UUID
-        public let goalName: String
-        public let goalIcon: String
-        public let amount: Decimal
-        public let progressBefore: Double      // 0.0 - 1.0
-        public let progressAfter: Double       // 0.0 - 1.0
-        public let targetAmount: Decimal?      // Nil for unlimited
-        public let currentBalance: Decimal
-        public let isComplete: Bool            // Will this fill the goal?
-        public let accountType: AccountType?   // Where this money goes
-
-        public init(
-            goal: SavingsGoalEntry,
-            amount: Decimal,
-            progressBefore: Double,
-            progressAfter: Double,
-            targetAmount: Decimal?,
-            isComplete: Bool,
-            accountType: AccountType? = nil
-        ) {
-            self.id = goal.id
-            self.goalName = goal.name
-            self.goalIcon = goal.icon
-            self.amount = amount
-            self.progressBefore = progressBefore
-            self.progressAfter = progressAfter
-            self.targetAmount = targetAmount
-            self.currentBalance = goal.currentBalance
-            self.isComplete = isComplete
-            self.accountType = accountType
-        }
-
-        /// Format progress change for display (e.g., "86% → 92%")
-        public var progressChangeDisplay: String? {
-            guard targetAmount != nil else { return nil }
-            let before = Int(progressBefore * 100)
-            let after = Int(progressAfter * 100)
-            return "\(before)% → \(after)%"
-        }
-    }
-}
-
-// MARK: - Progress Info (used by TransferCard)
-
-extension TransferPlan.GoalAllocation {
-    /// Progress information for display in transfer cards.
-    public struct ProgressInfo: Sendable {
-        public let currentPercent: Double
-        public let afterPercent: Double
-
-        public init(currentPercent: Double, afterPercent: Double) {
-            self.currentPercent = currentPercent
-            self.afterPercent = afterPercent
-        }
-    }
-}
-
 // MARK: - Convenience Properties
 
 extension TransferPlan {
-    /// Check if there are any goal allocations
-    public var hasGoalAllocations: Bool {
-        !goalAllocations.isEmpty && goalAllocations.contains { $0.amount > 0 }
+    /// Check if there are any account allocations
+    public var hasAccountAllocations: Bool {
+        !accountAllocations.isEmpty && accountAllocations.contains { $0.amount > 0 }
     }
 
-    /// Get the total amount allocated to goals
-    public var totalGoalAllocations: Decimal {
-        goalAllocations.reduce(0) { $0 + $1.amount }
+    /// Get the total amount allocated to accounts
+    public var totalAccountAllocations: Decimal {
+        accountAllocations.reduce(0) { $0 + $1.amount }
+    }
+
+    /// Get emergency allocation if present
+    public var emergencyAllocation: AccountAllocation? {
+        accountAllocations.first { $0.accountType == .emergency }
+    }
+
+    /// Get savings allocation if present
+    public var savingsAllocation: AccountAllocation? {
+        accountAllocations.first { $0.accountType == .savings }
     }
 
     /// Get summary for display
@@ -134,8 +163,8 @@ extension TransferPlan {
 
         let incomeStr = formatter.string(from: income as NSNumber) ?? "0"
         let savingsStr = formatter.string(from: totalSavings as NSNumber) ?? "0"
-        let flexibleStr = formatter.string(from: flexibleSpending as NSNumber) ?? "0"
+        let remainingStr = formatter.string(from: remainingMoney as NSNumber) ?? "0"
 
-        return "Income: \(incomeStr) | Savings: \(savingsStr) | Flexible: \(flexibleStr)"
+        return "Income: \(incomeStr) | Savings: \(savingsStr) | Remaining: \(remainingStr)"
     }
 }

@@ -1,40 +1,66 @@
 import SwiftUI
 import DesignSystem
+import SharedUI
 import Utilities
 
-/// A row displaying an account with editable name and type.
+/// A row displaying an account with editable properties based on account type.
 struct AccountRow: View {
     let account: AccountEntry
-    let isPrimary: Bool
+    let monthlyIncome: Decimal
+    let currency: String
+    let hasExistingEmergency: Bool
+
     let onTypeChange: (AccountType) -> Void
     let onNameChange: (String) -> Void
+    let onMultiplierChange: ((Double) -> Void)?
+    let onBalanceChange: ((Decimal) -> Void)?
+    let onPrimarySavingsToggle: (() -> Void)?
     let onDelete: (() -> Void)?
 
     @State private var isEditing = false
     @State private var editedName: String = ""
+    @State private var isExpanded = false
 
     var body: some View {
+        VStack(spacing: 0) {
+            mainRow
+            if isExpanded {
+                expandedContent
+            }
+        }
+        .glassLarge()
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityDescription)
+    }
+}
+
+// MARK: - Main Row
+
+private extension AccountRow {
+    var mainRow: some View {
         HStack(spacing: Spacing.md) {
             accountIcon
             accountContent
             Spacer()
-            deleteButton
+            trailingContent
         }
         .padding(Spacing.md)
-        .glassCard()
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(account.name), \(account.accountType.displayName)\(isPrimary ? ", primary account" : "")")
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if shouldShowExpandedContent {
+                withAnimation(SpringPreset.responsive) {
+                    isExpanded.toggle()
+                }
+                HapticManager.lightTap()
+            }
+        }
     }
-}
 
-// MARK: - Subviews
-
-private extension AccountRow {
     var accountIcon: some View {
         ZStack {
             Circle()
-                .fill(account.accountType.color.opacity(0.15))
-                .frame(width: 44, height: 44)
+                .fill(account.accountType.color.opacity(Opacity.light))
+                .frame(width: ComponentSize.minTouchTarget, height: ComponentSize.minTouchTarget)
 
             Image(systemName: account.accountType.icon)
                 .font(.title3)
@@ -45,19 +71,18 @@ private extension AccountRow {
 
     var accountContent: some View {
         VStack(alignment: .leading, spacing: Spacing.xxs) {
+            nameSection
+            typeAndBadgesSection
+        }
+    }
+
+    var nameSection: some View {
+        Group {
             if isEditing {
                 nameTextField
             } else {
                 nameDisplay
             }
-
-            AccountTypeSelector(
-                selectedType: .init(
-                    get: { account.accountType },
-                    set: { onTypeChange($0) }
-                ),
-                compact: true
-            )
         }
     }
 
@@ -76,8 +101,12 @@ private extension AccountRow {
             Text(account.name)
                 .font(.headline)
 
-            if isPrimary {
+            if account.isPrimary {
                 primaryBadge
+            }
+
+            if account.isPrimarySavings {
+                primarySavingsBadge
             }
         }
         .onTapGesture {
@@ -86,15 +115,32 @@ private extension AccountRow {
         }
     }
 
-    var primaryBadge: some View {
-        Text("Primary".localized)
-            .font(.caption2)
-            .fontWeight(.medium)
-            .foregroundStyle(DiamerisColors.accentPrimary)
-            .padding(.horizontal, Spacing.xs)
-            .padding(.vertical, 2)
-            .background(DiamerisColors.accentPrimary.opacity(0.15))
-            .clipShape(Capsule())
+    var typeAndBadgesSection: some View {
+        AccountTypeSelector(
+            selectedType: .init(
+                get: { account.accountType },
+                set: { onTypeChange($0) }
+            ),
+            compact: true,
+            disableEmergency: hasExistingEmergency
+        )
+    }
+
+    var trailingContent: some View {
+        HStack(spacing: Spacing.sm) {
+            if shouldShowExpandedContent {
+                expandChevron
+            }
+            deleteButton
+        }
+    }
+
+    @ViewBuilder
+    var expandChevron: some View {
+        Image(systemName: "chevron.down")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .rotationEffect(.degrees(isExpanded ? 180 : 0))
     }
 
     @ViewBuilder
@@ -112,15 +158,219 @@ private extension AccountRow {
     }
 }
 
+// MARK: - Badges
+
+private extension AccountRow {
+    var primaryBadge: some View {
+        Text("Primary".localized)
+            .font(.caption2)
+            .fontWeight(.medium)
+            .foregroundStyle(DiamerisColors.accentPrimary)
+            .padding(.horizontal, Spacing.xs)
+            .padding(.vertical, 2)
+            .background(DiamerisColors.accentPrimary.opacity(0.15))
+            .clipShape(Capsule())
+    }
+
+    var primarySavingsBadge: some View {
+        Text("Auto-Save".localized)
+            .font(.caption2)
+            .fontWeight(.medium)
+            .foregroundStyle(DiamerisColors.accentSecondary)
+            .padding(.horizontal, Spacing.xs)
+            .padding(.vertical, 2)
+            .background(DiamerisColors.accentSecondary.opacity(0.15))
+            .clipShape(Capsule())
+    }
+}
+
+// MARK: - Expanded Content
+
+private extension AccountRow {
+    var shouldShowExpandedContent: Bool {
+        account.accountType == .emergency || account.accountType == .savings
+    }
+
+    @ViewBuilder
+    var expandedContent: some View {
+        VStack(spacing: Spacing.md) {
+            Divider()
+                .padding(.horizontal, Spacing.md)
+
+            VStack(spacing: Spacing.md) {
+                if account.accountType == .emergency {
+                    emergencyExpandedContent
+                } else if account.accountType == .savings {
+                    savingsExpandedContent
+                }
+            }
+            .padding(.horizontal, Spacing.md)
+            .padding(.bottom, Spacing.md)
+        }
+        .transition(.opacity.combined(with: .move(edge: .top)))
+    }
+
+    var emergencyExpandedContent: some View {
+        VStack(spacing: Spacing.md) {
+            // Multiplier Picker
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                Text("Target: months of income".localized)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                EmergencyMultiplierPicker(
+                    multiplier: Binding(
+                        get: { account.emergencyMultiplier ?? 3.0 },
+                        set: { onMultiplierChange?($0) }
+                    ),
+                    monthlyIncome: monthlyIncome,
+                    currency: currency
+                )
+            }
+
+            // Current Balance
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                Text("Current balance".localized)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                BalanceInputField(
+                    balance: Binding(
+                        get: { account.currentBalance },
+                        set: { onBalanceChange?($0) }
+                    ),
+                    currency: currency
+                )
+            }
+
+            // Progress Display
+            if let progress = account.emergencyProgress(monthlyIncome: monthlyIncome) {
+                emergencyProgressView(progress: progress)
+            }
+        }
+    }
+
+    func emergencyProgressView(progress: Double) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            HStack {
+                Text("Progress".localized)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+
+                Text("\(Int(progress * 100))%")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundStyle(progress >= 1.0 ? .green : .orange)
+            }
+
+            ProgressView(value: progress)
+                .tint(progress >= 1.0 ? .green : .orange)
+        }
+    }
+
+    var savingsExpandedContent: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            if !account.isPrimarySavings, let onToggle = onPrimarySavingsToggle {
+                Button {
+                    onToggle()
+                } label: {
+                    HStack {
+                        Image(systemName: "star.fill")
+                            .foregroundStyle(.yellow)
+
+                        Text("Set as Primary Savings".localized)
+                            .font(.subheadline)
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
+            } else if account.isPrimarySavings {
+                HStack(spacing: Spacing.xs) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+
+                    Text("This account receives automatic savings".localized)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Accessibility
+
+private extension AccountRow {
+    var accessibilityDescription: String {
+        var description = "\(account.name), \(account.accountType.displayName)"
+
+        if account.isPrimary {
+            description += ", primary account"
+        }
+
+        if account.isPrimarySavings {
+            description += ", primary savings"
+        }
+
+        if account.accountType == .emergency, let target = account.emergencyTarget(monthlyIncome: monthlyIncome) {
+            description += ", target \(AmountFormatter.formatForDisplay(target, currency: currency))"
+        }
+
+        return description
+    }
+}
+
+// MARK: - Balance Input Field
+
+private struct BalanceInputField: View {
+    @Binding var balance: Decimal
+    let currency: String
+
+    @State private var text: String = ""
+
+    var body: some View {
+        HStack(spacing: Spacing.sm) {
+            Text(currency)
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundStyle(.secondary)
+
+            TextField("0", text: $text)
+                .font(.subheadline)
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+                .onChange(of: text) { _, newValue in
+                    balance = AmountFormatter.parse(newValue)
+                }
+                .onAppear {
+                    if balance > 0 {
+                        text = AmountFormatter.formatForEditing(balance)
+                    }
+                }
+        }
+        .padding(Spacing.sm)
+        .background(Color.secondary.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.small))
+    }
+}
+
 // MARK: - AccountType Color Extension
 
 extension AccountType {
     var color: Color {
         switch self {
-        case .checking: DiamerisColors.accentPrimary
+        case .primary: DiamerisColors.accentPrimary
+        case .emergency: .orange
         case .savings: DiamerisColors.accentSecondary
-        case .personal: .orange
-        case .joint: .purple
+        case .personal: .purple
+        case .joint: .pink
         case .other: .secondary
         }
     }
@@ -129,18 +379,41 @@ extension AccountType {
 #Preview {
     VStack(spacing: Spacing.md) {
         AccountRow(
-            account: AccountEntry(name: "Main Account", accountType: .checking, isPrimary: true),
-            isPrimary: true,
+            account: .primary(),
+            monthlyIncome: 5000,
+            currency: "USD",
+            hasExistingEmergency: false,
             onTypeChange: { _ in },
             onNameChange: { _ in },
+            onMultiplierChange: nil,
+            onBalanceChange: nil,
+            onPrimarySavingsToggle: nil,
             onDelete: nil
         )
 
         AccountRow(
-            account: AccountEntry(name: "Savings", accountType: .savings),
-            isPrimary: false,
+            account: .emergency(multiplier: 3.0, currentBalance: 5000),
+            monthlyIncome: 5000,
+            currency: "USD",
+            hasExistingEmergency: true,
             onTypeChange: { _ in },
             onNameChange: { _ in },
+            onMultiplierChange: { _ in },
+            onBalanceChange: { _ in },
+            onPrimarySavingsToggle: nil,
+            onDelete: { }
+        )
+
+        AccountRow(
+            account: .savings(isPrimarySavings: true),
+            monthlyIncome: 5000,
+            currency: "USD",
+            hasExistingEmergency: true,
+            onTypeChange: { _ in },
+            onNameChange: { _ in },
+            onMultiplierChange: nil,
+            onBalanceChange: nil,
+            onPrimarySavingsToggle: { },
             onDelete: { }
         )
     }

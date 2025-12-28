@@ -6,13 +6,16 @@ import Utilities
 public struct AccountTypeSelector: View {
     @Binding var selectedType: AccountType
     let compact: Bool
+    let disableEmergency: Bool
 
     public init(
         selectedType: Binding<AccountType>,
-        compact: Bool = true
+        compact: Bool = true,
+        disableEmergency: Bool = false
     ) {
         self._selectedType = selectedType
         self.compact = compact
+        self.disableEmergency = disableEmergency
     }
 
     public var body: some View {
@@ -26,11 +29,21 @@ public struct AccountTypeSelector: View {
     private var compactPicker: some View {
         Menu {
             ForEach(AccountType.allCases) { type in
-                Button {
-                    HapticManager.lightTap()
-                    selectedType = type
-                } label: {
-                    Label(type.displayName, systemImage: type.icon)
+                if type == .emergency && disableEmergency {
+                    // Show disabled state for emergency when one exists
+                    Button {
+                        // No-op
+                    } label: {
+                        Label("\(type.displayName) (only one allowed)", systemImage: type.icon)
+                    }
+                    .disabled(true)
+                } else {
+                    Button {
+                        HapticManager.lightTap()
+                        selectedType = type
+                    } label: {
+                        Label(type.displayName, systemImage: type.icon)
+                    }
                 }
             }
         } label: {
@@ -42,6 +55,8 @@ public struct AccountTypeSelector: View {
                 Text(selectedType.displayName)
                     .font(.caption)
                     .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
 
                 Image(systemName: "chevron.up.chevron.down")
                     .font(.caption2)
@@ -70,10 +85,14 @@ public struct AccountTypeSelector: View {
                 GridItem(.flexible())
             ], spacing: Spacing.sm) {
                 ForEach(AccountType.allCases) { type in
+                    let isDisabled = type == .emergency && disableEmergency
+
                     AccountTypeButton(
                         type: type,
-                        isSelected: selectedType == type
+                        isSelected: selectedType == type,
+                        isDisabled: isDisabled
                     ) {
+                        guard !isDisabled else { return }
                         HapticManager.lightTap()
                         selectedType = type
                     }
@@ -87,6 +106,7 @@ public struct AccountTypeSelector: View {
 private struct AccountTypeButton: View {
     let type: AccountType
     let isSelected: Bool
+    let isDisabled: Bool
     let onTap: () -> Void
 
     var body: some View {
@@ -94,16 +114,16 @@ private struct AccountTypeButton: View {
             VStack(spacing: Spacing.xs) {
                 Image(systemName: type.icon)
                     .font(.title3)
-                    .foregroundStyle(isSelected ? .white : DiamerisColors.accentSecondary)
+                    .foregroundStyle(foregroundColor)
 
                 Text(type.displayName)
                     .font(.caption)
                     .fontWeight(.medium)
-                    .foregroundStyle(isSelected ? .white : .primary)
+                    .foregroundStyle(foregroundColor)
 
                 Text(type.description)
                     .font(.caption2)
-                    .foregroundStyle(isSelected ? .white.opacity(0.8) : .secondary)
+                    .foregroundStyle(descriptionColor)
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
             }
@@ -111,19 +131,33 @@ private struct AccountTypeButton: View {
             .padding(Spacing.sm)
             .background {
                 RoundedRectangle(cornerRadius: CornerRadius.medium)
-                    .fill(isSelected ? DiamerisColors.accentSecondary : Color.secondary.opacity(0.1))
+                    .fill(backgroundColor)
             }
+            .opacity(isDisabled ? 0.5 : 1.0)
         }
         .buttonStyle(.plain)
+        .disabled(isDisabled)
         .accessibilityLabel(type.displayName)
-        .accessibilityHint(type.description)
+        .accessibilityHint(isDisabled ? "Only one emergency account allowed".localized : type.description)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private var foregroundColor: Color {
+        isSelected ? .white : DiamerisColors.accentSecondary
+    }
+
+    private var descriptionColor: Color {
+        isSelected ? .white.opacity(0.8) : .secondary
+    }
+
+    private var backgroundColor: Color {
+        isSelected ? DiamerisColors.accentSecondary : Color.secondary.opacity(0.1)
     }
 }
 
 #Preview {
     struct PreviewWrapper: View {
-        @State private var selectedType: AccountType = .checking
+        @State private var selectedType: AccountType = .primary
 
         var body: some View {
             VStack(spacing: Spacing.xl) {
@@ -132,6 +166,13 @@ private struct AccountTypeButton: View {
                 Divider()
 
                 AccountTypeSelector(selectedType: $selectedType, compact: false)
+
+                Divider()
+
+                Text("With emergency disabled:")
+                    .font(.caption)
+
+                AccountTypeSelector(selectedType: $selectedType, compact: false, disableEmergency: true)
             }
             .padding()
         }

@@ -48,12 +48,12 @@ private extension OnboardingContainerView {
             NameScreen(viewModel: viewModel)
         case .income:
             IncomeScreen(viewModel: viewModel)
-        case .savingsGoals:
-            SavingsGoalsScreen(viewModel: viewModel)
-        case .expenses:
-            ExpensesScreen(viewModel: viewModel)
         case .accounts:
             AccountsScreen(viewModel: viewModel)
+        case .savings:
+            SavingsScreen(viewModel: viewModel)
+        case .expenses:
+            ExpensesScreen(viewModel: viewModel)
         case .transferPlan:
             TransferPlanScreen(viewModel: viewModel) {
                 viewModel.save(context: modelContext)
@@ -109,7 +109,6 @@ private extension OnboardingContainerView {
             Income.self,
             Expense.self,
             Account.self,
-            SavingsGoal.self,
             SavingsAllocation.self
         ], inMemory: true)
 }

@@ -67,6 +67,7 @@ This document tracks implementation progress. **Update this file after completin
 | Opacity constants | 2025-12-27 | Added `Opacity.faint` (0.1), `Opacity.light` (0.15) to DesignSystem |
 | Expense-to-account linking | 2025-12-27 | Bidirectional: ExpenseRow picker + AccountRow chips; flow: Expenses → Accounts; defaults to Main |
 | Confetti scroll fix | 2025-12-27 | Timer now uses `.common` run loop mode to continue during scroll |
+| Account system redesign | 2025-12-28 | Account types now drive transfer behavior; emergency fills first with income multiplier (3x-6x), primary savings fills after; user chooses remaining money destination |
 
 ### In Progress
 
@@ -406,6 +407,64 @@ String(localized: "Hello, \(name)!", bundle: .module)
 **New Flow:** Welcome → Name → Income → Savings Goals → **Accounts** → **Expenses** → Transfer Plan
 
 **Key Principle:** Linking happens in one place only (Expenses screen), not bidirectionally.
+
+### 2025-12-28 - Account System Redesign Session
+
+**Focus:** Make account types meaningful - they should drive transfer behavior, not just be cosmetic labels.
+
+**Problem Statement:** The previous implementation treated account types (checking, savings, personal) as cosmetic labels with no functional meaning. The transfer calculator didn't know that an "Emergency" account should fill first, or that "Savings" should fill after.
+
+**Solution:** Account types now have semantic/behavioral meaning:
+
+| Type | Behavior | Target | Fills When |
+|------|----------|--------|------------|
+| **Primary** | Where salary lands | N/A | Salary arrives here |
+| **Emergency** | Has income multiplier target | 3x-6x income | First (until target reached) |
+| **Savings** | One can be "primary savings" | Unlimited | After emergency full |
+| **Personal** | Discretionary spending | N/A | Gets remaining money (if selected) |
+| **Joint** | Shared expenses | N/A | Linked expenses transfer here |
+
+**Major Changes:**
+
+1. **AccountType enum:** Renamed `checking` → `primary`, added behavioral meaning
+2. **AccountEntry model:** Added `isPrimarySavings`, `emergencyMultiplier` (3.0-6.0), `currentBalance`
+3. **RemainingMoneyDestination enum:** User chooses where remaining money goes (primarySavings, personal, primary)
+4. **TransferCalculator rewrite:** Account-type-aware priority logic (emergency → savings → remaining)
+5. **TransferPlan model:** New `AccountAllocation` struct replaces `GoalAllocation`
+6. **Screen flow:** Renamed SavingsGoals → Savings; reordered to Accounts → Expenses → Savings → TransferPlan
+
+**Files Created:**
+- `SavingsScreen.swift` - Simplified savings configuration (slider + boost)
+- `EmergencyMultiplierPicker.swift` - 3x-6x income multiplier selector
+- `RemainingMoneyPicker.swift` - Destination selector for remaining money
+
+**Files Completely Rewritten:**
+- `TransferCalculator.swift` - New priority-based allocation algorithm
+- `TransferPlan.swift` - New AccountAllocation struct
+- `AccountRow.swift` - Expandable content for emergency/savings accounts
+
+**Files Updated:**
+- `OnboardingViewModel.swift` - Added remainingMoneyDestination, computed helpers for account types
+- `UserProfile.swift` - Added remainingMoneyDestination persistence
+- `Account.swift` - Added behavioral properties (isPrimarySavings, emergencyMultiplier, currentBalance)
+- `AccountsScreen.swift` - Guided prompts for emergency + savings accounts
+- `TransferPlanScreen.swift` - Remaining money destination picker
+- `AccountTypeSelector.swift` - disableEmergency parameter
+
+**Files Removed:**
+- `SavingsGoalEntry.swift` - Replaced by account types
+- `TargetType.swift` - Emergency multiplier now on AccountEntry
+- `GoalCard.swift` - No longer needed
+- `GoalTargetPicker.swift` - Replaced by EmergencyMultiplierPicker
+- `SavingsGoalsScreen.swift` - Replaced by SavingsScreen
+- `TransferCard.swift` - Inline cards in TransferPlanScreen
+- `SavingsGoal.swift` - Removed from SwiftData schema
+
+**Key Design Decisions:**
+1. **One emergency account allowed** (enforced by disabling type in selector)
+2. **Multiple savings accounts** but only ONE is "primary savings" for auto-allocation
+3. **User chooses remaining money destination** on TransferPlanScreen
+4. **Guided prompts** recommend emergency + savings but don't force
 
 ---
 

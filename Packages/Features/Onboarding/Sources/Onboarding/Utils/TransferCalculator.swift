@@ -1,15 +1,20 @@
 import Foundation
 
-/// Calculator for generating transfer plans.
+/// Calculator for generating transfer plans based on account types.
+///
+/// Transfer priority:
+/// 1. Emergency account fills first (until target reached)
+/// 2. Primary Savings account fills with remaining savings
+/// 3. Remaining money goes to user's chosen destination
 public enum TransferCalculator {
 
-    /// Calculate the transfer plan based on income, expenses, goals, and allocation settings.
+    /// Calculate the transfer plan based on income, expenses, accounts, and allocation settings.
     public static func calculate(
         income: Decimal,
         expenses: [ExpenseEntry],
-        goals: [SavingsGoalEntry],
         allocation: SavingsAllocationEntry,
-        accounts: [AccountEntry] = []
+        accounts: [AccountEntry],
+        remainingDestination: RemainingMoneyDestination
     ) -> TransferPlan {
         // 1. Calculate total expenses
         let totalExpenses = expenses.reduce(0) { $0 + $1.amount }
@@ -17,19 +22,18 @@ public enum TransferCalculator {
         // 2. Calculate available income after expenses
         let availableIncome = max(0, income - totalExpenses)
 
-        // 3. Calculate total savings amount
+        // 3. Calculate total savings amount (based on percentage + boost)
         let totalSavings = allocation.calculateSavings(availableIncome: availableIncome)
 
-        // 4. Distribute savings to goals in priority order
-        let goalAllocations = distributeToGoals(
+        // 4. Distribute savings to accounts by type (emergency first, then savings)
+        let (accountAllocations, allocatedSavings) = distributeToAccounts(
             totalSavings: totalSavings,
-            goals: goals,
-            monthlyIncome: income,
-            accounts: accounts
+            accounts: accounts,
+            monthlyIncome: income
         )
 
-        // 5. Calculate flexible spending (what's left after savings)
-        let flexibleSpending = availableIncome - totalSavings
+        // 5. Calculate remaining money after expenses and savings
+        let remainingMoney = availableIncome - allocatedSavings
 
         // 6. Distribute expenses to accounts
         let (remainsInPrimary, accountExpenseTransfers) = distributeExpenses(
@@ -38,20 +42,21 @@ public enum TransferCalculator {
         )
 
         // 7. Verify balance
-        let totalAllocated = goalAllocations.reduce(0) { $0 + $1.amount }
+        let totalAllocated = accountAllocations.reduce(0) { $0 + $1.amount }
         let totalExpenseTransfers = accountExpenseTransfers.reduce(0) { $0 + $1.amount }
-        let total = remainsInPrimary + totalExpenseTransfers + totalAllocated + flexibleSpending
+        let total = remainsInPrimary + totalExpenseTransfers + totalAllocated + remainingMoney
         let isBalanced = abs(total - income) < 0.01  // Allow small rounding error
 
         return TransferPlan(
             income: income,
             totalExpenses: totalExpenses,
             availableIncome: availableIncome,
-            totalSavings: totalSavings,
-            goalAllocations: goalAllocations,
+            totalSavings: allocatedSavings,
+            accountAllocations: accountAllocations,
             remainsInPrimary: remainsInPrimary,
             accountExpenseTransfers: accountExpenseTransfers,
-            flexibleSpending: flexibleSpending,
+            remainingMoney: remainingMoney,
+            remainingDestination: remainingDestination,
             isBalanced: isBalanced
         )
     }
@@ -60,6 +65,94 @@ public enum TransferCalculator {
 // MARK: - Private Helpers
 
 private extension TransferCalculator {
+
+    /// Distribute savings to accounts based on type priority.
+    /// Returns: (allocations, totalAllocated)
+    static func distributeToAccounts(
+        totalSavings: Decimal,
+        accounts: [AccountEntry],
+        monthlyIncome: Decimal
+    ) -> ([TransferPlan.AccountAllocation], Decimal) {
+        var remainingSavings = totalSavings
+        var allocations: [TransferPlan.AccountAllocation] = []
+
+        // Step 1: Fill Emergency account first (if exists and not complete)
+        if let emergencyAccount = accounts.first(where: { $0.accountType == .emergency }) {
+            let allocation = calculateEmergencyAllocation(
+                account: emergencyAccount,
+                availableSavings: remainingSavings,
+                monthlyIncome: monthlyIncome
+            )
+            if allocation.amount > 0 || allocation.targetAmount != nil {
+                allocations.append(allocation)
+                remainingSavings -= allocation.amount
+            }
+        }
+
+        // Step 2: Fill Primary Savings account with remaining savings
+        if let savingsAccount = accounts.first(where: { $0.isPrimarySavings }) {
+            if remainingSavings > 0 {
+                let allocation = TransferPlan.AccountAllocation(
+                    account: savingsAccount,
+                    amount: remainingSavings
+                )
+                allocations.append(allocation)
+                remainingSavings = 0
+            }
+        } else if let savingsAccount = accounts.first(where: { $0.accountType == .savings }) {
+            // Fallback: use first savings-type account if no primary savings
+            if remainingSavings > 0 {
+                let allocation = TransferPlan.AccountAllocation(
+                    account: savingsAccount,
+                    amount: remainingSavings
+                )
+                allocations.append(allocation)
+                remainingSavings = 0
+            }
+        }
+
+        let totalAllocated = totalSavings - remainingSavings
+        return (allocations, totalAllocated)
+    }
+
+    /// Calculate allocation for an emergency account with progress tracking.
+    static func calculateEmergencyAllocation(
+        account: AccountEntry,
+        availableSavings: Decimal,
+        monthlyIncome: Decimal
+    ) -> TransferPlan.AccountAllocation {
+        guard let target = account.emergencyTarget(monthlyIncome: monthlyIncome) else {
+            // No target set, treat as unlimited
+            return TransferPlan.AccountAllocation(
+                account: account,
+                amount: availableSavings
+            )
+        }
+
+        // Calculate how much is still needed
+        let currentBalance = account.currentBalance
+        let remaining = max(0, target - currentBalance)
+
+        // Allocate the minimum of what's needed and what's available
+        let amountToAllocate = min(remaining, availableSavings)
+
+        // Calculate progress before and after
+        let progressBefore = account.emergencyProgress(monthlyIncome: monthlyIncome) ?? 0
+        let newBalance = currentBalance + amountToAllocate
+        let progressAfter = target > 0 ? min(1.0, Double(truncating: (newBalance / target) as NSNumber)) : 0
+
+        // Check if this allocation completes the target
+        let isComplete = newBalance >= target
+
+        return TransferPlan.AccountAllocation(
+            account: account,
+            amount: amountToAllocate,
+            progressBefore: progressBefore,
+            progressAfter: progressAfter,
+            targetAmount: target,
+            isComplete: isComplete
+        )
+    }
 
     /// Distribute expenses to accounts based on linkedAccountId.
     /// Returns: (remainsInPrimary, accountExpenseTransfers)
@@ -102,132 +195,5 @@ private extension TransferCalculator {
         }
 
         return (remainsInPrimary, transfers)
-    }
-
-    /// Distribute savings to goals in priority order.
-    static func distributeToGoals(
-        totalSavings: Decimal,
-        goals: [SavingsGoalEntry],
-        monthlyIncome: Decimal,
-        accounts: [AccountEntry]
-    ) -> [TransferPlan.GoalAllocation] {
-        var remainingSavings = totalSavings
-        var allocations: [TransferPlan.GoalAllocation] = []
-
-        // Sort goals by priority (1 = highest)
-        let sortedGoals = goals
-            .filter { $0.isActive }
-            .sorted { $0.priority < $1.priority }
-
-        for goal in sortedGoals {
-            guard remainingSavings > 0 else { break }
-
-            let allocation = calculateAllocation(
-                for: goal,
-                remainingSavings: remainingSavings,
-                monthlyIncome: monthlyIncome,
-                accounts: accounts
-            )
-
-            if allocation.amount > 0 || goal.targetType != .unlimited {
-                allocations.append(allocation)
-            }
-
-            remainingSavings -= allocation.amount
-        }
-
-        return allocations
-    }
-
-    /// Calculate allocation for a single goal.
-    static func calculateAllocation(
-        for goal: SavingsGoalEntry,
-        remainingSavings: Decimal,
-        monthlyIncome: Decimal,
-        accounts: [AccountEntry]
-    ) -> TransferPlan.GoalAllocation {
-        let targetAmount = goal.calculateTarget(monthlyIncome: monthlyIncome)
-        let progressBefore = goal.progressPercentage(monthlyIncome: monthlyIncome) ?? 0
-
-        // Calculate how much this goal needs
-        let amountNeeded: Decimal
-        if let remaining = goal.remainingAmount(monthlyIncome: monthlyIncome) {
-            amountNeeded = remaining
-        } else {
-            // Unlimited goal - takes all remaining savings
-            amountNeeded = remainingSavings
-        }
-
-        // Allocate the minimum of what's needed and what's available
-        let amountToAllocate = min(amountNeeded, remainingSavings)
-
-        // Calculate new progress after this allocation
-        let progressAfter = calculateProgressAfter(
-            goal: goal,
-            allocation: amountToAllocate,
-            targetAmount: targetAmount
-        )
-
-        // Check if goal will be complete after this allocation
-        let isComplete = checkIsComplete(
-            goal: goal,
-            allocation: amountToAllocate,
-            targetAmount: targetAmount
-        )
-
-        // Find matching account type for this goal
-        let accountType = findAccountType(for: goal, in: accounts)
-
-        return TransferPlan.GoalAllocation(
-            goal: goal,
-            amount: amountToAllocate,
-            progressBefore: progressBefore,
-            progressAfter: progressAfter,
-            targetAmount: targetAmount,
-            isComplete: isComplete,
-            accountType: accountType
-        )
-    }
-
-    /// Calculate progress after allocation.
-    static func calculateProgressAfter(
-        goal: SavingsGoalEntry,
-        allocation: Decimal,
-        targetAmount: Decimal?
-    ) -> Double {
-        let newBalance = goal.currentBalance + allocation
-        guard let target = targetAmount, target > 0 else {
-            return 0 // Unlimited goals have no progress
-        }
-        return min(1.0, Double(truncating: (newBalance / target) as NSNumber))
-    }
-
-    /// Check if goal will be complete after allocation.
-    static func checkIsComplete(
-        goal: SavingsGoalEntry,
-        allocation: Decimal,
-        targetAmount: Decimal?
-    ) -> Bool {
-        guard goal.targetType != .unlimited,
-              let target = targetAmount else {
-            return false
-        }
-        let newBalance = goal.currentBalance + allocation
-        return newBalance >= target
-    }
-
-    /// Find the appropriate account type for a goal based on its characteristics.
-    static func findAccountType(
-        for goal: SavingsGoalEntry,
-        in accounts: [AccountEntry]
-    ) -> AccountType? {
-        let goalNameLower = goal.name.lowercased()
-
-        if goalNameLower.contains("emergency") || goalNameLower.contains("saving") {
-            return .savings
-        }
-
-        // Default to savings for other goals
-        return .savings
     }
 }

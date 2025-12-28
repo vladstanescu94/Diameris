@@ -12,16 +12,11 @@ struct TransferPlanScreen: View {
     @State private var headerAppeared = false
     @State private var incomeAppeared = false
     @State private var transfersAppeared = false
+    @State private var remainingAppeared = false
     @State private var verificationAppeared = false
 
     private var transferPlan: TransferPlan {
-        TransferCalculator.calculate(
-            income: viewModel.monthlyIncome,
-            expenses: viewModel.expenses,
-            goals: viewModel.savingsGoals,
-            allocation: viewModel.savingsAllocation,
-            accounts: viewModel.allAccounts
-        )
+        viewModel.transferPlan
     }
 
     var body: some View {
@@ -44,6 +39,7 @@ private extension TransferPlanScreen {
                 headerSection
                 incomeHeroCard
                 transferCardsSection
+                remainingMoneySection
                 verificationRow
                 tipRow
                 completeButton
@@ -97,7 +93,9 @@ private extension TransferPlanScreen {
                 .foregroundStyle(.secondary)
 
             Text(AmountFormatter.formatForDisplay(transferPlan.income, currency: viewModel.currency.rawValue))
-                .font(.system(size: 36, weight: .bold, design: .rounded))
+                .font(.largeTitle)
+                .fontWeight(.bold)
+                .fontDesign(.rounded)
                 .foregroundStyle(DiamerisColors.accentSecondary)
         }
         .frame(maxWidth: .infinity)
@@ -114,9 +112,8 @@ private extension TransferPlanScreen {
     var transferCardsSection: some View {
         VStack(spacing: Spacing.md) {
             sectionHeader
-            goalAllocationCards
+            accountAllocationCards
             expenseTransferCards
-            flexibleSpendingCard
             primaryAccountCard
         }
     }
@@ -128,9 +125,9 @@ private extension TransferPlanScreen {
             .opacity(transfersAppeared ? 1 : 0)
     }
 
-    var goalAllocationCards: some View {
-        ForEach(Array(transferPlan.goalAllocations.enumerated()), id: \.element.id) { index, allocation in
-            TransferCard(
+    var accountAllocationCards: some View {
+        ForEach(Array(transferPlan.accountAllocations.enumerated()), id: \.element.id) { index, allocation in
+            AccountAllocationCard(
                 allocation: allocation,
                 currency: viewModel.currency.rawValue
             )
@@ -145,55 +142,106 @@ private extension TransferPlanScreen {
 
     var expenseTransferCards: some View {
         ForEach(Array(transferPlan.accountExpenseTransfers.enumerated()), id: \.element.id) { index, transfer in
-            TransferCard.expenseTransfer(
+            ExpenseTransferCard(
                 transfer: transfer,
                 currency: viewModel.currency.rawValue
             )
             .opacity(transfersAppeared ? 1 : 0)
             .offset(x: transfersAppeared ? 0 : SlideOffset.standard)
             .animation(
-                SpringPreset.responsive.delay(Double(transferPlan.goalAllocations.count + index) * StaggerDelay.standard),
-                value: transfersAppeared
-            )
-        }
-    }
-
-    /// Calculate index offset for animations based on previous sections
-    private var expenseTransferStartIndex: Int {
-        transferPlan.goalAllocations.count
-    }
-
-    private var flexibleSpendingIndex: Int {
-        expenseTransferStartIndex + transferPlan.accountExpenseTransfers.count
-    }
-
-    @ViewBuilder
-    var flexibleSpendingCard: some View {
-        if transferPlan.flexibleSpending > 0 {
-            TransferCard.flexibleSpending(
-                amount: transferPlan.flexibleSpending,
-                currency: viewModel.currency.rawValue
-            )
-            .opacity(transfersAppeared ? 1 : 0)
-            .offset(x: transfersAppeared ? 0 : SlideOffset.standard)
-            .animation(
-                SpringPreset.responsive.delay(Double(flexibleSpendingIndex) * StaggerDelay.standard),
+                SpringPreset.responsive.delay(Double(transferPlan.accountAllocations.count + index) * StaggerDelay.standard),
                 value: transfersAppeared
             )
         }
     }
 
     var primaryAccountCard: some View {
-        TransferCard.primaryAccount(
-            amount: transferPlan.remainsInPrimary,
-            currency: viewModel.currency.rawValue
-        )
+        let cardIndex = transferPlan.accountAllocations.count + transferPlan.accountExpenseTransfers.count
+
+        return VStack(alignment: .leading, spacing: Spacing.sm) {
+            HStack {
+                Image(systemName: "building.columns.fill")
+                    .foregroundStyle(DiamerisColors.accentPrimary)
+
+                Text("Stays in Primary".localized)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+
+                Spacer()
+
+                Text(AmountFormatter.formatForDisplay(transferPlan.remainsInPrimary, currency: viewModel.currency.rawValue))
+                    .font(.headline)
+                    .fontWeight(.bold)
+            }
+
+            Text("For automatic bill payments".localized)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(Spacing.md)
+        .glassCard()
         .opacity(transfersAppeared ? 1 : 0)
         .offset(x: transfersAppeared ? 0 : SlideOffset.standard)
         .animation(
-            SpringPreset.responsive.delay(Double(flexibleSpendingIndex + 1) * StaggerDelay.standard),
+            SpringPreset.responsive.delay(Double(cardIndex) * StaggerDelay.standard),
             value: transfersAppeared
         )
+    }
+}
+
+// MARK: - Remaining Money Section
+
+private extension TransferPlanScreen {
+    @ViewBuilder
+    var remainingMoneySection: some View {
+        if transferPlan.remainingMoney > 0 {
+            VStack(spacing: Spacing.md) {
+                Text("Remaining Money".localized)
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                remainingMoneyCard
+                remainingDestinationPicker
+            }
+            .opacity(remainingAppeared ? 1 : 0)
+            .offset(y: remainingAppeared ? 0 : SlideOffset.small)
+        }
+    }
+
+    var remainingMoneyCard: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            HStack {
+                Image(systemName: "dollarsign.circle.fill")
+                    .foregroundStyle(.green)
+
+                Text("Available after savings".localized)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+
+                Spacer()
+
+                Text(AmountFormatter.formatForDisplay(transferPlan.remainingMoney, currency: viewModel.currency.rawValue))
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.green)
+            }
+        }
+        .padding(Spacing.md)
+        .glassCard()
+    }
+
+    var remainingDestinationPicker: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("Where should this go?".localized)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            RemainingMoneyPicker(
+                selectedDestination: $viewModel.remainingMoneyDestination,
+                hasSavingsAccount: viewModel.hasPrimarySavingsAccount,
+                hasPersonalAccount: viewModel.personalAccount != nil
+            )
+        }
     }
 }
 
@@ -256,9 +304,8 @@ private extension TransferPlanScreen {
 private extension TransferPlanScreen {
     /// Total number of transfer cards for animation timing
     private var totalTransferCards: Int {
-        transferPlan.goalAllocations.count +
+        transferPlan.accountAllocations.count +
         transferPlan.accountExpenseTransfers.count +
-        (transferPlan.flexibleSpending > 0 ? 1 : 0) +
         1 // Primary account card
     }
 
@@ -279,8 +326,99 @@ private extension TransferPlanScreen {
         }
 
         withAnimation(SpringPreset.smooth.delay(AnimationDuration.slow + Double(totalTransferCards) * StaggerDelay.standard)) {
+            remainingAppeared = true
+        }
+
+        withAnimation(SpringPreset.smooth.delay(AnimationDuration.slow + Double(totalTransferCards + 1) * StaggerDelay.standard)) {
             verificationAppeared = true
         }
+    }
+}
+
+// MARK: - Account Allocation Card
+
+private struct AccountAllocationCard: View {
+    let allocation: TransferPlan.AccountAllocation
+    let currency: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            HStack {
+                Image(systemName: allocation.icon)
+                    .foregroundStyle(allocation.accountType.color)
+
+                Text(allocation.accountName)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+
+                Spacer()
+
+                Text(AmountFormatter.formatForDisplay(allocation.amount, currency: currency))
+                    .font(.headline)
+                    .fontWeight(.bold)
+            }
+
+            if let progressDisplay = allocation.progressChangeDisplay {
+                HStack {
+                    Text(progressDisplay)
+                        .font(.caption)
+                        .foregroundStyle(allocation.isComplete ? .green : .orange)
+
+                    if allocation.isComplete {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.green)
+
+                        Text("Target reached!".localized)
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                    }
+                }
+            }
+
+            if allocation.accountType == .emergency, let target = allocation.targetAmount {
+                ProgressView(value: allocation.progressAfter ?? 0)
+                    .tint(allocation.isComplete ? .green : .orange)
+
+                Text(String(localized: "Target: \(AmountFormatter.formatForDisplay(target, currency: currency))", bundle: .module))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(Spacing.md)
+        .glassCard()
+    }
+}
+
+// MARK: - Expense Transfer Card
+
+private struct ExpenseTransferCard: View {
+    let transfer: TransferPlan.AccountExpenseTransfer
+    let currency: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            HStack {
+                Image(systemName: "arrow.right.circle.fill")
+                    .foregroundStyle(.purple)
+
+                Text(transfer.accountName)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+
+                Spacer()
+
+                Text(AmountFormatter.formatForDisplay(transfer.amount, currency: currency))
+                    .font(.headline)
+                    .fontWeight(.bold)
+            }
+
+            Text(transfer.expenseNames.joined(separator: ", "))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(Spacing.md)
+        .glassCard()
     }
 }
 
@@ -290,6 +428,10 @@ private extension TransferPlanScreen {
     vm.monthlyIncome = 14303
     vm.expenses[0].amount = 3000
     vm.expenses[2].amount = 300
-    vm.savingsGoals[0].currentBalance = 37056
+    vm.accounts = [
+        .primary(),
+        .emergency(multiplier: 3.0, currentBalance: 37056),
+        .savings(isPrimarySavings: true)
+    ]
     return TransferPlanScreen(viewModel: vm, onComplete: {})
 }

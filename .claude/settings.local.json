@@ -10,7 +10,8 @@
       "Bash(xcodebuild:*)",
       "Bash(grep:*)",
       "Bash(plutil:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(xcrun simctl:*)"
     ]
   }
 }

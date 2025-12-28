@@ -3,6 +3,31 @@ import SwiftData
 import UIKit
 import Utilities
 
+/// Where remaining money after expenses and savings should go.
+public enum RemainingMoneyDestination: String, CaseIterable, Identifiable, Codable, Sendable {
+    case primarySavings  // Add to the primary savings account
+    case personal        // Transfer to first personal account
+    case primary         // Keep in primary account
+
+    public var id: String { rawValue }
+
+    public var displayName: String {
+        switch self {
+        case .primarySavings: return "Primary Savings".localized
+        case .personal: return "Personal Account".localized
+        case .primary: return "Keep in Primary".localized
+        }
+    }
+
+    public var description: String {
+        switch self {
+        case .primarySavings: return "Add to your savings for future goals".localized
+        case .personal: return "For flexible spending".localized
+        case .primary: return "Leave in your main account".localized
+        }
+    }
+}
+
 @MainActor
 @Observable
 public final class OnboardingViewModel {
@@ -21,8 +46,11 @@ public final class OnboardingViewModel {
 
     public var accounts: [AccountEntry] = AccountEntry.defaults
 
-    public var savingsGoals: [SavingsGoalEntry] = SavingsGoalEntry.defaults
+    /// Savings allocation (percentage + boost)
     public var savingsAllocation = SavingsAllocationEntry()
+
+    /// Where remaining money should go after expenses and savings
+    public var remainingMoneyDestination: RemainingMoneyDestination = .primarySavings
 
     // MARK: - Flow State
 
@@ -32,10 +60,10 @@ public final class OnboardingViewModel {
         case welcome
         case name
         case income
-        case savingsGoals
-        case accounts
-        case expenses      // Accounts first, then link expenses to them here
-        case transferPlan
+        case accounts      // Create accounts (with prompts for emergency + savings)
+        case savings       // Set savings percentage (renamed from savingsGoals)
+        case expenses      // Link expenses to accounts
+        case transferPlan  // Review and set remaining money destination
     }
 
     // MARK: - Initialization
@@ -73,12 +101,12 @@ public final class OnboardingViewModel {
             return trimmedName.count >= 1 && trimmedName.count <= 50
         case .income:
             return monthlyIncome > 0
-        case .savingsGoals:
-            return true // Goals are optional
-        case .expenses:
-            return true // Expenses are optional
         case .accounts:
             return accounts.contains { $0.isPrimary }
+        case .savings:
+            return true // Savings percentage is optional
+        case .expenses:
+            return true // Expenses are optional
         case .transferPlan:
             return true
         }
@@ -100,14 +128,39 @@ public final class OnboardingViewModel {
         accounts.first { $0.isPrimary }
     }
 
+    /// The emergency account (only one allowed)
+    public var emergencyAccount: AccountEntry? {
+        accounts.first { $0.accountType == .emergency }
+    }
+
+    /// The primary savings account that receives auto-allocation
+    public var primarySavingsAccount: AccountEntry? {
+        accounts.first { $0.isPrimarySavings }
+    }
+
+    /// The first personal account for flexible spending
+    public var personalAccount: AccountEntry? {
+        accounts.first { $0.accountType == .personal }
+    }
+
+    /// Whether an emergency account exists
+    public var hasEmergencyAccount: Bool {
+        emergencyAccount != nil
+    }
+
+    /// Whether a primary savings account exists
+    public var hasPrimarySavingsAccount: Bool {
+        primarySavingsAccount != nil
+    }
+
     /// Calculated transfer plan based on current inputs
     public var transferPlan: TransferPlan {
         TransferCalculator.calculate(
             income: monthlyIncome,
             expenses: expenses,
-            goals: savingsGoals,
             allocation: savingsAllocation,
-            accounts: accounts
+            accounts: accounts,
+            remainingDestination: remainingMoneyDestination
         )
     }
 
@@ -129,10 +182,11 @@ public final class OnboardingViewModel {
     // MARK: - Persistence
 
     public func save(context: ModelContext) {
-        // Save user profile
+        // Save user profile with remaining money destination
         let userProfile = UserProfile(
             name: trimmedName,
-            currencyCode: currency.rawValue
+            currencyCode: currency.rawValue,
+            remainingMoneyDestination: remainingMoneyDestination.rawValue
         )
         context.insert(userProfile)
 
@@ -156,31 +210,10 @@ public final class OnboardingViewModel {
             context.insert(expenseModel)
         }
 
-        // Save accounts with types
+        // Save accounts with all properties
         for (index, accountEntry) in accounts.enumerated() {
-            let account = Account(
-                name: accountEntry.name,
-                purpose: accountEntry.purpose,
-                isPrimary: accountEntry.isPrimary,
-                sortOrder: index
-            )
-            account.accountType = accountEntry.accountType
+            let account = Account(from: accountEntry, sortOrder: index)
             context.insert(account)
-        }
-
-        // Save savings goals
-        for goal in savingsGoals where goal.isActive {
-            let savingsGoal = SavingsGoal(
-                name: goal.name,
-                icon: goal.icon,
-                targetType: goal.targetType,
-                targetValue: goal.targetValue,
-                currentBalance: goal.currentBalance,
-                priority: goal.priority,
-                linkedAccountId: nil,
-                isActive: goal.isActive
-            )
-            context.insert(savingsGoal)
         }
 
         // Save savings allocation
@@ -198,5 +231,4 @@ public final class OnboardingViewModel {
 // Supporting types are defined in:
 // - Models/ExpenseEntry.swift
 // - Models/AccountEntry.swift
-// - Models/SavingsGoalEntry.swift
 // - Models/SavingsAllocationEntry.swift

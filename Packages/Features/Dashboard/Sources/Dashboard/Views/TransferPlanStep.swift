@@ -23,6 +23,7 @@ struct TransferPlanStep: View {
                 }
                 .padding(.horizontal, Spacing.lg)
             }
+            .scrollIndicators(.hidden)
 
             completeButton
                 .padding(.horizontal, Spacing.lg)

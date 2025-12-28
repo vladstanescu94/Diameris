@@ -47,6 +47,7 @@ private extension TransferPlanScreen {
             }
             .padding(.horizontal, Spacing.lg)
         }
+        .scrollIndicators(.hidden)
     }
 
     @ViewBuilder

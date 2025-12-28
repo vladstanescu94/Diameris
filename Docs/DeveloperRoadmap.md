@@ -98,6 +98,7 @@ This document tracks implementation progress. **Update this file after completin
 | Tab structure redesign | 2025-12-28 | Simplified from 4 tabs to 3: Dashboard, Expenses, Insights; removed Goals/Transfers (redundant with NewMonthFlow) |
 | Settings sheet | 2025-12-28 | SettingsSheet accessible from Dashboard toolbar (gear icon); Profile, Savings, Accounts, Remaining Money sections |
 | Settings coding standards | 2025-12-28 | Fixed magic numbers, removed duplicated AccountType extensions, fixed hardcoded currency |
+| Hide scroll indicators | 2025-12-28 | Added `.scrollIndicators(.hidden)` to all ScrollViews/Forms app-wide; UIScrollView.appearance fallback |
 
 ### In Progress
 

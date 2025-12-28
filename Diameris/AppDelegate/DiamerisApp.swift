@@ -13,6 +13,12 @@ import DesignSystem
 
 @main
 struct DiamerisApp: App {
+    init() {
+        // Hide scroll indicators app-wide
+        UIScrollView.appearance().showsVerticalScrollIndicator = false
+        UIScrollView.appearance().showsHorizontalScrollIndicator = false
+    }
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             UserProfile.self,

@@ -23,6 +23,7 @@ struct AccountsScreen: View {
             }
             .padding(Spacing.lg)
         }
+        .scrollIndicators(.hidden)
         .sheet(isPresented: $showingAddAccount) {
             AddAccountSheet(
                 isPresented: $showingAddAccount

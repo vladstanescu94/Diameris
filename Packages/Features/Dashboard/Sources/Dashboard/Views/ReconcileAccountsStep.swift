@@ -47,6 +47,7 @@ struct ReconcileAccountsStep: View {
                 }
                 .padding(.horizontal, Spacing.lg)
             }
+            .scrollIndicators(.hidden)
 
             continueButton
                 .padding(.horizontal, Spacing.lg)

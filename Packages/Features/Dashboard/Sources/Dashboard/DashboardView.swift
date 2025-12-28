@@ -23,6 +23,7 @@ public struct DashboardView: View {
             ScrollView {
                 dashboardBody
             }
+            .scrollIndicators(.hidden)
             .navigationTitle(viewModel.currentMonthDisplay)
             .toolbar {
                 toolbarButtons

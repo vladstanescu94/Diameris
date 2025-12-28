@@ -21,6 +21,7 @@ struct AddAccountSheet: View {
                 }
                 .padding(Spacing.lg)
             }
+            .scrollIndicators(.hidden)
             .navigationTitle("Add Account".localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

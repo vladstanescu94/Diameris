@@ -40,6 +40,7 @@ struct SettingsSheet: View {
                 accountsSection
                 remainingMoneySection
             }
+            .scrollIndicators(.hidden)
             .navigationTitle("Settings".localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -324,6 +325,7 @@ private struct AccountEditorSheet: View {
                     Text("Balance".localized)
                 }
             }
+            .scrollIndicators(.hidden)
             .navigationTitle("Edit Account".localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

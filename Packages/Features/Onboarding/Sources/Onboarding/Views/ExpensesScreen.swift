@@ -21,6 +21,7 @@ struct ExpensesScreen: View {
             }
             .padding(Spacing.lg)
         }
+        .scrollIndicators(.hidden)
         .onAppear { triggerAnimations() }
     }
 }

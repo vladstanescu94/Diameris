@@ -186,8 +186,49 @@ public final class OnboardingViewModel {
             context.insert(expenseModel)
         }
 
-        // Save accounts with all properties
-        for (index, accountEntry) in accounts.enumerated() {
+        // Calculate final balances assuming user made the transfers
+        let plan = transferPlan
+        var updatedAccounts = accounts
+
+        // Update balances based on transfer plan allocations
+        for allocation in plan.accountAllocations {
+            if let index = updatedAccounts.firstIndex(where: { $0.id == allocation.accountId }) {
+                updatedAccounts[index].currentBalance += allocation.amount
+            }
+        }
+
+        // Update balances for expense-linked accounts (e.g., Joint)
+        for expenseTransfer in plan.accountExpenseTransfers {
+            if let index = updatedAccounts.firstIndex(where: { $0.id == expenseTransfer.accountId }) {
+                updatedAccounts[index].currentBalance += expenseTransfer.amount
+            }
+        }
+
+        // Update primary account with what remains
+        if let index = updatedAccounts.firstIndex(where: { $0.isPrimary }) {
+            updatedAccounts[index].currentBalance = plan.remainsInPrimary
+        }
+
+        // Update remaining money destination account
+        if plan.remainingMoney > 0 {
+            switch remainingMoneyDestination {
+            case .primarySavings:
+                if let index = updatedAccounts.firstIndex(where: { $0.isPrimarySavings }) {
+                    updatedAccounts[index].currentBalance += plan.remainingMoney
+                }
+            case .personal:
+                if let index = updatedAccounts.firstIndex(where: { $0.accountType == .personal }) {
+                    updatedAccounts[index].currentBalance += plan.remainingMoney
+                }
+            case .primary:
+                if let index = updatedAccounts.firstIndex(where: { $0.isPrimary }) {
+                    updatedAccounts[index].currentBalance += plan.remainingMoney
+                }
+            }
+        }
+
+        // Save accounts with updated balances
+        for (index, accountEntry) in updatedAccounts.enumerated() {
             let account = Account(from: accountEntry, sortOrder: index)
             context.insert(account)
         }

@@ -84,20 +84,28 @@ This document tracks implementation progress. **Update this file after completin
 | NewMonthFlow | 2025-12-28 | 3-step modal: SalaryEntryStep → ReconcileAccountsStep → TransferPlanStep |
 | MonthlyRecord model | 2025-12-28 | SwiftData model for tracking monthly financial snapshots |
 | Dashboard integration | 2025-12-28 | MainTabView updated to use real DashboardView; data bridging from SwiftData to Dashboard |
+| Dashboard coding standards | 2025-12-28 | Fixed magic numbers, added balanceInputWidth constant, SpringPreset.responsive |
+| CurrencyAmountField fix | 2025-12-28 | Fixed "RON" label wrapping with lineLimit(1) and fixedSize() |
+| Dashboard Settings icon removed | 2025-12-28 | Removed non-functional gear icon from Dashboard toolbar |
+| Expense transfer display | 2025-12-28 | Added "Transfer to Joint" rows for expense-linked accounts in both Dashboard and Onboarding |
+| String.localized() extension | 2025-12-28 | Static function for interpolated strings: `String.localized("Hello \(name)")` |
+| AccountBalancesSection redesign | 2025-12-28 | Primary account prominent with badge; other accounts in 2-column grid; emergency excluded |
+| Auto-update balances on completion | 2025-12-28 | Onboarding completion auto-updates account balances based on transfer plan |
+| Domain test migration | 2025-12-28 | Moved 4 test files (112 tests) from Onboarding to Domain package |
 
 ### In Progress
 
 | Task | Notes |
 |------|-------|
-| Link Dashboard to target | Add Dashboard framework to Diameris target in Xcode (Frameworks, Libraries, and Embedded Content) |
+| - | - |
 
 ### Next Up
 
 | Priority | Task | Reference |
 |----------|------|-----------|
-| 1 | Link Dashboard in Xcode | Add Dashboard to target's "Frameworks, Libraries, and Embedded Content" |
-| 2 | Test Dashboard integration | Run app and verify Dashboard displays data |
-| 3 | Implement Budget feature | Income/expense management |
+| 1 | Test full onboarding → Dashboard flow | Verify balances update correctly after completion |
+| 2 | Implement Budget feature | Income/expense management |
+| 3 | Add Dashboard unit tests | DashboardViewModelTests.swift |
 
 ---
 
@@ -108,14 +116,14 @@ Based on [MVP Overview](./MVP/00-MVP-Overview.md)
 | # | Feature | Status | Spec | Notes |
 |---|---------|--------|------|-------|
 | 01 | Onboarding | Done | [01-Onboarding.md](./MVP/01-Onboarding.md) | Polished with animations, haptics, glass morphing |
-| 02 | Income | Not Started | [02-Income.md](./MVP/02-Income.md) | Basic model created in onboarding |
-| 03 | Expenses | Not Started | [03-Expenses.md](./MVP/03-Expenses.md) | Basic model created in onboarding |
+| 02 | Income | In Progress | [02-Income.md](./MVP/02-Income.md) | Basic model + Dashboard display done |
+| 03 | Expenses | In Progress | [03-Expenses.md](./MVP/03-Expenses.md) | Basic model + Dashboard display done |
 | 04 | Categories | Not Started | [04-Categories.md](./MVP/04-Categories.md) | |
-| 05 | Emergency Fund | Not Started | [05-EmergencyFund.md](./MVP/05-EmergencyFund.md) | |
+| 05 | Emergency Fund | In Progress | [05-EmergencyFund.md](./MVP/05-EmergencyFund.md) | Progress tracking in Dashboard |
 | 06 | Loans | Not Started | [06-Loans.md](./MVP/06-Loans.md) | |
-| 07 | Savings | Not Started | [07-Savings.md](./MVP/07-Savings.md) | |
-| 08 | Accounts | Not Started | [08-Accounts.md](./MVP/08-Accounts.md) | Basic model created in onboarding |
-| 09 | Transfer Planning | Not Started | [09-TransferPlanning.md](./MVP/09-TransferPlanning.md) | |
+| 07 | Savings | In Progress | [07-Savings.md](./MVP/07-Savings.md) | Basic allocation + Dashboard display |
+| 08 | Accounts | In Progress | [08-Accounts.md](./MVP/08-Accounts.md) | Account types with behavioral meaning; Dashboard display |
+| 09 | Transfer Planning | In Progress | [09-TransferPlanning.md](./MVP/09-TransferPlanning.md) | TransferCalculator + NewMonthFlow |
 | 10 | Budget Analysis | Not Started | [10-BudgetAnalysis.md](./MVP/10-BudgetAnalysis.md) | |
 | 11 | Settings | Not Started | [11-Settings.md](./MVP/11-Settings.md) | |
 
@@ -671,6 +679,85 @@ Packages/
   1. Select Diameris target → General tab
   2. Scroll to "Frameworks, Libraries, and Embedded Content"
   3. Click "+" and add "Dashboard"
+
+### 2025-12-28 - Dashboard Polish & Auto-Balance Session
+
+**Focus:** Fix Dashboard UI issues, add expense transfer display, auto-update balances on onboarding completion.
+
+**Issues Fixed:**
+
+1. **CurrencyAmountField "RON" wrapping:** Currency label wrapped to two lines ("RO" / "N") when container too narrow
+   - **Solution:** Added `.lineLimit(1)` and `.fixedSize(horizontal: true, vertical: false)` to currency text
+
+2. **Non-functional Settings gear:** Dashboard had settings icon that did nothing
+   - **Solution:** Removed toolbar button and unused localization
+
+3. **Expense-linked transfers not shown:** Joint account transfers (for linked expenses like Food) weren't displayed
+   - **Solution:** Added `expenseTransferRow` showing "Transfer to Joint" + "for Food" in both Dashboard and Onboarding
+
+4. **Account balances UI issues:** Emergency shown twice, accounts crammed in one row, labels truncated
+   - **Solution:** Redesigned `AccountBalancesSection`:
+     - Primary account: prominent card with "Primary" badge
+     - Other accounts: 2-column grid with `.minimumScaleFactor(0.8)`
+     - Emergency excluded (already in EmergencyProgressCard)
+
+**New Features:**
+
+1. **String.localized() for interpolation:** Added static function to Localization.swift
+   ```swift
+   // Before (verbose)
+   String(localized: "Transfer to \(name)", bundle: .module)
+
+   // After (clean)
+   String.localized("Transfer to \(name)")
+   ```
+
+2. **Auto-update balances on completion:** When onboarding finishes, account balances are updated assuming user made the transfers:
+   - Emergency account: +allocation amount
+   - Savings account: +allocation amount
+   - Joint accounts: +expense transfer amounts
+   - Primary account: set to remainsInPrimary
+   - Remaining money destination: +remaining amount
+
+**Coding Standards Applied:**
+- Fixed magic numbers: `.font(.system(size: 48))` → `.iconXl()`
+- Fixed magic spring: `.spring(response: 0.3)` → `SpringPreset.responsive`
+- Added `ComponentSize.balanceInputWidth: 160` constant
+
+**Files Modified:**
+- `SharedUI/CurrencyAmountField.swift` - lineLimit fix
+- `Dashboard/DashboardView.swift` - removed settings toolbar
+- `Dashboard/TransferPlanStep.swift` - expense transfer rows
+- `Dashboard/AccountBalancesRow.swift` → `AccountBalancesSection.swift` - complete redesign
+- `Onboarding/TransferPlanScreen.swift` - clearer expense transfer text
+- `Onboarding/OnboardingViewModel.swift` - auto-update balances in save()
+- `Onboarding/Utils/Localization.swift` - String.localized() static function
+- `Dashboard/Utils/Localization.swift` - String.localized() static function
+
+### 2025-12-28 - Domain Test Migration Session
+
+**Focus:** Move unit tests from Onboarding to Domain package to keep tests with the code they test.
+
+**Tests Moved:**
+| File | Tests | Description |
+|------|-------|-------------|
+| `TransferCalculatorTests.swift` | 33 | Core transfer calculation logic |
+| `AccountEntryTests.swift` | 27 | Account model, emergency target/progress |
+| `AccountTypeTests.swift` | 33 | Enum behavior, uniqueness, display properties |
+| `SavingsAllocationEntryTests.swift` | 35 | Savings percentage, boost mode, validation |
+
+**Test Counts After Migration:**
+- **Domain:** 112 tests passed
+- **Onboarding:** 46 tests passed (down from 158)
+- **Total:** 158 tests (unchanged, just relocated)
+
+**Changes Made:**
+1. Created `Packages/Core/Domain/Tests/DomainTests/` directory
+2. Wrote 4 test files with updated imports (`@testable import Domain` instead of `@testable import Onboarding`)
+3. Deleted original files from `Packages/Features/Onboarding/Tests/OnboardingTests/`
+4. Verified both packages' tests pass
+
+**Principle Applied:** Tests should live with the code they test. Domain entities and calculators now have their tests in the Domain package.
 
 ---
 

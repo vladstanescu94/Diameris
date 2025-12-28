@@ -410,7 +410,7 @@ private struct ExpenseTransferCard: View {
                 Image(systemName: "arrow.right.circle.fill")
                     .foregroundStyle(.purple)
 
-                Text(transfer.accountName)
+                Text(String.localized("Transfer to \(transfer.accountName)"))
                     .font(.subheadline)
                     .fontWeight(.medium)
 
@@ -421,7 +421,7 @@ private struct ExpenseTransferCard: View {
                     .fontWeight(.bold)
             }
 
-            Text(transfer.expenseNames.joined(separator: ", "))
+            Text(String.localized("for \(transfer.expenseNames.joined(separator: ", "))"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

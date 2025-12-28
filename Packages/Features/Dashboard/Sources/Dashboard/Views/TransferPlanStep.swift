@@ -77,13 +77,23 @@ private extension TransferPlanStep {
 
     @ViewBuilder
     var transfersSection: some View {
-        if transferPlan.hasAccountAllocations {
+        let hasTransfers = transferPlan.hasAccountAllocations ||
+                          !transferPlan.accountExpenseTransfers.isEmpty ||
+                          transferPlan.remainingMoney > 0
+
+        if hasTransfers {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 Text("Transfers to make".localized)
                     .font(.headline)
 
+                // Savings allocations (emergency, savings)
                 ForEach(transferPlan.accountAllocations) { allocation in
                     transferRow(for: allocation)
+                }
+
+                // Expense-linked account transfers (e.g., Food → Joint)
+                ForEach(transferPlan.accountExpenseTransfers) { expenseTransfer in
+                    expenseTransferRow(for: expenseTransfer)
                 }
 
                 // Show remaining money destination
@@ -93,6 +103,40 @@ private extension TransferPlanStep {
             }
             .glassCard()
         }
+    }
+
+    func expenseTransferRow(for transfer: TransferPlan.AccountExpenseTransfer) -> some View {
+        HStack(spacing: Spacing.sm) {
+            Image(systemName: "arrow.right.circle.fill")
+                .font(.body)
+                .foregroundStyle(DiamerisColors.accentSecondary)
+                .frame(width: ComponentSize.iconContainer)
+
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                Text(transferToAccountText(transfer.accountName))
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+
+                Text(expenseNamesText(transfer.expenseNames))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Text("+\(formatAmount(transfer.amount))")
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundStyle(DiamerisColors.positive)
+        }
+    }
+
+    func transferToAccountText(_ accountName: String) -> String {
+        String.localized("Transfer to \(accountName)")
+    }
+
+    func expenseNamesText(_ names: [String]) -> String {
+        String.localized("for \(names.joined(separator: ", "))")
     }
 
     func transferRow(for allocation: TransferPlan.AccountAllocation) -> some View {

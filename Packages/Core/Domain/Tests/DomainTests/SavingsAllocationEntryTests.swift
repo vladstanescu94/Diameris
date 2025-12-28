@@ -1,7 +1,6 @@
 import Foundation
 import Testing
-@testable import Onboarding
-import Domain
+@testable import Domain
 
 /// Tests for SavingsAllocationEntry - validates savings percentage calculations,
 /// boost multiplier logic, and validation rules.

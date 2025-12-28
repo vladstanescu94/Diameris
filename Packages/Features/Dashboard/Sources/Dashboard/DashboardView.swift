@@ -14,16 +14,6 @@ public struct DashboardView: View {
         NavigationStack {
             content
                 .navigationTitle(viewModel.currentMonthDisplay)
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            // Settings action - to be implemented
-                        } label: {
-                            Image(systemName: "gearshape")
-                        }
-                        .accessibilityLabel("Settings".localized)
-                    }
-                }
                 .sheet(isPresented: $viewModel.showNewMonthSheet) {
                     NewMonthSheet(viewModel: viewModel)
                 }
@@ -68,8 +58,8 @@ private extension DashboardView {
                 }
 
                 // Account Balances
-                AccountBalancesRow(
-                    accounts: viewModel.displayAccounts,
+                AccountBalancesSection(
+                    accounts: viewModel.accounts,
                     currency: viewModel.currency
                 )
 

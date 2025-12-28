@@ -1,7 +1,6 @@
 import Foundation
 import Testing
-@testable import Onboarding
-import Domain
+@testable import Domain
 
 /// Tests for TransferCalculator - the core business logic that determines
 /// how money flows from income through accounts based on account types.
@@ -392,14 +391,13 @@ struct TransferCalculatorTests {
 
         @Test("Linked expenses create transfers to target accounts")
         func linkedExpensesCreateTransfers() {
-            let jointAccountId = UUID()
             let jointAccount = AccountEntry(
                 name: "Joint Account",
                 accountType: .joint,
                 isPrimary: false
             )
             // Need to get the actual ID from the account we create
-            var accounts = [AccountEntry.primary(), jointAccount]
+            let accounts = [AccountEntry.primary(), jointAccount]
             let actualJointId = accounts[1].id
 
             let expenses = [

@@ -200,6 +200,38 @@
         }
       }
     },
+    "for %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "for %@"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "pentru %@"
+          }
+        }
+      }
+    },
+    "Transfer to %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transfer to %@"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transfer către %@"
+          }
+        }
+      }
+    },
     "Expense Breakdown" : {
       "localizations" : {
         "en" : {
@@ -404,22 +436,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Economii"
-          }
-        }
-      }
-    },
-    "Settings" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Settings"
-          }
-        },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Setări"
           }
         }
       }

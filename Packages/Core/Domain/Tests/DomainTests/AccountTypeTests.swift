@@ -1,7 +1,6 @@
 import Foundation
 import Testing
-@testable import Onboarding
-import Domain
+@testable import Domain
 
 /// Tests for AccountType enum - validates behavioral properties,
 /// uniqueness rules, and display properties.

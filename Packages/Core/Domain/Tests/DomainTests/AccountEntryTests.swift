@@ -1,7 +1,6 @@
 import Foundation
 import Testing
-@testable import Onboarding
-import Domain
+@testable import Domain
 
 /// Tests for AccountEntry model - validates computed properties,
 /// factory methods, and emergency fund calculations.

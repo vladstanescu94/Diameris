@@ -7,6 +7,8 @@ public struct SavingsSlider: View {
     @Binding var percentage: Double
     let availableIncome: Decimal
     let currency: String
+    let boostEnabled: Bool
+    let boostMultiplier: Double
 
     @State private var isDragging = false
 
@@ -18,15 +20,23 @@ public struct SavingsSlider: View {
     public init(
         percentage: Binding<Double>,
         availableIncome: Decimal,
-        currency: String
+        currency: String,
+        boostEnabled: Bool = false,
+        boostMultiplier: Double = 3.0
     ) {
         self._percentage = percentage
         self.availableIncome = availableIncome
         self.currency = currency
+        self.boostEnabled = boostEnabled
+        self.boostMultiplier = boostMultiplier
+    }
+
+    private var effectivePercentage: Double {
+        boostEnabled ? percentage * boostMultiplier : percentage
     }
 
     private var savingsAmount: Decimal {
-        availableIncome * Decimal(percentage)
+        availableIncome * Decimal(effectivePercentage)
     }
 
     private var displayPercentage: Int {

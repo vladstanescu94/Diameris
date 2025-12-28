@@ -68,6 +68,12 @@ This document tracks implementation progress. **Update this file after completin
 | Expense-to-account linking | 2025-12-27 | Bidirectional: ExpenseRow picker + AccountRow chips; flow: Expenses → Accounts; defaults to Main |
 | Confetti scroll fix | 2025-12-27 | Timer now uses `.common` run loop mode to continue during scroll |
 | Account system redesign | 2025-12-28 | Account types now drive transfer behavior; emergency fills first with income multiplier (3x-6x), primary savings fills after; user chooses remaining money destination |
+| Liquid glass boost card | 2025-12-28 | GlassEffectContainer + glassEffectID on SavingsScreen boost toggle for smooth morphing animation |
+| Race condition fix | 2025-12-28 | Fixed rapid tap bugs: ID-based mutations instead of index-based; guard clauses prevent duplicate accounts |
+| Ghost tap fix | 2025-12-28 | Added `.disabled()` to Add buttons; moved haptic inside functions after guard checks |
+| SavingsSlider boost fix | 2025-12-28 | Slider now shows boosted amount when Savings Boost enabled; added boostEnabled/boostMultiplier params |
+| Onboarding flow reorder | 2025-12-28 | Expenses now comes BEFORE Savings (needed to calculate correct available income) |
+| SavingsScreen messaging | 2025-12-28 | Updated subtitle: "Savings are calculated from your income after expenses" |
 
 ### In Progress
 
@@ -465,6 +471,58 @@ String(localized: "Hello, \(name)!", bundle: .module)
 2. **Multiple savings accounts** but only ONE is "primary savings" for auto-allocation
 3. **User chooses remaining money destination** on TransferPlanScreen
 4. **Guided prompts** recommend emergency + savings but don't force
+
+### 2025-12-28 - Bug Fixes & Flow Corrections Session
+
+**Focus:** Fix critical bugs and ensure savings calculations match Python script logic.
+
+**Critical Bugs Fixed:**
+
+1. **Race condition on rapid taps:** Rapidly tapping "Add" on recommended accounts created multiple emergency accounts. Rapidly tapping delete crashed with index out of bounds.
+   - **Root cause:** Index-based array mutations with captured indices became stale during animations
+   - **Solution:** Changed to ID-based mutations (`removeAll { $0.id == id }`, `firstIndex(where: { $0.id == id })`)
+   - **Prevention:** Added guard clauses to prevent duplicate emergency/primary savings accounts
+
+2. **Ghost tap on invisible buttons:** Haptic feedback fired on Add buttons even when hidden during animation
+   - **Solution:** Added `.disabled(viewModel.hasEmergencyAccount)` to buttons; moved haptic inside functions after guard check
+
+3. **SavingsSlider not reflecting boost:** When Savings Boost enabled, slider showed base percentage amount instead of boosted (3x) amount
+   - **Root cause:** `savingsAmount` used `percentage` directly instead of `effectivePercentage`
+   - **Solution:** Added `boostEnabled` and `boostMultiplier` parameters to SavingsSlider
+
+4. **Misleading savings screen:** Savings screen showed amounts before expenses were entered
+   - **Root cause:** Flow order was Accounts → Savings → Expenses, but savings calculation needs expenses
+   - **Solution:** Reordered to Accounts → Expenses → Savings; updated subtitle to clarify "from income after expenses"
+
+**Files Modified:**
+- `AccountsScreen.swift` - ID-based mutations, guard clauses, disabled buttons
+- `SavingsSlider.swift` - Added boost parameters, effectivePercentage calculation
+- `SavingsScreen.swift` - Pass boost state to slider, updated subtitle messaging
+- `OnboardingViewModel.swift` - Swapped expenses/savings order in OnboardingStep enum
+
+**Liquid Glass Enhancement:**
+- Added `GlassEffectContainer` + `glassEffectID` to boost toggle card in SavingsScreen
+- Warning text now morphs smoothly when boost is toggled (same pattern as AccountRow expand)
+
+**Key Learnings:**
+1. **ID-based mutations are safer:** Never capture array indices in closures for async/animated operations
+2. **`.disabled()` prevents ghost interactions:** Use on buttons that animate away to prevent taps during transition
+3. **Haptic placement matters:** Put haptic feedback after guard checks, not in button action
+4. **Flow order affects data accuracy:** Screens that depend on previous data must come after that data is collected
+5. **Cross-check with reference implementations:** Python script served as source of truth for calculation logic
+
+**Verification Against Python Script:**
+```python
+# Python (correct)
+baniLuna = monthlySalary - monthlyExpenses  # Available after expenses
+savingsMultiplier = SAVINGS_PERCENTAGE * (SAVINGS_BOOST_MULTIPLIER if SAVINGS_BOOST else 1)
+total_savings_potential = baniLuna * savingsMultiplier
+
+# Swift (now matches)
+availableIncome = monthlyIncome - expenses
+effectivePercentage = boostEnabled ? percentage * boostMultiplier : percentage
+savingsAmount = availableIncome * effectivePercentage
+```
 
 ---
 

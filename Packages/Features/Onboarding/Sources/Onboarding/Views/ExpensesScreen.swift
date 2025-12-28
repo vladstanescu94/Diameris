@@ -43,7 +43,7 @@ private extension ExpensesScreen {
         OnboardingHeader(
             icon: "creditcard.fill",
             iconColor: DiamerisColors.accentPrimary,
-            title: "Almost there!".localized,
+            title: "Where does your money go?".localized,
             subtitle: "A quick look at your main expenses. Don't worry about being exact — estimates are fine.".localized
         )
     }

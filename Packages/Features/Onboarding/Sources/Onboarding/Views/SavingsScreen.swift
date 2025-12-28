@@ -16,6 +16,12 @@ struct SavingsScreen: View {
         return max(0, viewModel.monthlyIncome - expenses)
     }
 
+    /// Check if enabling boost would exceed available income
+    private var canEnableBoost: Bool {
+        let effectivePercentage = viewModel.savingsAllocation.percentage * viewModel.savingsAllocation.boostMultiplier
+        return effectivePercentage <= 1.0
+    }
+
     var body: some View {
         ScrollView(.vertical, showsIndicators: true) {
             VStack(spacing: Spacing.xl) {
@@ -30,6 +36,14 @@ struct SavingsScreen: View {
         .onAppear {
             triggerAnimations()
         }
+        .onChange(of: viewModel.savingsAllocation.percentage) { _, _ in
+            // Auto-disable boost if percentage increases beyond threshold
+            if viewModel.savingsAllocation.boostEnabled && !canEnableBoost {
+                withAnimation(.bouncy) {
+                    viewModel.savingsAllocation.boostEnabled = false
+                }
+            }
+        }
     }
 }
 
@@ -41,7 +55,7 @@ private extension SavingsScreen {
             icon: "banknote.fill",
             iconColor: DiamerisColors.accentSecondary,
             title: "How much do you want to save?".localized,
-            subtitle: "Set a percentage of your available income to save each month.".localized
+            subtitle: "Savings are calculated from your income after expenses.".localized
         )
     }
 }
@@ -57,7 +71,9 @@ private extension SavingsScreen {
             SavingsSlider(
                 percentage: $viewModel.savingsAllocation.percentage,
                 availableIncome: availableIncome,
-                currency: viewModel.currency.rawValue
+                currency: viewModel.currency.rawValue,
+                boostEnabled: viewModel.savingsAllocation.boostEnabled,
+                boostMultiplier: viewModel.savingsAllocation.boostMultiplier
             )
 
             boostToggleCard
@@ -86,6 +102,8 @@ private extension SavingsScreen {
         Toggle(isOn: Binding(
             get: { viewModel.savingsAllocation.boostEnabled },
             set: { newValue in
+                // Only allow enabling if boost won't exceed available income
+                guard newValue == false || canEnableBoost else { return }
                 withAnimation(.bouncy) {
                     viewModel.savingsAllocation.boostEnabled = newValue
                 }
@@ -101,13 +119,22 @@ private extension SavingsScreen {
                         .font(.subheadline)
                         .fontWeight(.medium)
 
-                    Text("Triple your savings temporarily".localized)
+                    Text(boostDescription)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(canEnableBoost ? Color.secondary : Color.orange)
                 }
             }
         }
         .tint(DiamerisColors.accentPrimary)
+        .disabled(!canEnableBoost && !viewModel.savingsAllocation.boostEnabled)
+    }
+
+    var boostDescription: String {
+        if canEnableBoost {
+            return "Triple your savings temporarily".localized
+        } else {
+            return "Lower your savings rate to enable boost".localized
+        }
     }
 
     var boostWarning: some View {

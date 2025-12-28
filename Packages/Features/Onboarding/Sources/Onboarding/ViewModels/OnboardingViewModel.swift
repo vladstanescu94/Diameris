@@ -61,8 +61,8 @@ public final class OnboardingViewModel {
         case name
         case income
         case accounts      // Create accounts (with prompts for emergency + savings)
-        case savings       // Set savings percentage (renamed from savingsGoals)
-        case expenses      // Link expenses to accounts
+        case expenses      // Enter expenses first (needed to calculate available income)
+        case savings       // Set savings percentage (from income after expenses)
         case transferPlan  // Review and set remaining money destination
     }
 

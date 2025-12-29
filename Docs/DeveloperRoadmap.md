@@ -110,6 +110,7 @@ This document tracks implementation progress. **Update this file after completin
 | Custom category display fix | 2025-12-29 | Fixed optimistic update race condition; loadExpensesData() now merges @Query with existing categories |
 | Expense percentage fix | 2025-12-29 | Fixed 0% showing for all expenses; Decimal division issue resolved by converting to Double |
 | Dashboard unit tests | 2025-12-29 | 55 tests covering DashboardViewModel and DashboardAccount: computed properties, account lookups, emergency fund calculations |
+| Expenses unit tests | 2025-12-29 | 48 tests covering ExpensesViewModel: totals, search, CRUD, category toggle, UI state, custom categories |
 
 ### In Progress
 
@@ -123,7 +124,6 @@ This document tracks implementation progress. **Update this file after completin
 |----------|------|-----------|
 | 1 | Test full onboarding → Dashboard → Expenses flow | Verify data flows correctly through all features |
 | 2 | Implement Insights feature | Stats, AI tips (Foundation Models), scenario analysis |
-| 3 | Add Expenses unit tests | ExpensesViewModelTests.swift |
 
 ---
 

@@ -306,4 +306,332 @@ struct ExpensesViewModelTests {
             #expect(input.frequency == .annual)
         }
     }
+
+    // MARK: - All Categories
+
+    @Suite("All Categories")
+    @MainActor
+    struct AllCategoriesTests {
+
+        @Test("All categories includes defaults")
+        func includesDefaults() {
+            let viewModel = ExpensesViewModel()
+            #expect(viewModel.allCategories.count >= ExpenseCategory.defaults.count)
+        }
+
+        @Test("All categories includes custom categories")
+        func includesCustom() {
+            let viewModel = ExpensesViewModel()
+            let customCategory = ExpenseCategory.custom(
+                id: UUID(),
+                name: "Custom",
+                icon: "star",
+                colorHex: "#FF0000",
+                sortOrder: 100
+            )
+            viewModel.customCategories = [customCategory]
+
+            #expect(viewModel.allCategories.contains { $0.name == "Custom" })
+        }
+
+        @Test("All categories sorted by sort order")
+        func sortedBySortOrder() {
+            let viewModel = ExpensesViewModel()
+
+            let categories = viewModel.allCategories
+            for i in 0..<(categories.count - 1) {
+                #expect(categories[i].sortOrder <= categories[i + 1].sortOrder)
+            }
+        }
+    }
+
+    // MARK: - Display Total
+
+    @Suite("Display Total")
+    @MainActor
+    struct DisplayTotalTests {
+
+        @Test("Display total shows monthly when monthly selected")
+        func showsMonthlyTotal() {
+            let viewModel = ExpensesViewModel()
+            viewModel.selectedFrequencyView = .monthly
+            viewModel.expenses = [
+                ExpenseDisplayItem(name: "Test", amount: 100, frequency: .monthly, icon: "star")
+            ]
+
+            #expect(viewModel.displayTotal == 100)
+        }
+
+        @Test("Display total shows annual when annual selected")
+        func showsAnnualTotal() {
+            let viewModel = ExpensesViewModel()
+            viewModel.selectedFrequencyView = .annual
+            viewModel.expenses = [
+                ExpenseDisplayItem(name: "Test", amount: 100, frequency: .monthly, icon: "star")
+            ]
+
+            #expect(viewModel.displayTotal == 1200)
+        }
+    }
+
+    // MARK: - Annual Totals
+
+    @Suite("Annual Totals")
+    @MainActor
+    struct AnnualTotalTests {
+
+        @Test("Total annual multiplies monthly expenses by 12")
+        func annualFromMonthly() {
+            let viewModel = ExpensesViewModel()
+            viewModel.expenses = [
+                ExpenseDisplayItem(name: "Test", amount: 100, frequency: .monthly, icon: "star")
+            ]
+
+            #expect(viewModel.totalAnnualExpenses == 1200)
+        }
+
+        @Test("Total annual keeps annual expenses as-is")
+        func annualFromAnnual() {
+            let viewModel = ExpensesViewModel()
+            viewModel.expenses = [
+                ExpenseDisplayItem(name: "Test", amount: 1200, frequency: .annual, icon: "star")
+            ]
+
+            #expect(viewModel.totalAnnualExpenses == 1200)
+        }
+
+        @Test("Total annual excludes disabled expenses")
+        func excludesDisabled() {
+            let viewModel = ExpensesViewModel()
+            viewModel.expenses = [
+                ExpenseDisplayItem(name: "Enabled", amount: 100, frequency: .monthly, icon: "star", isEnabled: true),
+                ExpenseDisplayItem(name: "Disabled", amount: 200, frequency: .monthly, icon: "star", isEnabled: false)
+            ]
+
+            #expect(viewModel.totalAnnualExpenses == 1200)
+        }
+    }
+
+    // MARK: - Search by Category and Notes
+
+    @Suite("Advanced Search")
+    @MainActor
+    struct AdvancedSearchTests {
+
+        @Test("Search filters by category name")
+        func filtersByCategoryName() {
+            let viewModel = ExpensesViewModel()
+            viewModel.expenses = [
+                ExpenseDisplayItem(name: "Gas", amount: 100, icon: "car", categoryId: Category.autoTransport.id),
+                ExpenseDisplayItem(name: "Food", amount: 200, icon: "cart", categoryId: Category.lifestyle.id)
+            ]
+            viewModel.searchText = "auto"
+
+            #expect(viewModel.filteredExpenses.count == 1)
+            #expect(viewModel.filteredExpenses.first?.name == "Gas")
+        }
+
+        @Test("Search filters by custom category name")
+        func filtersByCustomCategoryName() {
+            let viewModel = ExpensesViewModel()
+            let customId = UUID()
+            viewModel.customCategories = [
+                ExpenseCategory.custom(id: customId, name: "My Custom", icon: "star", colorHex: "#FF0000", sortOrder: 100)
+            ]
+            viewModel.expenses = [
+                ExpenseDisplayItem(name: "Linked Expense", amount: 100, icon: "star", categoryId: customId),
+                ExpenseDisplayItem(name: "Another Linked", amount: 150, icon: "star", categoryId: customId),
+                ExpenseDisplayItem(name: "Other", amount: 200, icon: "cart")
+            ]
+            viewModel.searchText = "my custom" // Search by custom category name
+
+            #expect(viewModel.filteredExpenses.count == 2) // Both expenses linked to "My Custom" category
+        }
+
+        @Test("Search filters by notes")
+        func filtersByNotes() {
+            let viewModel = ExpensesViewModel()
+            viewModel.expenses = [
+                ExpenseDisplayItem(name: "Gas", amount: 100, icon: "car", notes: "Monthly fuel budget"),
+                ExpenseDisplayItem(name: "Food", amount: 200, icon: "cart", notes: "Groceries only")
+            ]
+            viewModel.searchText = "fuel"
+
+            #expect(viewModel.filteredExpenses.count == 1)
+            #expect(viewModel.filteredExpenses.first?.name == "Gas")
+        }
+    }
+
+    // MARK: - CRUD Operations
+
+    @Suite("CRUD Operations")
+    @MainActor
+    struct CRUDTests {
+
+        @Test("Save expense adds new expense")
+        func saveAddsNew() async {
+            let viewModel = ExpensesViewModel()
+            let input = ExpenseInput(name: "New Expense", amount: 100, icon: "star")
+
+            await viewModel.saveExpense(input)
+
+            #expect(viewModel.expenses.count == 1)
+            #expect(viewModel.expenses.first?.name == "New Expense")
+        }
+
+        @Test("Save expense updates existing expense")
+        func saveUpdatesExisting() async {
+            let viewModel = ExpensesViewModel()
+            let existingId = UUID()
+            viewModel.expenses = [
+                ExpenseDisplayItem(id: existingId, name: "Old Name", amount: 100, icon: "star")
+            ]
+
+            var input = ExpenseInput(name: "New Name", amount: 200, icon: "heart")
+            input.id = existingId
+
+            await viewModel.saveExpense(input)
+
+            #expect(viewModel.expenses.count == 1)
+            #expect(viewModel.expenses.first?.name == "New Name")
+            #expect(viewModel.expenses.first?.amount == 200)
+        }
+
+        @Test("Save expense closes add sheet")
+        func saveClosesSheet() async {
+            let viewModel = ExpensesViewModel()
+            viewModel.showAddExpense = true
+
+            await viewModel.saveExpense(ExpenseInput(name: "Test", amount: 100, icon: "star"))
+
+            #expect(viewModel.showAddExpense == false)
+        }
+
+        @Test("Delete expense removes from list")
+        func deleteRemovesExpense() async {
+            let viewModel = ExpensesViewModel()
+            let expenseId = UUID()
+            viewModel.expenses = [
+                ExpenseDisplayItem(id: expenseId, name: "To Delete", amount: 100, icon: "star")
+            ]
+
+            await viewModel.deleteExpense(expenseId)
+
+            #expect(viewModel.expenses.isEmpty)
+        }
+
+        @Test("Toggle expense enabled flips state")
+        func toggleFlipsEnabled() async {
+            let viewModel = ExpensesViewModel()
+            let expense = ExpenseDisplayItem(name: "Test", amount: 100, icon: "star", isEnabled: true)
+            viewModel.expenses = [expense]
+
+            await viewModel.toggleExpenseEnabled(expense)
+
+            #expect(viewModel.expenses.first?.isEnabled == false)
+        }
+    }
+
+    // MARK: - UI State
+
+    @Suite("UI State")
+    @MainActor
+    struct UIStateTests {
+
+        @Test("Start adding expense shows sheet and clears editing")
+        func startAddingExpense() {
+            let viewModel = ExpensesViewModel()
+            viewModel.editingExpense = ExpenseDisplayItem(name: "Old", amount: 100, icon: "star")
+
+            viewModel.startAddingExpense()
+
+            #expect(viewModel.showAddExpense == true)
+            #expect(viewModel.editingExpense == nil)
+        }
+
+        @Test("Start editing expense shows sheet and sets editing")
+        func startEditingExpense() {
+            let viewModel = ExpensesViewModel()
+            let expense = ExpenseDisplayItem(name: "Test", amount: 100, icon: "star")
+
+            viewModel.startEditingExpense(expense)
+
+            #expect(viewModel.showAddExpense == true)
+            #expect(viewModel.editingExpense?.name == "Test")
+        }
+    }
+
+    // MARK: - ExpenseGroup
+
+    @Suite("ExpenseGroup")
+    struct ExpenseGroupTests {
+
+        @Test("Total monthly sums enabled expenses")
+        func totalMonthlySumsEnabled() {
+            let group = ExpenseGroup(
+                category: Category.autoTransport,
+                expenses: [
+                    ExpenseDisplayItem(name: "Gas", amount: 100, frequency: .monthly, icon: "car", isEnabled: true),
+                    ExpenseDisplayItem(name: "Insurance", amount: 200, frequency: .monthly, icon: "shield", isEnabled: true),
+                    ExpenseDisplayItem(name: "Disabled", amount: 500, frequency: .monthly, icon: "x", isEnabled: false)
+                ]
+            )
+
+            #expect(group.totalMonthly == 300)
+        }
+
+        @Test("Total annual multiplies monthly by 12")
+        func totalAnnualMultiplies() {
+            let group = ExpenseGroup(
+                category: Category.autoTransport,
+                expenses: [
+                    ExpenseDisplayItem(name: "Gas", amount: 100, frequency: .monthly, icon: "car", isEnabled: true)
+                ]
+            )
+
+            #expect(group.totalAnnual == 1200)
+        }
+
+        @Test("Enabled count excludes disabled")
+        func enabledCountExcludesDisabled() {
+            let group = ExpenseGroup(
+                category: Category.autoTransport,
+                expenses: [
+                    ExpenseDisplayItem(name: "Enabled 1", amount: 100, icon: "car", isEnabled: true),
+                    ExpenseDisplayItem(name: "Enabled 2", amount: 200, icon: "car", isEnabled: true),
+                    ExpenseDisplayItem(name: "Disabled", amount: 500, icon: "x", isEnabled: false)
+                ]
+            )
+
+            #expect(group.enabledCount == 2)
+        }
+    }
+
+    // MARK: - Custom Categories
+
+    @Suite("Custom Categories")
+    @MainActor
+    struct CustomCategoriesTests {
+
+        @Test("Add category adds to local state")
+        func addCategoryAddsLocal() async {
+            let viewModel = ExpensesViewModel()
+            let categoryId = UUID()
+
+            await viewModel.addCategory(id: categoryId, name: "Custom", icon: "star", colorHex: "#FF0000")
+
+            #expect(viewModel.customCategories.count == 1)
+            #expect(viewModel.customCategories.first?.name == "Custom")
+        }
+
+        @Test("Custom categories appear in all categories")
+        func customInAllCategories() async {
+            let viewModel = ExpensesViewModel()
+            let categoryId = UUID()
+
+            await viewModel.addCategory(id: categoryId, name: "Custom", icon: "star", colorHex: "#FF0000")
+
+            #expect(viewModel.allCategories.contains { $0.id == categoryId })
+        }
+    }
 }

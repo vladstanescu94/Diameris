@@ -489,9 +489,6 @@
     "Target: %lld× monthly income" : {
 
     },
-    "Total: %lld" : {
-
-    },
     "Transfer to %@" : {
       "localizations" : {
         "en" : {

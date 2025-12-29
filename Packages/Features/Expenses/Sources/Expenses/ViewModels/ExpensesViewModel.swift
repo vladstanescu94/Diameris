@@ -122,12 +122,23 @@ public struct ExpenseInput: Sendable {
 
 /// Grouped expenses by category for display
 public struct ExpenseGroup: Identifiable, Sendable {
+    /// Stable UUID for truly uncategorized expenses (where categoryId is nil)
+    public static let uncategorizedId = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
+
     public let id: UUID
     public let category: ExpenseCategory?
     public var expenses: [ExpenseDisplayItem]
 
+    /// Initialize with explicit id (for unknown categories that have a categoryId but no matching category)
+    public init(id: UUID, category: ExpenseCategory?, expenses: [ExpenseDisplayItem]) {
+        self.id = id
+        self.category = category
+        self.expenses = expenses
+    }
+
+    /// Initialize using category's id or uncategorizedId sentinel
     public init(category: ExpenseCategory?, expenses: [ExpenseDisplayItem]) {
-        self.id = category?.id ?? UUID()
+        self.id = category?.id ?? Self.uncategorizedId
         self.category = category
         self.expenses = expenses
     }
@@ -266,8 +277,9 @@ public final class ExpensesViewModel {
         }
 
         // Add groups for expenses with unknown category IDs (category was deleted or not loaded)
+        // Use the original categoryId as the group id for stable expand/collapse
         for (categoryId, expenses) in groups where !handledCategoryIds.contains(categoryId) {
-            result.append(ExpenseGroup(category: nil, expenses: expenses))
+            result.append(ExpenseGroup(id: categoryId, category: nil, expenses: expenses))
         }
 
         // Add uncategorized group if any

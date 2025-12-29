@@ -6,7 +6,8 @@ import Utilities
 struct SummaryCard: View {
     let income: Decimal
     let expenses: Decimal
-    let available: Decimal
+    let savings: Decimal
+    let personalSpending: Decimal
     let currency: Currency
 
     var body: some View {
@@ -24,10 +25,10 @@ struct SummaryCard: View {
 private extension SummaryCard {
     var header: some View {
         Label {
-            Text("Available This Month".localized)
+            Text("Monthly Summary".localized)
                 .font(.headline)
         } icon: {
-            Image(systemName: "dollarsign.circle.fill")
+            Image(systemName: "chart.pie.fill")
                 .foregroundStyle(DiamerisColors.accentPrimary)
         }
     }
@@ -37,27 +38,38 @@ private extension SummaryCard {
             summaryRow(
                 label: "Income".localized,
                 amount: income,
-                isNegative: false
+                style: .neutral
             )
             summaryRow(
                 label: "Expenses".localized,
                 amount: expenses,
-                isNegative: true
+                style: .negative
+            )
+            summaryRow(
+                label: "Savings".localized,
+                amount: savings,
+                style: .positive
             )
             Divider()
             summaryRow(
-                label: "Available".localized,
-                amount: available,
-                isNegative: false,
+                label: "Personal Spending".localized,
+                amount: personalSpending,
+                style: .neutral,
                 isTotal: true
             )
         }
     }
 
+    enum RowStyle {
+        case neutral
+        case positive
+        case negative
+    }
+
     func summaryRow(
         label: String,
         amount: Decimal,
-        isNegative: Bool,
+        style: RowStyle,
         isTotal: Bool = false
     ) -> some View {
         HStack {
@@ -67,24 +79,33 @@ private extension SummaryCard {
 
             Spacer()
 
-            Text(formatAmount(amount, isNegative: isNegative))
+            Text(formatAmount(amount, style: style))
                 .font(isTotal ? .headline : .subheadline)
                 .fontWeight(isTotal ? .semibold : .regular)
-                .foregroundStyle(isNegative ? DiamerisColors.negative : .primary)
+                .foregroundStyle(color(for: style))
         }
     }
 
-    func formatAmount(_ amount: Decimal, isNegative: Bool) -> String {
-        let prefix = isNegative && amount > 0 ? "-" : ""
+    func formatAmount(_ amount: Decimal, style: RowStyle) -> String {
+        let prefix = style == .negative && amount > 0 ? "-" : ""
         return prefix + AmountFormatter.formatForDisplay(amount, currency: currency.rawValue)
+    }
+
+    func color(for style: RowStyle) -> Color {
+        switch style {
+        case .neutral: return .primary
+        case .positive: return DiamerisColors.positive
+        case .negative: return DiamerisColors.negative
+        }
     }
 }
 
 #Preview {
     SummaryCard(
         income: 14303,
-        expenses: 7205,
-        available: 7098,
+        expenses: 5555,
+        savings: 2397,
+        personalSpending: 573,
         currency: .ron
     )
     .padding()

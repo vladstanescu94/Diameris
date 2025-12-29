@@ -57,6 +57,7 @@
       }
     },
     "Available This Month" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -297,6 +298,22 @@
         }
       }
     },
+    "Monthly Summary" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monthly Summary"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sumar lunar"
+          }
+        }
+      }
+    },
     "New Month" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -359,6 +376,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Personal"
+          }
+        }
+      }
+    },
+    "Personal Spending" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Personal Spending"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bani personali"
           }
         }
       }

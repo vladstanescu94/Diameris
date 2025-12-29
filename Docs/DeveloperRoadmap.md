@@ -113,6 +113,8 @@ This document tracks implementation progress. **Update this file after completin
 | Expenses unit tests | 2025-12-29 | 48 tests covering ExpensesViewModel: totals, search, CRUD, category toggle, UI state, custom categories |
 | Expand/collapse all fix | 2025-12-29 | Fixed uncategorized expenses not responding to expand/collapse all; `ExpenseGroup` now uses stable `uncategorizedId` sentinel UUID instead of random `UUID()` |
 | Dev tools JSON import | 2025-12-29 | Import expenses from Python script via JSON; `--export` flag saves to `Resources/expenses_import.json`, `ExpenseImportData` model in Domain, one-tap import in DevDebugView loads from bundle |
+| Dashboard monthly amounts fix | 2025-12-29 | Fixed Dashboard showing annual totals instead of monthly; changed `expense.amount` → `expense.monthlyAmount` in MainTabView |
+| Dashboard summary card redesign | 2025-12-29 | Renamed "Available This Month" → "Monthly Summary"; now shows Income, Expenses, Savings, and Personal Spending (true flexible money after savings) |
 
 ### In Progress
 

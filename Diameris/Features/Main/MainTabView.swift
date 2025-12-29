@@ -137,12 +137,12 @@ struct MainTabView: View {
             )
         }
 
-        // Convert expenses to DashboardExpense
+        // Convert expenses to DashboardExpense (using monthlyAmount for consistent display)
         let dashboardExpenses = expenses.filter { $0.isEnabled }.map { expense in
             DashboardExpense(
                 id: expense.id,
                 name: expense.name,
-                amount: expense.amount,
+                amount: expense.monthlyAmount,
                 icon: expense.icon,
                 linkedAccountId: expense.linkedAccountId
             )

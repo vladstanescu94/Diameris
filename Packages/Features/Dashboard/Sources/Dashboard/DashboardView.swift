@@ -79,7 +79,8 @@ private extension DashboardView {
             SummaryCard(
                 income: viewModel.monthlyIncome,
                 expenses: viewModel.totalExpenses,
-                available: viewModel.availableIncome,
+                savings: viewModel.transferPlan.totalSavings,
+                personalSpending: viewModel.transferPlan.remainingMoney,
                 currency: viewModel.currency
             )
 

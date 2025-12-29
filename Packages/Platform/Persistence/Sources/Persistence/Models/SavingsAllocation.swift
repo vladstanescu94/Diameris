@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 import Domain
 
-/// Settings for how much of available income goes to savings goals.
+/// SwiftData entity for savings allocation settings
 @Model
 public final class SavingsAllocation {
     @Attribute(.unique) public var id: UUID
@@ -31,7 +31,7 @@ public final class SavingsAllocation {
         self.createdAt = Date()
     }
 
-    /// Convenience initializer from onboarding entry
+    /// Convenience initializer from Domain SavingsAllocationEntry
     public convenience init(from entry: SavingsAllocationEntry) {
         self.init(
             percentage: entry.percentage,
@@ -41,6 +41,16 @@ public final class SavingsAllocation {
     }
 
     // MARK: - Computed Properties
+
+    /// Convert to Domain SavingsAllocationEntry
+    public func toEntry() -> SavingsAllocationEntry {
+        SavingsAllocationEntry(
+            id: id,
+            percentage: percentage,
+            boostEnabled: boostEnabled,
+            boostMultiplier: boostMultiplier
+        )
+    }
 
     /// The effective percentage after applying boost multiplier
     public var effectivePercentage: Double {

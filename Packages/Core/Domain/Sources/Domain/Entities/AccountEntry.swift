@@ -23,6 +23,7 @@ public struct AccountEntry: Identifiable, Sendable {
     public var currentBalance: Decimal
 
     public init(
+        id: UUID = UUID(),
         name: String,
         purpose: String? = nil,
         accountType: AccountType = .other,
@@ -31,7 +32,7 @@ public struct AccountEntry: Identifiable, Sendable {
         emergencyMultiplier: Double? = nil,
         currentBalance: Decimal = 0
     ) {
-        self.id = UUID()
+        self.id = id
         self.name = name
         self.purpose = purpose
         self.accountType = accountType

@@ -2,6 +2,7 @@ import Foundation
 import SwiftData
 import Domain
 
+/// SwiftData entity for user profile settings
 @Model
 public final class UserProfile {
     public var name: String
@@ -13,13 +14,15 @@ public final class UserProfile {
     public init(
         name: String,
         currencyCode: String,
-        remainingMoneyDestination: String = RemainingMoneyDestination.primarySavings.rawValue
+        remainingMoneyDestination: RemainingMoneyDestination = .primarySavings
     ) {
         self.name = name
         self.currencyCode = currencyCode
         self.createdAt = Date()
-        self.remainingMoneyDestinationRaw = remainingMoneyDestination
+        self.remainingMoneyDestinationRaw = remainingMoneyDestination.rawValue
     }
+
+    // MARK: - Computed Properties
 
     /// Computed property for type-safe access
     public var remainingMoneyDestination: RemainingMoneyDestination {

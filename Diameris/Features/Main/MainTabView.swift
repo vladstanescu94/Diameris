@@ -5,6 +5,7 @@ import Dashboard
 import Domain
 import Utilities
 import Onboarding
+import Expenses
 
 struct MainTabView: View {
     @Environment(\.modelContext) private var modelContext
@@ -14,6 +15,7 @@ struct MainTabView: View {
     @Query private var savingsAllocations: [SavingsAllocation]
 
     @State private var dashboardViewModel = DashboardViewModel()
+    @State private var expensesViewModel = ExpensesViewModel()
     @State private var showSettings = false
 
     #if DEBUG
@@ -34,7 +36,7 @@ struct MainTabView: View {
             }
 
             Tab("Expenses".localized, systemImage: "list.bullet.rectangle") {
-                ExpensesPlaceholder()
+                ExpenseListView(viewModel: expensesViewModel)
             }
 
             Tab("Insights".localized, systemImage: "lightbulb.max") {
@@ -63,15 +65,19 @@ struct MainTabView: View {
         #endif
         .onAppear {
             loadDashboardData()
+            loadExpensesData()
+            setupExpensesCallbacks()
         }
         .onChange(of: userProfiles) { _, _ in
             loadDashboardData()
+            loadExpensesData()
         }
         .onChange(of: accounts) { _, _ in
             loadDashboardData()
         }
         .onChange(of: expenses) { _, _ in
             loadDashboardData()
+            loadExpensesData()
         }
         .onChange(of: savingsAllocations) { _, _ in
             loadDashboardData()
@@ -159,31 +165,146 @@ struct MainTabView: View {
         let incomes = try? modelContext.fetch(descriptor)
         return incomes?.first?.amount ?? 0
     }
-}
 
-// MARK: - Placeholder Views
+    // MARK: - Expenses Data Management
 
-private struct ExpensesPlaceholder: View {
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: Spacing.lg) {
-                Image(systemName: "list.bullet.rectangle")
-                    .iconXxl()
-                    .foregroundStyle(DiamerisColors.accentSecondary)
+    private func loadExpensesData() {
+        guard let profile = userProfile else { return }
 
-                Text("Expenses".localized)
-                    .font(.title)
-                    .fontWeight(.bold)
+        // Set currency
+        let currency = Currency(rawValue: profile.currencyCode) ?? .ron
+        expensesViewModel.currency = currency
 
-                Text("Coming soon".localized)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+        // Convert expenses to ExpenseDisplayItem
+        expensesViewModel.expenses = expenses.map { expense in
+            ExpenseDisplayItem(
+                id: expense.id,
+                name: expense.name,
+                amount: expense.amount,
+                frequency: expense.frequency,
+                icon: expense.icon,
+                categoryId: expense.categoryId,
+                subcategoryId: expense.subcategoryId,
+                linkedAccountId: expense.linkedAccountId,
+                isEnabled: expense.isEnabled,
+                notes: expense.notes
+            )
+        }
+
+        // Load custom categories
+        let categoryDescriptor = FetchDescriptor<CustomCategory>()
+        if let customCategories = try? modelContext.fetch(categoryDescriptor) {
+            expensesViewModel.customCategories = customCategories.map { $0.toCategory() }
+        }
+
+        // Load custom subcategories
+        let subcategoryDescriptor = FetchDescriptor<CustomSubcategory>()
+        if let customSubcategories = try? modelContext.fetch(subcategoryDescriptor) {
+            var subcategoriesMap: [UUID: [Subcategory]] = [:]
+            for sub in customSubcategories {
+                let subcategory = sub.toSubcategory()
+                subcategoriesMap[sub.categoryId, default: []].append(subcategory)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .navigationTitle("Expenses".localized)
+            expensesViewModel.customSubcategories = subcategoriesMap
+        }
+    }
+
+    private func setupExpensesCallbacks() {
+        // Add expense callback
+        expensesViewModel.onAddExpense = { [weak modelContext] input in
+            guard let context = modelContext else { return }
+            let expense = Expense(
+                name: input.name,
+                amount: input.amount,
+                icon: input.icon,
+                frequency: input.frequency,
+                linkedAccountId: input.linkedAccountId,
+                categoryId: input.categoryId,
+                subcategoryId: input.subcategoryId,
+                notes: input.notes,
+                isEnabled: input.isEnabled
+            )
+            context.insert(expense)
+            try? context.save()
+        }
+
+        // Update expense callback
+        expensesViewModel.onUpdateExpense = { [weak modelContext] input in
+            guard let context = modelContext, let id = input.id else { return }
+            var descriptor = FetchDescriptor<Expense>(predicate: #Predicate { $0.id == id })
+            descriptor.fetchLimit = 1
+            guard let expense = try? context.fetch(descriptor).first else { return }
+            expense.name = input.name
+            expense.amount = input.amount
+            expense.frequency = input.frequency
+            expense.icon = input.icon
+            expense.categoryId = input.categoryId
+            expense.subcategoryId = input.subcategoryId
+            expense.linkedAccountId = input.linkedAccountId
+            expense.isEnabled = input.isEnabled
+            expense.notes = input.notes
+            try? context.save()
+        }
+
+        // Delete expense callback
+        expensesViewModel.onDeleteExpense = { [weak modelContext] id in
+            guard let context = modelContext else { return }
+            var descriptor = FetchDescriptor<Expense>(predicate: #Predicate { $0.id == id })
+            descriptor.fetchLimit = 1
+            guard let expense = try? context.fetch(descriptor).first else { return }
+            context.delete(expense)
+            try? context.save()
+        }
+
+        // Toggle expense enabled callback
+        expensesViewModel.onToggleExpense = { [weak modelContext] id, enabled in
+            guard let context = modelContext else { return }
+            var descriptor = FetchDescriptor<Expense>(predicate: #Predicate { $0.id == id })
+            descriptor.fetchLimit = 1
+            guard let expense = try? context.fetch(descriptor).first else { return }
+            expense.isEnabled = enabled
+            try? context.save()
+        }
+
+        // Add custom category callback
+        expensesViewModel.onAddCategory = { [weak modelContext] name, icon, colorHex in
+            guard let context = modelContext else { return }
+            let category = CustomCategory(name: name, icon: icon, colorHex: colorHex)
+            context.insert(category)
+            try? context.save()
+        }
+
+        // Delete custom category callback
+        expensesViewModel.onDeleteCategory = { [weak modelContext] id in
+            guard let context = modelContext else { return }
+            var descriptor = FetchDescriptor<CustomCategory>(predicate: #Predicate { $0.id == id })
+            descriptor.fetchLimit = 1
+            guard let category = try? context.fetch(descriptor).first else { return }
+            context.delete(category)
+            try? context.save()
+        }
+
+        // Add custom subcategory callback
+        expensesViewModel.onAddSubcategory = { [weak modelContext] name, categoryId in
+            guard let context = modelContext else { return }
+            let subcategory = CustomSubcategory(name: name, categoryId: categoryId)
+            context.insert(subcategory)
+            try? context.save()
+        }
+
+        // Delete custom subcategory callback
+        expensesViewModel.onDeleteSubcategory = { [weak modelContext] id in
+            guard let context = modelContext else { return }
+            var descriptor = FetchDescriptor<CustomSubcategory>(predicate: #Predicate { $0.id == id })
+            descriptor.fetchLimit = 1
+            guard let subcategory = try? context.fetch(descriptor).first else { return }
+            context.delete(subcategory)
+            try? context.save()
         }
     }
 }
+
+// MARK: - Placeholder Views
 
 private struct InsightsPlaceholder: View {
     var body: some View {

@@ -3,6 +3,7 @@ import SwiftData
 import UIKit
 import Utilities
 import Domain
+import Persistence
 
 @MainActor
 @Observable
@@ -14,10 +15,10 @@ public final class OnboardingViewModel {
     public var monthlyIncome: Decimal = 0
 
     public var expenses: [ExpenseEntry] = [
-        ExpenseEntry(name: "Food & Groceries".localized, amount: 0, icon: "cart.fill"),
-        ExpenseEntry(name: "Rent / Housing".localized, amount: 0, icon: "house.fill"),
-        ExpenseEntry(name: "Transportation".localized, amount: 0, icon: "car.fill"),
-        ExpenseEntry(name: "Subscriptions".localized, amount: 0, icon: "repeat.circle.fill")
+        ExpenseEntry(name: "Food".localized, amount: 0, icon: "cart.fill", categoryId: Category.foodGroceries.id),
+        ExpenseEntry(name: "Rent".localized, amount: 0, icon: "house.fill", categoryId: Category.housing.id),
+        ExpenseEntry(name: "Gas".localized, amount: 0, icon: "fuelpump.fill", categoryId: Category.autoTransport.id),
+        ExpenseEntry(name: "Streaming".localized, amount: 0, icon: "tv.fill", categoryId: Category.subscriptions.id)
     ]
 
     public var accounts: [AccountEntry] = AccountEntry.defaults
@@ -162,7 +163,7 @@ public final class OnboardingViewModel {
         let userProfile = UserProfile(
             name: trimmedName,
             currencyCode: currency.rawValue,
-            remainingMoneyDestination: remainingMoneyDestination.rawValue
+            remainingMoneyDestination: remainingMoneyDestination
         )
         context.insert(userProfile)
 
@@ -170,7 +171,7 @@ public final class OnboardingViewModel {
         let income = Income(
             name: "Salary".localized,
             amount: monthlyIncome,
-            frequency: "monthly"
+            frequency: .monthly
         )
         context.insert(income)
 
@@ -180,8 +181,11 @@ public final class OnboardingViewModel {
                 name: expense.name,
                 amount: expense.amount,
                 icon: expense.icon,
-                frequency: "monthly",
-                linkedAccountId: expense.linkedAccountId
+                frequency: expense.frequency,
+                linkedAccountId: expense.linkedAccountId,
+                categoryId: expense.categoryId,
+                subcategoryId: expense.subcategoryId,
+                notes: expense.notes
             )
             context.insert(expenseModel)
         }

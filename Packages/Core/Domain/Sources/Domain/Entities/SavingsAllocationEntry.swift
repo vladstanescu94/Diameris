@@ -2,7 +2,9 @@ import Foundation
 
 /// Temporary savings allocation entry used during onboarding flow.
 /// Not persisted - converted to SavingsAllocation model on completion.
-public struct SavingsAllocationEntry: Sendable {
+public struct SavingsAllocationEntry: Identifiable, Sendable {
+    public let id: UUID
+
     /// Percentage of available income to save (0.05 - 0.50 = 5% - 50%)
     public var percentage: Double
 
@@ -13,10 +15,12 @@ public struct SavingsAllocationEntry: Sendable {
     public var boostMultiplier: Double
 
     public init(
+        id: UUID = UUID(),
         percentage: Double = 0.25,
         boostEnabled: Bool = false,
         boostMultiplier: Double = 3.0
     ) {
+        self.id = id
         self.percentage = percentage
         self.boostEnabled = boostEnabled
         self.boostMultiplier = boostMultiplier

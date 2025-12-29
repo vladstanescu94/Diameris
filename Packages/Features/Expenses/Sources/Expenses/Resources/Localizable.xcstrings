@@ -1,0 +1,463 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "" : {
+
+    },
+    "(%@)" : {
+
+    },
+    "Add" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adaugă"
+          }
+        }
+      }
+    },
+    "Add Expense" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adaugă cheltuială"
+          }
+        }
+      }
+    },
+    "Add Subcategory" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adaugă subcategorie"
+          }
+        }
+      }
+    },
+    "Add your first expense to start tracking your budget." : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adaugă prima cheltuială pentru a începe urmărirea bugetului."
+          }
+        }
+      }
+    },
+    "Amount" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sumă"
+          }
+        }
+      }
+    },
+    "Annual" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anual"
+          }
+        }
+      }
+    },
+    "Cancel" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anulează"
+          }
+        }
+      }
+    },
+    "Categories" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Categorii"
+          }
+        }
+      }
+    },
+    "Category" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Categorie"
+          }
+        }
+      }
+    },
+    "Category Name" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nume categorie"
+          }
+        }
+      }
+    },
+    "Collapse All" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restrânge toate"
+          }
+        }
+      }
+    },
+    "Color" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Culoare"
+          }
+        }
+      }
+    },
+    "Custom Categories" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Categorii personalizate"
+          }
+        }
+      }
+    },
+    "Custom Subcategories" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subcategorii personalizate"
+          }
+        }
+      }
+    },
+    "Default" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Implicit"
+          }
+        }
+      }
+    },
+    "Default Categories" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Categorii implicite"
+          }
+        }
+      }
+    },
+    "Default categories cannot be deleted." : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Categoriile implicite nu pot fi șterse."
+          }
+        }
+      }
+    },
+    "Default Subcategories" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subcategorii implicite"
+          }
+        }
+      }
+    },
+    "Delete" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Șterge"
+          }
+        }
+      }
+    },
+    "Details" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detalii"
+          }
+        }
+      }
+    },
+    "Disabled expenses won't be included in your budget calculations." : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cheltuielile dezactivate nu vor fi incluse în calculele bugetare."
+          }
+        }
+      }
+    },
+    "Done" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gata"
+          }
+        }
+      }
+    },
+    "Edit Expense" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Editează cheltuială"
+          }
+        }
+      }
+    },
+    "enabled" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "active"
+          }
+        }
+      }
+    },
+    "Enabled" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activat"
+          }
+        }
+      }
+    },
+    "Expand All" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Extinde toate"
+          }
+        }
+      }
+    },
+    "Expenses" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cheltuieli"
+          }
+        }
+      }
+    },
+    "Frequency" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frecvență"
+          }
+        }
+      }
+    },
+    "Icon" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pictogramă"
+          }
+        }
+      }
+    },
+    "Manage Categories" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gestionează categorii"
+          }
+        }
+      }
+    },
+    "Monthly" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lunar"
+          }
+        }
+      }
+    },
+    "Monthly Equivalent" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Echivalent lunar"
+          }
+        }
+      }
+    },
+    "Name" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nume"
+          }
+        }
+      }
+    },
+    "New Category" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Categorie nouă"
+          }
+        }
+      }
+    },
+    "New Subcategory" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subcategorie nouă"
+          }
+        }
+      }
+    },
+    "No Expenses Yet" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicio cheltuială încă"
+          }
+        }
+      }
+    },
+    "None" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niciunul"
+          }
+        }
+      }
+    },
+    "Notes" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note"
+          }
+        }
+      }
+    },
+    "Preview" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previzualizare"
+          }
+        }
+      }
+    },
+    "Save" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salvează"
+          }
+        }
+      }
+    },
+    "Search expenses" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Caută cheltuieli"
+          }
+        }
+      }
+    },
+    "subcategories" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "subcategorii"
+          }
+        }
+      }
+    },
+    "Subcategory" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subcategorie"
+          }
+        }
+      }
+    },
+    "Total %@ Expenses" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cheltuieli %@ totale"
+          }
+        }
+      }
+    },
+    "Uncategorized" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Necategorizat"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

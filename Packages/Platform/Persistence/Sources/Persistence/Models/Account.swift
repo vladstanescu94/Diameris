@@ -2,6 +2,7 @@ import Foundation
 import SwiftData
 import Domain
 
+/// SwiftData entity for persisted accounts
 @Model
 public final class Account {
     @Attribute(.unique) public var id: UUID
@@ -11,7 +12,7 @@ public final class Account {
     public var sortOrder: Int
     public var accountTypeRaw: String
 
-    // MARK: - New Behavioral Properties
+    // MARK: - Behavioral Properties
 
     /// For savings-type accounts: marks this as the primary savings account
     /// that receives automatic savings allocation.
@@ -23,6 +24,9 @@ public final class Account {
 
     /// Current balance in this account (for progress tracking).
     public var currentBalance: Decimal
+
+    /// Creation date for audit
+    public var createdAt: Date
 
     public init(
         name: String,
@@ -43,9 +47,10 @@ public final class Account {
         self.isPrimarySavings = isPrimarySavings
         self.emergencyMultiplier = emergencyMultiplier
         self.currentBalance = currentBalance
+        self.createdAt = Date()
     }
 
-    /// Convenience initializer from onboarding entry
+    /// Convenience initializer from Domain AccountEntry
     public convenience init(from entry: AccountEntry, sortOrder: Int) {
         self.init(
             name: entry.name,
@@ -64,6 +69,20 @@ public final class Account {
     public var accountType: AccountType {
         get { AccountType(rawValue: accountTypeRaw) ?? .other }
         set { accountTypeRaw = newValue.rawValue }
+    }
+
+    /// Convert to Domain AccountEntry
+    public func toEntry() -> AccountEntry {
+        AccountEntry(
+            id: id,
+            name: name,
+            purpose: purpose,
+            accountType: accountType,
+            isPrimary: isPrimary,
+            isPrimarySavings: isPrimarySavings,
+            emergencyMultiplier: emergencyMultiplier,
+            currentBalance: currentBalance
+        )
     }
 
     /// Calculates the emergency fund target based on monthly income.

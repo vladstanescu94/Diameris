@@ -11,6 +11,8 @@
 		DE0EA2E82EF98E7C0037FB3A /* Onboarding in Frameworks */ = {isa = PBXBuildFile; productRef = DE0EA2E72EF98E7C0037FB3A /* Onboarding */; };
 		DE6CCDBF2F018349005B3DFA /* Domain in Frameworks */ = {isa = PBXBuildFile; productRef = DE6CCDBE2F018349005B3DFA /* Domain */; };
 		DE6CCDC22F018354005B3DFA /* Dashboard in Frameworks */ = {isa = PBXBuildFile; productRef = DE6CCDC12F018354005B3DFA /* Dashboard */; };
+		DE6CCDCD2F028FE0005B3DFA /* Persistence in Frameworks */ = {isa = PBXBuildFile; productRef = DE6CCDCC2F028FE0005B3DFA /* Persistence */; };
+		DE6CCDD02F0291BD005B3DFA /* Expenses in Frameworks */ = {isa = PBXBuildFile; productRef = DE6CCDCF2F0291BD005B3DFA /* Expenses */; };
 		DEFC41CA2EFFEBA2009AA81A /* SharedUI in Frameworks */ = {isa = PBXBuildFile; productRef = DEFC41C92EFFEBA2009AA81A /* SharedUI */; };
 		DEFC41CD2EFFEBAD009AA81A /* Utilities in Frameworks */ = {isa = PBXBuildFile; productRef = DEFC41CC2EFFEBAD009AA81A /* Utilities */; };
 /* End PBXBuildFile section */
@@ -63,6 +65,8 @@
 			files = (
 				DE6CCDBF2F018349005B3DFA /* Domain in Frameworks */,
 				DEFC41CA2EFFEBA2009AA81A /* SharedUI in Frameworks */,
+				DE6CCDCD2F028FE0005B3DFA /* Persistence in Frameworks */,
+				DE6CCDD02F0291BD005B3DFA /* Expenses in Frameworks */,
 				DEFC41CD2EFFEBAD009AA81A /* Utilities in Frameworks */,
 				DE0EA2DF2EF9882C0037FB3A /* DesignSystem in Frameworks */,
 				DE0EA2E82EF98E7C0037FB3A /* Onboarding in Frameworks */,
@@ -133,6 +137,8 @@
 				DEFC41CC2EFFEBAD009AA81A /* Utilities */,
 				DE6CCDBE2F018349005B3DFA /* Domain */,
 				DE6CCDC12F018354005B3DFA /* Dashboard */,
+				DE6CCDCC2F028FE0005B3DFA /* Persistence */,
+				DE6CCDCF2F0291BD005B3DFA /* Expenses */,
 			);
 			productName = Diameris;
 			productReference = DE0EA2AA2EF963440037FB3A /* Diameris.app */;
@@ -224,6 +230,8 @@
 				DEFC41CB2EFFEBAD009AA81A /* XCLocalSwiftPackageReference "Packages/Core/Utilities" */,
 				DE6CCDBD2F018349005B3DFA /* XCLocalSwiftPackageReference "Packages/Core/Domain" */,
 				DE6CCDC02F018354005B3DFA /* XCLocalSwiftPackageReference "Packages/Features/Dashboard" */,
+				DE6CCDCB2F028FE0005B3DFA /* XCLocalSwiftPackageReference "Packages/Platform/Persistence" */,
+				DE6CCDCE2F0291BD005B3DFA /* XCLocalSwiftPackageReference "Packages/Features/Expenses" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = DE0EA2AB2EF963440037FB3A /* Products */;
@@ -630,6 +638,14 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/Features/Dashboard;
 		};
+		DE6CCDCB2F028FE0005B3DFA /* XCLocalSwiftPackageReference "Packages/Platform/Persistence" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/Platform/Persistence;
+		};
+		DE6CCDCE2F0291BD005B3DFA /* XCLocalSwiftPackageReference "Packages/Features/Expenses" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/Features/Expenses;
+		};
 		DEFC41C82EFFEBA2009AA81A /* XCLocalSwiftPackageReference "Packages/Core/SharedUI" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/Core/SharedUI;
@@ -656,6 +672,14 @@
 		DE6CCDC12F018354005B3DFA /* Dashboard */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Dashboard;
+		};
+		DE6CCDCC2F028FE0005B3DFA /* Persistence */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Persistence;
+		};
+		DE6CCDCF2F0291BD005B3DFA /* Expenses */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Expenses;
 		};
 		DEFC41C92EFFEBA2009AA81A /* SharedUI */ = {
 			isa = XCSwiftPackageProductDependency;

@@ -3,27 +3,27 @@
 import PackageDescription
 
 let package = Package(
-    name: "Onboarding",
+    name: "Expenses",
+    defaultLocalization: "en",
     platforms: [
         .iOS(.v26)
     ],
     products: [
         .library(
-            name: "Onboarding",
-            targets: ["Onboarding"]
+            name: "Expenses",
+            targets: ["Expenses"]
         )
     ],
     dependencies: [
         .package(path: "../../Core/DesignSystem"),
         .package(path: "../../Core/SharedUI"),
         .package(path: "../../Core/Utilities"),
-        .package(path: "../../Core/Domain"),
-        .package(path: "../../Platform/Persistence")
+        .package(path: "../../Core/Domain")
     ],
     targets: [
         .target(
-            name: "Onboarding",
-            dependencies: ["DesignSystem", "SharedUI", "Utilities", "Domain", "Persistence"],
+            name: "Expenses",
+            dependencies: ["DesignSystem", "SharedUI", "Utilities", "Domain"],
             resources: [
                 .process("Resources")
             ],
@@ -32,8 +32,8 @@ let package = Package(
             ]
         ),
         .testTarget(
-            name: "OnboardingTests",
-            dependencies: ["Onboarding"]
+            name: "ExpensesTests",
+            dependencies: ["Expenses"]
         )
     ]
 )

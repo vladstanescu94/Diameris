@@ -1,8 +1,11 @@
 // Re-export public API
 @_exported import struct SwiftUI.EmptyView
+@_exported import Persistence
 
-// Models
-public typealias OnboardingUserProfile = UserProfile
-public typealias OnboardingIncome = Income
-public typealias OnboardingExpense = Expense
-public typealias OnboardingAccount = Account
+// Note: SwiftData models are now in Persistence package.
+// Re-export for backward compatibility:
+// - Persistence.UserProfile
+// - Persistence.Income
+// - Persistence.Expense
+// - Persistence.Account
+// - Persistence.SavingsAllocation

@@ -1,0 +1,164 @@
+{
+  "version": "1.0",
+  "exportDate": "2025-12-29T18:35:47.466958",
+  "income": {
+    "amount": 14303,
+    "frequency": "monthly",
+    "name": "Salariu"
+  },
+  "savings": {
+    "percentage": 0.25,
+    "boostEnabled": true,
+    "boostMultiplier": 3
+  },
+  "emergencyFund": {
+    "currentBalance": 37056,
+    "targetMultiplier": 3.0
+  },
+  "expenses": [
+    {
+      "name": "Mâncare",
+      "amount": 3000,
+      "frequency": "monthly",
+      "icon": "cart.fill",
+      "categoryId": "D1A00007-0000-0000-0000-000000000007",
+      "isEnabled": true
+    },
+    {
+      "name": "Benzină",
+      "amount": 300,
+      "frequency": "monthly",
+      "icon": "fuelpump.fill",
+      "categoryId": "D1A00001-0000-0000-0000-000000000001",
+      "isEnabled": true
+    },
+    {
+      "name": "Abonament sală",
+      "amount": 200,
+      "frequency": "monthly",
+      "icon": "dumbbell.fill",
+      "categoryId": "D1A00006-0000-0000-0000-000000000006",
+      "isEnabled": true
+    },
+    {
+      "name": "Apple Music",
+      "amount": 40,
+      "frequency": "monthly",
+      "icon": "music.note",
+      "categoryId": "D1A00002-0000-0000-0000-000000000002",
+      "isEnabled": true
+    },
+    {
+      "name": "YouTube Premium",
+      "amount": 40,
+      "frequency": "monthly",
+      "icon": "play.rectangle.fill",
+      "categoryId": "D1A00002-0000-0000-0000-000000000002",
+      "isEnabled": true
+    },
+    {
+      "name": "iCloud Storage",
+      "amount": 10,
+      "frequency": "monthly",
+      "icon": "icloud.fill",
+      "categoryId": "D1A00002-0000-0000-0000-000000000002",
+      "isEnabled": true
+    },
+    {
+      "name": "Tuns",
+      "amount": 65,
+      "frequency": "monthly",
+      "icon": "scissors",
+      "categoryId": "D1A00003-0000-0000-0000-000000000003",
+      "isEnabled": true
+    },
+    {
+      "name": "Diverse",
+      "amount": 400,
+      "frequency": "monthly",
+      "icon": "sparkles",
+      "categoryId": "D1A00003-0000-0000-0000-000000000003",
+      "isEnabled": true
+    },
+    {
+      "name": "Mâncare pisică",
+      "amount": 400,
+      "frequency": "monthly",
+      "icon": "fork.knife",
+      "categoryId": "D1A00005-0000-0000-0000-000000000005",
+      "isEnabled": true
+    },
+    {
+      "name": "Nisip pisică",
+      "amount": 100,
+      "frequency": "monthly",
+      "icon": "leaf.fill",
+      "categoryId": "D1A00005-0000-0000-0000-000000000005",
+      "isEnabled": true
+    },
+    {
+      "name": "Rată mașină",
+      "amount": 34200,
+      "frequency": "annual",
+      "icon": "creditcard.fill",
+      "categoryId": "D1A00001-0000-0000-0000-000000000001",
+      "isEnabled": true
+    },
+    {
+      "name": "Revizie mașină",
+      "amount": 2000,
+      "frequency": "annual",
+      "icon": "wrench.and.screwdriver.fill",
+      "categoryId": "D1A00001-0000-0000-0000-000000000001",
+      "isEnabled": true
+    },
+    {
+      "name": "Asigurare auto",
+      "amount": 2500,
+      "frequency": "annual",
+      "icon": "shield.checkered",
+      "categoryId": "D1A00001-0000-0000-0000-000000000001",
+      "isEnabled": true
+    },
+    {
+      "name": "Impozit auto",
+      "amount": 250,
+      "frequency": "annual",
+      "icon": "doc.text.fill",
+      "categoryId": "D1A00001-0000-0000-0000-000000000001",
+      "isEnabled": true
+    },
+    {
+      "name": "Disney+",
+      "amount": 370,
+      "frequency": "annual",
+      "icon": "sparkles.tv.fill",
+      "categoryId": "D1A00002-0000-0000-0000-000000000002",
+      "isEnabled": true
+    },
+    {
+      "name": "Crunchyroll",
+      "amount": 320,
+      "frequency": "annual",
+      "icon": "play.tv.fill",
+      "categoryId": "D1A00002-0000-0000-0000-000000000002",
+      "isEnabled": true
+    },
+    {
+      "name": "Genius",
+      "amount": 100,
+      "frequency": "annual",
+      "icon": "music.mic",
+      "categoryId": "D1A00002-0000-0000-0000-000000000002",
+      "isEnabled": true
+    },
+    {
+      "name": "Suplimente",
+      "amount": 500,
+      "frequency": "annual",
+      "icon": "pill.fill",
+      "categoryId": "D1A00006-0000-0000-0000-000000000006",
+      "isEnabled": true
+    }
+  ]
+}

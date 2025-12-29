@@ -1050,9 +1050,164 @@ def actualizeaza_fisier_cu_valori(nou_emergency, nou_savings, nou_personal, nou_
         print(f"FOND_URGENTA_CURENT = {int(nou_emergency)}")
         print(f"CREDIT_AUTO_REST = {nou_credit_rest:.2f}")
 
+# ========== EXPORT JSON PENTRU APP ==========
+
+def export_to_json():
+    """Exportă datele pentru importul în aplicația Diameris iOS"""
+    import json
+
+    # Mapping categorii Python → App Category UUIDs (din Domain/Category.swift)
+    CATEGORY_MAP = {
+        'auto': 'D1A00001-0000-0000-0000-000000000001',        # autoTransport
+        'subscriptii': 'D1A00002-0000-0000-0000-000000000002', # subscriptions
+        'lifestyle': 'D1A00003-0000-0000-0000-000000000003',   # lifestyle
+        'locuinta': 'D1A00004-0000-0000-0000-000000000004',    # housing
+        'pisica': 'D1A00005-0000-0000-0000-000000000005',      # pets
+        'sala': 'D1A00006-0000-0000-0000-000000000006',        # healthFitness
+        'mancare': 'D1A00007-0000-0000-0000-000000000007',     # foodGroceries (special case)
+    }
+
+    # Mapping cheltuieli → iconițe SF Symbols
+    ICON_MAP = {
+        # Auto
+        'benzina': 'fuelpump.fill',
+        'rata_masina': 'creditcard.fill',
+        'asigurare_masina': 'shield.checkered',
+        'impozit_auto': 'doc.text.fill',
+        'revizie_masina': 'wrench.and.screwdriver.fill',
+        # Subscripții
+        'apple_music': 'music.note',
+        'youtube_premium': 'play.rectangle.fill',
+        'netflix': 'tv.fill',
+        'apple_icloud': 'icloud.fill',
+        'disney_plus': 'sparkles.tv.fill',
+        'crunchyroll': 'play.tv.fill',
+        'genius': 'music.mic',
+        # Pisică
+        'cat_food': 'fork.knife',
+        'cat_litter': 'leaf.fill',
+        # Sală
+        'abonament_sala': 'dumbbell.fill',
+        'suplimente_sala': 'pill.fill',
+        # Lifestyle
+        'mancare': 'cart.fill',
+        'tuns': 'scissors',
+        'random_expenses': 'sparkles',
+        # Locuință
+        'chirie': 'house.fill',
+    }
+
+    # Găsește categoria pentru o cheltuială
+    def get_category_for_expense(expense_key):
+        for cat, items in CATEGORII_CHELTUIELI.items():
+            if expense_key in items['lunare'] or expense_key in items['anuale']:
+                # Special case: mancare e în lifestyle dar ar trebui să fie în foodGroceries
+                if expense_key == 'mancare':
+                    return CATEGORY_MAP.get('mancare')
+                return CATEGORY_MAP.get(cat)
+        return None
+
+    # Nume mai frumoase pentru cheltuieli
+    DISPLAY_NAMES = {
+        'benzina': 'Benzină',
+        'rata_masina': 'Rată mașină',
+        'asigurare_masina': 'Asigurare auto',
+        'impozit_auto': 'Impozit auto',
+        'revizie_masina': 'Revizie mașină',
+        'apple_music': 'Apple Music',
+        'youtube_premium': 'YouTube Premium',
+        'netflix': 'Netflix',
+        'apple_icloud': 'iCloud Storage',
+        'disney_plus': 'Disney+',
+        'crunchyroll': 'Crunchyroll',
+        'genius': 'Genius',
+        'cat_food': 'Mâncare pisică',
+        'cat_litter': 'Nisip pisică',
+        'abonament_sala': 'Abonament sală',
+        'suplimente_sala': 'Suplimente',
+        'mancare': 'Mâncare',
+        'tuns': 'Tuns',
+        'random_expenses': 'Diverse',
+        'chirie': 'Chirie',
+    }
+
+    expenses = []
+
+    # Procesează cheltuielile lunare
+    for key, value in CHELTUIELI_LUNARE.items():
+        if key == 'chirie' and not ENABLE_RENT:
+            continue
+        if value == 0:
+            continue
+
+        expenses.append({
+            'name': DISPLAY_NAMES.get(key, key.replace('_', ' ').title()),
+            'amount': value,
+            'frequency': 'monthly',
+            'icon': ICON_MAP.get(key, 'banknote.fill'),
+            'categoryId': get_category_for_expense(key),
+            'isEnabled': True
+        })
+
+    # Procesează cheltuielile anuale
+    for key, value in CHELTUIELI_ANUALE.items():
+        if value == 0:
+            continue
+
+        expenses.append({
+            'name': DISPLAY_NAMES.get(key, key.replace('_', ' ').title()),
+            'amount': value,
+            'frequency': 'annual',
+            'icon': ICON_MAP.get(key, 'banknote.fill'),
+            'categoryId': get_category_for_expense(key),
+            'isEnabled': True
+        })
+
+    # Structura finală pentru export
+    export_data = {
+        'version': '1.0',
+        'exportDate': __import__('datetime').datetime.now().isoformat(),
+        'income': {
+            'amount': SALARIU_LUNAR_NET,
+            'frequency': 'monthly',
+            'name': 'Salariu'
+        },
+        'savings': {
+            'percentage': SAVINGS_PERCENTAGE,
+            'boostEnabled': SAVINGS_BOOST,
+            'boostMultiplier': SAVINGS_BOOST_MULTIPLIER
+        },
+        'emergencyFund': {
+            'currentBalance': FOND_URGENTA_CURENT,
+            'targetMultiplier': 3.0
+        },
+        'expenses': expenses
+    }
+
+    return json.dumps(export_data, indent=2, ensure_ascii=False)
+
 # ========== EXECUȚIE ==========
 
 if __name__ == "__main__":
+    import sys
+    import os
+
+    # Check for --export flag
+    if '--export' in sys.argv:
+        json_output = export_to_json()
+
+        # Save to file in the Diameris app resources folder
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(script_dir)
+        output_path = os.path.join(project_root, 'Diameris', 'Resources', 'expenses_import.json')
+
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(json_output)
+
+        print(f"✅ Exported to: {output_path}")
+        print(f"📊 {len(__import__('json').loads(json_output)['expenses'])} expenses exported")
+        sys.exit(0)
+
     # Quick overview
     quick_summary()
     

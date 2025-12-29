@@ -2,12 +2,15 @@
 import SwiftUI
 import SwiftData
 import Onboarding
+import Domain
+import Persistence
 
 struct DevDebugView: View {
     @AppStorage(AppStorageKeys.onboardingCompleted) private var onboardingCompleted = false
     @Environment(\.modelContext) private var modelContext
 
     @State private var showingResetConfirmation = false
+    @State private var importResult: ImportResult?
 
     var body: some View {
         NavigationStack {
@@ -21,6 +24,14 @@ struct DevDebugView: View {
 
                     Button("Clear All Data & Reset", role: .destructive) {
                         showingResetConfirmation = true
+                    }
+                }
+
+                Section("Import Data") {
+                    Button {
+                        importFromBundle()
+                    } label: {
+                        Label("Import from Python Script", systemImage: "square.and.arrow.down")
                     }
                 }
 
@@ -49,6 +60,17 @@ struct DevDebugView: View {
             } message: {
                 Text("This will delete all your data and show onboarding again. This cannot be undone.")
             }
+            .alert(
+                importResult?.isSuccess == true ? "Import Successful" : "Import Failed",
+                isPresented: .init(
+                    get: { importResult != nil },
+                    set: { if !$0 { importResult = nil } }
+                )
+            ) {
+                Button("OK") { importResult = nil }
+            } message: {
+                Text(importResult?.message ?? "")
+            }
         }
     }
 
@@ -66,6 +88,42 @@ struct DevDebugView: View {
         onboardingCompleted = false
     }
 
+    private func importFromBundle() {
+        guard let url = Bundle.main.url(forResource: "expenses_import", withExtension: "json") else {
+            importResult = ImportResult(isSuccess: false, message: "expenses_import.json not found in bundle")
+            return
+        }
+
+        do {
+            let data = try Data(contentsOf: url)
+            let importData = try ExpenseImportData.parse(from: data)
+
+            // Delete existing expenses first
+            try modelContext.delete(model: Expense.self)
+
+            // Import all expenses
+            var importedCount = 0
+            for (index, expenseData) in importData.expenses.enumerated() {
+                let entry = expenseData.toExpenseEntry()
+                let expense = Expense(from: entry, sortOrder: index)
+                modelContext.insert(expense)
+                importedCount += 1
+            }
+
+            try modelContext.save()
+
+            importResult = ImportResult(
+                isSuccess: true,
+                message: "Imported \(importedCount) expenses successfully!"
+            )
+        } catch {
+            importResult = ImportResult(
+                isSuccess: false,
+                message: "Failed to import: \(error.localizedDescription)"
+            )
+        }
+    }
+
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
     }
@@ -77,6 +135,13 @@ struct DevDebugView: View {
     private var bundleIdentifier: String {
         Bundle.main.bundleIdentifier ?? "Unknown"
     }
+}
+
+// MARK: - Import Result
+
+private struct ImportResult {
+    let isSuccess: Bool
+    let message: String
 }
 
 private struct DataInspectorView: View {

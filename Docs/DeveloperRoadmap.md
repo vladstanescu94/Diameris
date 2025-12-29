@@ -112,6 +112,7 @@ This document tracks implementation progress. **Update this file after completin
 | Dashboard unit tests | 2025-12-29 | 55 tests covering DashboardViewModel and DashboardAccount: computed properties, account lookups, emergency fund calculations |
 | Expenses unit tests | 2025-12-29 | 48 tests covering ExpensesViewModel: totals, search, CRUD, category toggle, UI state, custom categories |
 | Expand/collapse all fix | 2025-12-29 | Fixed uncategorized expenses not responding to expand/collapse all; `ExpenseGroup` now uses stable `uncategorizedId` sentinel UUID instead of random `UUID()` |
+| Dev tools JSON import | 2025-12-29 | Import expenses from Python script via JSON; `--export` flag saves to `Resources/expenses_import.json`, `ExpenseImportData` model in Domain, one-tap import in DevDebugView loads from bundle |
 
 ### In Progress
 

@@ -14,7 +14,8 @@
       "Bash(xcrun simctl:*)",
       "Bash(xargs cat:*)",
       "Bash(swift test:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(python3:*)"
     ]
   }
 }

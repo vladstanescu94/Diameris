@@ -317,6 +317,18 @@
     "Expenses (%lld)" : {
 
     },
+    "Import Data" : {
+
+    },
+    "Import Failed" : {
+
+    },
+    "Import from Python Script" : {
+
+    },
+    "Import Successful" : {
+
+    },
     "income" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -421,6 +433,9 @@
           }
         }
       }
+    },
+    "OK" : {
+
     },
     "Onboarding" : {
 

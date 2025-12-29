@@ -11,7 +11,6 @@ public struct ExpenseDisplayItem: Identifiable, Sendable {
     public var frequency: Frequency
     public var icon: String
     public var categoryId: UUID?
-    public var subcategoryId: UUID?
     public var linkedAccountId: UUID?
     public var isEnabled: Bool
     public var notes: String?
@@ -23,7 +22,6 @@ public struct ExpenseDisplayItem: Identifiable, Sendable {
         frequency: Frequency = .monthly,
         icon: String,
         categoryId: UUID? = nil,
-        subcategoryId: UUID? = nil,
         linkedAccountId: UUID? = nil,
         isEnabled: Bool = true,
         notes: String? = nil
@@ -34,7 +32,6 @@ public struct ExpenseDisplayItem: Identifiable, Sendable {
         self.frequency = frequency
         self.icon = icon
         self.categoryId = categoryId
-        self.subcategoryId = subcategoryId
         self.linkedAccountId = linkedAccountId
         self.isEnabled = isEnabled
         self.notes = notes
@@ -48,7 +45,6 @@ public struct ExpenseDisplayItem: Identifiable, Sendable {
         self.frequency = entry.frequency
         self.icon = entry.icon
         self.categoryId = entry.categoryId
-        self.subcategoryId = entry.subcategoryId
         self.linkedAccountId = entry.linkedAccountId
         self.isEnabled = entry.isEnabled
         self.notes = entry.notes
@@ -69,12 +65,6 @@ public struct ExpenseDisplayItem: Identifiable, Sendable {
         guard let categoryId else { return nil }
         return ExpenseCategory.defaultCategory(for: categoryId)
     }
-
-    /// Get the subcategory for this expense
-    public var subcategory: Subcategory? {
-        guard let categoryId, let subcategoryId else { return nil }
-        return Subcategory.defaults(for: categoryId).first { $0.id == subcategoryId }
-    }
 }
 
 /// Input for creating/updating expenses
@@ -85,7 +75,6 @@ public struct ExpenseInput: Sendable {
     public var frequency: Frequency
     public var icon: String
     public var categoryId: UUID?
-    public var subcategoryId: UUID?
     public var linkedAccountId: UUID?
     public var isEnabled: Bool
     public var notes: String?
@@ -97,7 +86,6 @@ public struct ExpenseInput: Sendable {
         frequency: Frequency = .monthly,
         icon: String = "dollarsign.circle.fill",
         categoryId: UUID? = nil,
-        subcategoryId: UUID? = nil,
         linkedAccountId: UUID? = nil,
         isEnabled: Bool = true,
         notes: String? = nil
@@ -108,7 +96,6 @@ public struct ExpenseInput: Sendable {
         self.frequency = frequency
         self.icon = icon
         self.categoryId = categoryId
-        self.subcategoryId = subcategoryId
         self.linkedAccountId = linkedAccountId
         self.isEnabled = isEnabled
         self.notes = notes
@@ -122,7 +109,6 @@ public struct ExpenseInput: Sendable {
         self.frequency = item.frequency
         self.icon = item.icon
         self.categoryId = item.categoryId
-        self.subcategoryId = item.subcategoryId
         self.linkedAccountId = item.linkedAccountId
         self.isEnabled = item.isEnabled
         self.notes = item.notes
@@ -181,9 +167,6 @@ public final class ExpensesViewModel {
     /// Custom categories (user-created)
     public var customCategories: [ExpenseCategory] = []
 
-    /// Custom subcategories per category ID
-    public var customSubcategories: [UUID: [Subcategory]] = [:]
-
     /// User's selected currency
     public var currency: Currency = .usd
 
@@ -215,8 +198,6 @@ public final class ExpensesViewModel {
     public var onToggleExpense: ((UUID, Bool) async -> Void)?
     public var onAddCategory: ((String, String, String) async -> Void)?
     public var onDeleteCategory: ((UUID) async -> Void)?
-    public var onAddSubcategory: ((String, UUID) async -> Void)?
-    public var onDeleteSubcategory: ((UUID) async -> Void)?
 
     // MARK: - Initialization
 
@@ -227,13 +208,6 @@ public final class ExpensesViewModel {
     /// All categories including custom ones
     public var allCategories: [ExpenseCategory] {
         (ExpenseCategory.defaults + customCategories).sorted { $0.sortOrder < $1.sortOrder }
-    }
-
-    /// Get subcategories for a category (defaults + custom)
-    public func subcategories(for categoryId: UUID) -> [Subcategory] {
-        let defaults = Subcategory.defaults(for: categoryId)
-        let custom = customSubcategories[categoryId] ?? []
-        return (defaults + custom).sorted { $0.sortOrder < $1.sortOrder }
     }
 
     /// Total monthly expenses (enabled only)
@@ -293,7 +267,6 @@ public final class ExpensesViewModel {
         return expenses.filter { expense in
             expense.name.lowercased().contains(search) ||
             expense.category?.name.lowercased().contains(search) == true ||
-            expense.subcategory?.name.lowercased().contains(search) == true ||
             expense.notes?.lowercased().contains(search) == true
         }
     }
@@ -339,7 +312,6 @@ public final class ExpensesViewModel {
                     frequency: input.frequency,
                     icon: input.icon,
                     categoryId: input.categoryId,
-                    subcategoryId: input.subcategoryId,
                     linkedAccountId: input.linkedAccountId,
                     isEnabled: input.isEnabled,
                     notes: input.notes
@@ -355,7 +327,6 @@ public final class ExpensesViewModel {
                 frequency: input.frequency,
                 icon: input.icon,
                 categoryId: input.categoryId,
-                subcategoryId: input.subcategoryId,
                 linkedAccountId: input.linkedAccountId,
                 isEnabled: input.isEnabled,
                 notes: input.notes
@@ -383,7 +354,6 @@ public final class ExpensesViewModel {
                 frequency: expense.frequency,
                 icon: expense.icon,
                 categoryId: expense.categoryId,
-                subcategoryId: expense.subcategoryId,
                 linkedAccountId: expense.linkedAccountId,
                 isEnabled: !expense.isEnabled,
                 notes: expense.notes

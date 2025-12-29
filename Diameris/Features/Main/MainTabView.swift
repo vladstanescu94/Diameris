@@ -184,7 +184,6 @@ struct MainTabView: View {
                 frequency: expense.frequency,
                 icon: expense.icon,
                 categoryId: expense.categoryId,
-                subcategoryId: expense.subcategoryId,
                 linkedAccountId: expense.linkedAccountId,
                 isEnabled: expense.isEnabled,
                 notes: expense.notes
@@ -195,17 +194,6 @@ struct MainTabView: View {
         let categoryDescriptor = FetchDescriptor<CustomCategory>()
         if let customCategories = try? modelContext.fetch(categoryDescriptor) {
             expensesViewModel.customCategories = customCategories.map { $0.toCategory() }
-        }
-
-        // Load custom subcategories
-        let subcategoryDescriptor = FetchDescriptor<CustomSubcategory>()
-        if let customSubcategories = try? modelContext.fetch(subcategoryDescriptor) {
-            var subcategoriesMap: [UUID: [Subcategory]] = [:]
-            for sub in customSubcategories {
-                let subcategory = sub.toSubcategory()
-                subcategoriesMap[sub.categoryId, default: []].append(subcategory)
-            }
-            expensesViewModel.customSubcategories = subcategoriesMap
         }
     }
 
@@ -220,7 +208,6 @@ struct MainTabView: View {
                 frequency: input.frequency,
                 linkedAccountId: input.linkedAccountId,
                 categoryId: input.categoryId,
-                subcategoryId: input.subcategoryId,
                 notes: input.notes,
                 isEnabled: input.isEnabled
             )
@@ -239,7 +226,6 @@ struct MainTabView: View {
             expense.frequency = input.frequency
             expense.icon = input.icon
             expense.categoryId = input.categoryId
-            expense.subcategoryId = input.subcategoryId
             expense.linkedAccountId = input.linkedAccountId
             expense.isEnabled = input.isEnabled
             expense.notes = input.notes
@@ -281,24 +267,6 @@ struct MainTabView: View {
             descriptor.fetchLimit = 1
             guard let category = try? context.fetch(descriptor).first else { return }
             context.delete(category)
-            try? context.save()
-        }
-
-        // Add custom subcategory callback
-        expensesViewModel.onAddSubcategory = { [weak modelContext] name, categoryId in
-            guard let context = modelContext else { return }
-            let subcategory = CustomSubcategory(name: name, categoryId: categoryId)
-            context.insert(subcategory)
-            try? context.save()
-        }
-
-        // Delete custom subcategory callback
-        expensesViewModel.onDeleteSubcategory = { [weak modelContext] id in
-            guard let context = modelContext else { return }
-            var descriptor = FetchDescriptor<CustomSubcategory>(predicate: #Predicate { $0.id == id })
-            descriptor.fetchLimit = 1
-            guard let subcategory = try? context.fetch(descriptor).first else { return }
-            context.delete(subcategory)
             try? context.save()
         }
     }

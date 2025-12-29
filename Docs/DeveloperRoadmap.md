@@ -100,6 +100,10 @@ This document tracks implementation progress. **Update this file after completin
 | Settings coding standards | 2025-12-28 | Fixed magic numbers, removed duplicated AccountType extensions, fixed hardcoded currency |
 | Hide scroll indicators | 2025-12-28 | Added `.scrollIndicators(.hidden)` to all ScrollViews/Forms app-wide; UIScrollView.appearance fallback |
 | Settings→Dashboard refresh fix | 2025-12-28 | Added `onChange(of: showSettings)` to reload dashboard when settings sheet dismisses; fixes property mutations not triggering @Query onChange |
+| Persistence package | 2025-12-29 | `Packages/Platform/Persistence/` with SwiftData models: Expense, Account, Income, UserProfile, SavingsAllocation, CustomCategory |
+| Expenses feature | 2025-12-29 | Full Expenses management: category-based grouping, add/edit/delete expenses, frequency (monthly/annual), custom categories |
+| Subcategory removal | 2025-12-29 | Simplified architecture from Category→Subcategory→Expense to Category→Expense; users define expenses within categories |
+| Expenses haptics & animations | 2025-12-29 | HapticManager calls throughout Expenses feature; SpringPreset.snappy/responsive animations |
 
 ### In Progress
 
@@ -111,9 +115,9 @@ This document tracks implementation progress. **Update this file after completin
 
 | Priority | Task | Reference |
 |----------|------|-----------|
-| 1 | Test full onboarding → Dashboard flow | Verify balances update correctly after completion |
-| 2 | Implement Expenses feature | Categories, subcategories, add/edit expenses (like Python script) |
-| 3 | Implement Insights feature | Stats, AI tips (Foundation Models), scenario analysis |
+| 1 | Test full onboarding → Dashboard → Expenses flow | Verify data flows correctly through all features |
+| 2 | Implement Insights feature | Stats, AI tips (Foundation Models), scenario analysis |
+| 3 | Add Expenses unit tests | ExpensesViewModelTests.swift |
 | 4 | Add Dashboard unit tests | DashboardViewModelTests.swift |
 
 ---
@@ -126,8 +130,8 @@ Based on [MVP Overview](./MVP/00-MVP-Overview.md)
 |---|---------|--------|------|-------|
 | 01 | Onboarding | Done | [01-Onboarding.md](./MVP/01-Onboarding.md) | Polished with animations, haptics, glass morphing |
 | 02 | Income | In Progress | [02-Income.md](./MVP/02-Income.md) | Basic model + Dashboard display done |
-| 03 | Expenses | In Progress | [03-Expenses.md](./MVP/03-Expenses.md) | Basic model + Dashboard display done |
-| 04 | Categories | Not Started | [04-Categories.md](./MVP/04-Categories.md) | |
+| 03 | Expenses | Done | [03-Expenses.md](./MVP/03-Expenses.md) | Full CRUD, category grouping, frequency support, haptics |
+| 04 | Categories | Done | [04-Categories.md](./MVP/04-Categories.md) | Default + custom categories; simplified (no subcategories) |
 | 05 | Emergency Fund | In Progress | [05-EmergencyFund.md](./MVP/05-EmergencyFund.md) | Progress tracking in Dashboard |
 | 06 | Loans | Not Started | [06-Loans.md](./MVP/06-Loans.md) | |
 | 07 | Savings | In Progress | [07-Savings.md](./MVP/07-Savings.md) | Basic allocation + Dashboard display |
@@ -151,12 +155,12 @@ Based on [Architecture.md](./Architecture.md)
 | Core | DesignSystem | Done | Colors, spacing, corner radii, icon sizes, glass helpers, animation constants |
 | Core | Utilities | Done | HapticManager, AmountFormatter, Currency |
 | Core | SharedUI | Done | CelebrationEffect, ProgressRing, CurrencyAmountField |
-| Core | Domain | Done | AccountType, AccountEntry, ExpenseEntry, SavingsAllocationEntry, RemainingMoneyDestination, TransferPlan, TransferCalculator |
+| Core | Domain | Done | AccountType, AccountEntry, ExpenseEntry, ExpenseCategory, Frequency, SavingsAllocationEntry, RemainingMoneyDestination, TransferPlan, TransferCalculator |
 | Domain | Repositories | Not Started | Protocol definitions |
-| Platform | Persistence | Not Started | SwiftData implementations |
+| Platform | Persistence | Done | SwiftData models: Expense, Account, Income, UserProfile, SavingsAllocation, CustomCategory |
 | Features | Onboarding | Done | 7-screen flow, SwiftData models, ViewModel, microinteractions, celebrations |
 | Features | Dashboard | Done | DashboardView, NewMonthSheet, 3-step flow, MonthlyRecord model |
-| Features | Expenses | Not Started | Placeholder view; will have categories/subcategories like Python script |
+| Features | Expenses | Done | ExpenseListView, AddExpenseSheet, CategoryManagementView; category grouping, CRUD, haptics |
 | Features | Insights | Not Started | Placeholder view; AI tips via Foundation Models, scenario analysis |
 | Features | Settings | Done | SettingsSheet in Dashboard toolbar; Profile, Savings, Accounts, Remaining Money; coding standards compliant |
 
@@ -173,10 +177,10 @@ Based on [Architecture.md](./Architecture.md)
 
 ## Technical Debt & Notes
 
-- SwiftData models currently live in Onboarding package; may extract to Domain layer when patterns emerge
-- Currency enum in Onboarding; may move to shared Utilities package later
-- HapticManager in Onboarding package; consider moving to Core/Utilities when other features need it
 - Animation constants in DesignSystem; well-organized for reuse across features
+- Expenses feature needs unit tests (ExpensesViewModelTests.swift)
+- Dashboard feature needs unit tests (DashboardViewModelTests.swift)
+- Consider adding expense sorting/reordering within categories
 
 ---
 
@@ -863,6 +867,108 @@ The Python script (`expensesScriptDetailed.py`) provides:
 **Files Modified:**
 - `DesignSystem/ComponentSize.swift` - Added segmentedControlCompact
 - `Diameris/Features/Settings/SettingsSheet.swift` - All fixes applied
+
+### 2025-12-29 - Expenses Feature & Subcategory Removal Session
+
+**Focus:** Complete Expenses feature implementation and simplify category architecture by removing subcategories.
+
+**Major Changes:**
+
+1. **Platform/Persistence Package Created:**
+   - SwiftData models: Expense, Account, Income, UserProfile, SavingsAllocation, CustomCategory
+   - Public typealiases for entity access from main app
+   - Unit tests for all models
+
+2. **Expenses Feature Package:**
+   - `ExpenseListView` - Main list with category grouping, collapsible sections, monthly/annual toggle
+   - `AddExpenseSheet` - Form for creating/editing expenses with category picker, icon picker, frequency
+   - `CategoryManagementView` - Default categories (non-deletable) + custom categories (editable)
+   - `ExpensesViewModel` - Observable state with callback-based persistence
+   - Components: `ExpenseCategoryCard`, `ExpenseItemRow`, `CategoryPicker`, `FrequencyPicker`
+
+3. **Subcategory Removal (Architecture Simplification):**
+   - **Before:** Category → Subcategory → Expense (too complex, felt unnatural)
+   - **After:** Category → Expense (users define any expense within a category)
+   - User's philosophy: "For Food, add Groceries, Takeout, etc. For Auto, add Gas, Insurance, Car Wash, etc."
+
+**Files Deleted:**
+- `Domain/Entities/Subcategory.swift`
+- `Domain/Tests/SubcategoryTests.swift`
+- `Persistence/Models/CustomSubcategory.swift`
+- `Expenses/Components/SubcategoryPicker.swift`
+
+**Files Modified for Subcategory Removal:**
+- `Domain/Entities/ExpenseEntry.swift` - Removed subcategoryId
+- `Persistence/Models/Expense.swift` - Removed subcategoryId
+- `Expenses/ViewModels/ExpensesViewModel.swift` - Removed subcategory handling
+- `Expenses/Views/AddExpenseSheet.swift` - Removed SubcategoryPicker
+- `Expenses/Components/ExpenseItemRow.swift` - Removed subcategory display
+- `Expenses/Views/CategoryManagementView.swift` - Removed subcategory management
+- `MainTabView.swift` - Removed subcategory callbacks and loading
+- `OnboardingViewModel.swift` - Removed subcategoryId from expense creation
+- Test files updated to remove subcategory references
+
+**Haptics & Animations Added:**
+- `HapticManager.lightTap()` on buttons, row taps, icon/color selection
+- `HapticManager.selectionChanged()` on toggles, pickers
+- `HapticManager.success()` on save actions
+- `HapticManager.warning()` on delete actions
+- `SpringPreset.snappy` for expand/collapse animations
+- `SpringPreset.responsive` for toolbar actions
+- Numeric text transition for total amount display
+
+**Optimistic UI Updates:**
+- `saveExpense()` updates local state immediately before persisting
+- `deleteExpense()` removes from array immediately
+- `toggleExpenseEnabled()` toggles immediately
+- Fixes "edit doesn't reflect until restart" issue
+
+**Key Design Decisions:**
+1. **No subcategories:** Users define their own expense items within categories
+2. **Default categories immutable:** Auto/Transport, Subscriptions, Lifestyle, Housing, Pets, Health/Fitness, Food
+3. **Custom categories:** Users can add their own with custom icon and color
+4. **Callback-based persistence:** ViewModel uses closures injected by MainTabView for CRUD operations
+5. **Frequency support:** Monthly or Annual with automatic conversion for display
+
+**Files Created:**
+```
+Packages/Platform/Persistence/
+├── Sources/Persistence/
+│   ├── Persistence.swift
+│   └── Models/
+│       ├── Expense.swift
+│       ├── Account.swift
+│       ├── Income.swift
+│       ├── UserProfile.swift
+│       ├── SavingsAllocation.swift
+│       └── CustomCategory.swift
+└── Tests/PersistenceTests/
+    └── PersistenceTests.swift
+
+Packages/Features/Expenses/
+├── Sources/Expenses/
+│   ├── Expenses.swift
+│   ├── Views/
+│   │   ├── ExpenseListView.swift
+│   │   ├── AddExpenseSheet.swift
+│   │   └── CategoryManagementView.swift
+│   ├── ViewModels/
+│   │   └── ExpensesViewModel.swift
+│   ├── Components/
+│   │   ├── ExpenseCategoryCard.swift
+│   │   ├── ExpenseItemRow.swift
+│   │   ├── CategoryPicker.swift
+│   │   └── FrequencyPicker.swift
+│   ├── Utils/
+│   │   └── Localization.swift
+│   └── Resources/
+│       └── Localizable.xcstrings
+└── Tests/ExpensesTests/
+```
+
+**Domain Package Updates:**
+- `ExpenseCategory.swift` - Default categories with stable UUIDs
+- `Frequency.swift` - Monthly/Annual with multipliers
 
 ---
 

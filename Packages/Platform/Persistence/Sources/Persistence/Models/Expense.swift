@@ -15,8 +15,6 @@ public final class Expense {
     public var linkedAccountId: UUID?
     /// Optional category ID from Domain.Category
     public var categoryId: UUID?
-    /// Optional subcategory ID from Domain.Subcategory
-    public var subcategoryId: UUID?
     /// User notes about this expense
     public var notes: String?
     /// Creation date for sorting
@@ -31,7 +29,6 @@ public final class Expense {
         frequency: Frequency = .monthly,
         linkedAccountId: UUID? = nil,
         categoryId: UUID? = nil,
-        subcategoryId: UUID? = nil,
         notes: String? = nil,
         isEnabled: Bool = true,
         sortOrder: Int = 0
@@ -44,7 +41,6 @@ public final class Expense {
         self.isEnabled = isEnabled
         self.linkedAccountId = linkedAccountId
         self.categoryId = categoryId
-        self.subcategoryId = subcategoryId
         self.notes = notes
         self.createdAt = Date()
         self.sortOrder = sortOrder
@@ -59,7 +55,6 @@ public final class Expense {
             frequency: entry.frequency,
             linkedAccountId: entry.linkedAccountId,
             categoryId: entry.categoryId,
-            subcategoryId: entry.subcategoryId,
             notes: entry.notes,
             sortOrder: sortOrder
         )
@@ -82,7 +77,6 @@ public final class Expense {
             frequency: frequency,
             icon: icon,
             categoryId: categoryId,
-            subcategoryId: subcategoryId,
             linkedAccountId: linkedAccountId,
             isEnabled: isEnabled,
             notes: notes

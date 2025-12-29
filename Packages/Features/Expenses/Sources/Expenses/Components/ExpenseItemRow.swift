@@ -45,18 +45,10 @@ public struct ExpenseItemRow: View {
                     .foregroundStyle(expense.isEnabled ? .primary : .secondary)
                     .frame(width: IconSize.md, height: IconSize.md)
 
-                // Name and subcategory
-                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Text(expense.name)
-                        .font(.body)
-                        .foregroundStyle(expense.isEnabled ? .primary : .secondary)
-
-                    if let subcategory = expense.subcategory {
-                        Text(subcategory.name)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
+                // Name
+                Text(expense.name)
+                    .font(.body)
+                    .foregroundStyle(expense.isEnabled ? .primary : .secondary)
 
                 Spacer()
 
@@ -88,7 +80,16 @@ public struct ExpenseItemRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+        .contextMenu {
+            if let onTap {
+                Button {
+                    HapticManager.lightTap()
+                    onTap()
+                } label: {
+                    Label("Edit".localized, systemImage: "pencil")
+                }
+            }
+
             if let onDelete {
                 Button(role: .destructive) {
                     HapticManager.warning()
@@ -109,8 +110,7 @@ public struct ExpenseItemRow: View {
                 amount: 300,
                 frequency: .monthly,
                 icon: "car.fill",
-                categoryId: ExpenseCategory.autoTransport.id,
-                subcategoryId: Subcategory.defaults(for: ExpenseCategory.autoTransport.id).first?.id
+                categoryId: ExpenseCategory.autoTransport.id
             ),
             displayFrequency: .monthly,
             currency: "USD",

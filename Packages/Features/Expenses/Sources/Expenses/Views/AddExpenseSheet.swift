@@ -11,22 +11,20 @@ public struct AddExpenseSheet: View {
     @Bindable var viewModel: ExpensesViewModel
 
     @State private var input: ExpenseInput
+    @State private var showDeleteConfirmation = false
 
     private let isEditing: Bool
+    private let editingExpenseId: UUID?
 
     public init(viewModel: ExpensesViewModel, editingExpense: ExpenseDisplayItem? = nil) {
         self.viewModel = viewModel
         self.isEditing = editingExpense != nil
+        self.editingExpenseId = editingExpense?.id
         self._input = State(initialValue: editingExpense.map { ExpenseInput(from: $0) } ?? ExpenseInput())
     }
 
     private var title: String {
         isEditing ? "Edit Expense".localized : "Add Expense".localized
-    }
-
-    private var subcategories: [Subcategory] {
-        guard let categoryId = input.categoryId else { return [] }
-        return viewModel.subcategories(for: categoryId)
     }
 
     private var monthlyEquivalent: Decimal {
@@ -70,17 +68,6 @@ public struct AddExpenseSheet: View {
                         selection: $input.categoryId,
                         categories: viewModel.allCategories
                     )
-                    .onChange(of: input.categoryId) { _, _ in
-                        // Reset subcategory when category changes
-                        input.subcategoryId = nil
-                    }
-
-                    if !subcategories.isEmpty {
-                        SubcategoryPicker(
-                            selection: $input.subcategoryId,
-                            subcategories: subcategories
-                        )
-                    }
                 } header: {
                     Text("Category".localized)
                 }
@@ -109,9 +96,43 @@ public struct AddExpenseSheet: View {
                 } footer: {
                     Text("Disabled expenses won't be included in your budget calculations.".localized)
                 }
+
+                // Delete button (only when editing)
+                if isEditing {
+                    Section {
+                        Button(role: .destructive) {
+                            HapticManager.warning()
+                            showDeleteConfirmation = true
+                        } label: {
+                            HStack {
+                                Spacer()
+                                Text("Delete Expense".localized)
+                                Spacer()
+                            }
+                        }
+                    }
+                }
             }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
+            .confirmationDialog(
+                "Delete Expense".localized,
+                isPresented: $showDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Delete".localized, role: .destructive) {
+                    HapticManager.warning()
+                    if let id = editingExpenseId {
+                        Task {
+                            await viewModel.deleteExpense(id)
+                        }
+                    }
+                    dismiss()
+                }
+                Button("Cancel".localized, role: .cancel) {}
+            } message: {
+                Text("Are you sure you want to delete this expense? This action cannot be undone.".localized)
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel".localized) {

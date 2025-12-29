@@ -37,12 +37,10 @@ struct PersistenceTests {
                 amount: 300,
                 icon: "car.fill",
                 frequency: .monthly,
-                categoryId: Category.autoTransport.id,
-                subcategoryId: Subcategory.defaults(for: Category.autoTransport.id).first?.id
+                categoryId: Category.autoTransport.id
             )
 
             #expect(expense.categoryId == Category.autoTransport.id)
-            #expect(expense.subcategoryId != nil)
         }
 
         @Test("Creates expense with annual frequency")
@@ -254,38 +252,4 @@ struct PersistenceTests {
         }
     }
 
-    // MARK: - CustomSubcategory Entity
-
-    @Suite("CustomSubcategory Entity")
-    struct CustomSubcategoryTests {
-
-        @Test("Creates custom subcategory")
-        func createCustomSubcategory() {
-            let categoryId = Category.autoTransport.id
-            let subcategory = CustomSubcategory(
-                name: "Custom Sub",
-                categoryId: categoryId
-            )
-
-            #expect(subcategory.name == "Custom Sub")
-            #expect(subcategory.categoryId == categoryId)
-            #expect(subcategory.sortOrder == 100)
-        }
-
-        @Test("Converts to Domain Subcategory")
-        func convertsToDomainSubcategory() {
-            let categoryId = Category.autoTransport.id
-            let customSub = CustomSubcategory(
-                name: "Custom Sub",
-                categoryId: categoryId,
-                sortOrder: 50
-            )
-
-            let domainSub = customSub.toSubcategory()
-
-            #expect(domainSub.name == "Custom Sub")
-            #expect(domainSub.categoryId == categoryId)
-            #expect(domainSub.isDefault == false)
-        }
-    }
 }

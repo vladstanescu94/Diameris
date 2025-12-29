@@ -28,6 +28,7 @@
       }
     },
     "Add Subcategory" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -139,6 +140,7 @@
       }
     },
     "Custom Subcategories" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -179,6 +181,7 @@
       }
     },
     "Default Subcategories" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -194,6 +197,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Șterge"
+          }
+        }
+      }
+    },
+    "Delete Expense" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Șterge cheltuială"
+          }
+        }
+      }
+    },
+    "Are you sure you want to delete this expense? This action cannot be undone." : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ești sigur că vrei să ștergi această cheltuială? Acțiunea nu poate fi anulată."
           }
         }
       }
@@ -254,6 +277,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Activat"
+          }
+        }
+      }
+    },
+    "Edit" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Editează"
           }
         }
       }
@@ -349,6 +382,7 @@
       }
     },
     "New Subcategory" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -419,6 +453,7 @@
       }
     },
     "subcategories" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -429,6 +464,7 @@
       }
     },
     "Subcategory" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {

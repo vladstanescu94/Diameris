@@ -15,8 +15,7 @@ struct ExpenseEntryTests {
         @Test("Full initializer sets all properties")
         func fullInitializer() {
             let id = UUID()
-            let categoryId = Category.autoTransport.id
-            let subcategoryId = Subcategory.defaults(for: categoryId).first?.id
+            let categoryId = ExpenseCategory.autoTransport.id
             let accountId = UUID()
 
             let expense = ExpenseEntry(
@@ -26,7 +25,6 @@ struct ExpenseEntryTests {
                 frequency: .monthly,
                 icon: "car.fill",
                 categoryId: categoryId,
-                subcategoryId: subcategoryId,
                 linkedAccountId: accountId,
                 isEnabled: true,
                 notes: "Regular gas"
@@ -38,7 +36,6 @@ struct ExpenseEntryTests {
             #expect(expense.frequency == .monthly)
             #expect(expense.icon == "car.fill")
             #expect(expense.categoryId == categoryId)
-            #expect(expense.subcategoryId == subcategoryId)
             #expect(expense.linkedAccountId == accountId)
             #expect(expense.isEnabled == true)
             #expect(expense.notes == "Regular gas")
@@ -57,7 +54,6 @@ struct ExpenseEntryTests {
             #expect(expense.icon == "cart.fill")
             #expect(expense.frequency == .monthly)
             #expect(expense.categoryId == nil)
-            #expect(expense.subcategoryId == nil)
             #expect(expense.linkedAccountId == nil)
             #expect(expense.isEnabled == true)
             #expect(expense.notes == nil)
@@ -223,7 +219,7 @@ struct ExpenseEntryTests {
                 amount: 300,
                 frequency: .monthly,
                 icon: "car.fill",
-                categoryId: Category.autoTransport.id
+                categoryId: ExpenseCategory.autoTransport.id
             )
             let category = expense.category()
             #expect(category != nil)
@@ -240,50 +236,6 @@ struct ExpenseEntryTests {
                 categoryId: UUID() // Unknown ID
             )
             #expect(expense.category() == nil)
-        }
-
-        @Test("subcategory() returns nil when subcategoryId is nil")
-        func subcategoryNilWhenIdNil() {
-            let expense = ExpenseEntry(
-                name: "Gas",
-                amount: 300,
-                frequency: .monthly,
-                icon: "car.fill",
-                categoryId: Category.autoTransport.id
-            )
-            #expect(expense.subcategory() == nil)
-        }
-
-        @Test("subcategory() returns nil when categoryId is nil")
-        func subcategoryNilWhenCategoryNil() {
-            let subcategoryId = Subcategory.defaults(for: Category.autoTransport.id).first?.id
-            let expense = ExpenseEntry(
-                name: "Gas",
-                amount: 300,
-                frequency: .monthly,
-                icon: "car.fill",
-                subcategoryId: subcategoryId
-            )
-            #expect(expense.subcategory() == nil)
-        }
-
-        @Test("subcategory() returns subcategory for valid IDs")
-        func subcategoryReturnsDefault() {
-            let categoryId = Category.autoTransport.id
-            let subcategoryId = Subcategory.defaults(for: categoryId).first { $0.name == "Gas/Fuel" }?.id
-
-            let expense = ExpenseEntry(
-                name: "Gas",
-                amount: 300,
-                frequency: .monthly,
-                icon: "car.fill",
-                categoryId: categoryId,
-                subcategoryId: subcategoryId
-            )
-
-            let subcategory = expense.subcategory()
-            #expect(subcategory != nil)
-            #expect(subcategory?.name == "Gas/Fuel")
         }
     }
 
@@ -347,7 +299,7 @@ struct ExpenseEntryTests {
                 amount: 2850,
                 frequency: .monthly,
                 icon: "car.fill",
-                categoryId: Category.autoTransport.id
+                categoryId: ExpenseCategory.autoTransport.id
             )
 
             #expect(carLoan.monthlyAmount == 2850)
@@ -362,7 +314,7 @@ struct ExpenseEntryTests {
                 amount: 2500,
                 frequency: .annual,
                 icon: "shield.fill",
-                categoryId: Category.autoTransport.id
+                categoryId: ExpenseCategory.autoTransport.id
             )
 
             let monthlyEquivalent = insurance.monthlyAmount

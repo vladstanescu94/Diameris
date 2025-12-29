@@ -9,7 +9,6 @@ public struct ExpenseEntry: Identifiable, Sendable, Equatable {
     public var frequency: Frequency
     public var icon: String
     public var categoryId: UUID?
-    public var subcategoryId: UUID?
     /// Optional link to account - nil means Primary account (default)
     public var linkedAccountId: UUID?
     public var isEnabled: Bool
@@ -22,7 +21,6 @@ public struct ExpenseEntry: Identifiable, Sendable, Equatable {
         frequency: Frequency = .monthly,
         icon: String,
         categoryId: UUID? = nil,
-        subcategoryId: UUID? = nil,
         linkedAccountId: UUID? = nil,
         isEnabled: Bool = true,
         notes: String? = nil
@@ -33,7 +31,6 @@ public struct ExpenseEntry: Identifiable, Sendable, Equatable {
         self.frequency = frequency
         self.icon = icon
         self.categoryId = categoryId
-        self.subcategoryId = subcategoryId
         self.linkedAccountId = linkedAccountId
         self.isEnabled = isEnabled
         self.notes = notes
@@ -82,11 +79,5 @@ extension ExpenseEntry {
     public func category() -> Category? {
         guard let categoryId else { return nil }
         return Category.defaultCategory(for: categoryId)
-    }
-
-    /// Returns the subcategory for this expense, if set
-    public func subcategory() -> Subcategory? {
-        guard let categoryId, let subcategoryId else { return nil }
-        return Subcategory.defaults(for: categoryId).first { $0.id == subcategoryId }
     }
 }

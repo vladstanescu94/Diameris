@@ -9,4 +9,3 @@ public typealias IncomeEntity = Income
 public typealias UserProfileEntity = UserProfile
 public typealias SavingsAllocationEntity = SavingsAllocation
 public typealias CategoryEntity = CustomCategory
-public typealias SubcategoryEntity = CustomSubcategory

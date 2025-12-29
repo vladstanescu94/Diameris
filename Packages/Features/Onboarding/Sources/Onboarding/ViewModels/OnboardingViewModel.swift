@@ -184,7 +184,6 @@ public final class OnboardingViewModel {
                 frequency: expense.frequency,
                 linkedAccountId: expense.linkedAccountId,
                 categoryId: expense.categoryId,
-                subcategoryId: expense.subcategoryId,
                 notes: expense.notes
             )
             context.insert(expenseModel)

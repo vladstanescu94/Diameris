@@ -111,6 +111,7 @@ struct CategoryRow: View {
 struct AddCategorySheet: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var viewModel: ExpensesViewModel
+    var onCategoryCreated: ((UUID) -> Void)?
 
     @State private var name = ""
     @State private var selectedIcon = "star.fill"
@@ -221,9 +222,24 @@ struct AddCategorySheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Add".localized) {
                         HapticManager.success()
+                        let categoryId = UUID()
+                        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
                         Task {
-                            await viewModel.onAddCategory?(name, selectedIcon, selectedColor)
-                            dismiss()
+                            // Persist first, wait for completion
+                            await viewModel.onAddCategory?(categoryId, trimmedName, selectedIcon, selectedColor)
+                            // Then update local state and callback on main thread
+                            await MainActor.run {
+                                let newCategory = ExpenseCategory.custom(
+                                    id: categoryId,
+                                    name: trimmedName,
+                                    icon: selectedIcon,
+                                    colorHex: selectedColor,
+                                    sortOrder: 100
+                                )
+                                viewModel.customCategories = viewModel.customCategories + [newCategory]
+                                onCategoryCreated?(categoryId)
+                                dismiss()
+                            }
                         }
                     }
                     .disabled(!isValid)

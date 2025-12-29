@@ -17,12 +17,13 @@ public final class CustomCategory {
     public var createdAt: Date
 
     public init(
+        id: UUID = UUID(),
         name: String,
         icon: String,
         colorHex: String,
         sortOrder: Int = 100
     ) {
-        self.id = UUID()
+        self.id = id
         self.name = name
         self.icon = icon
         self.colorHex = colorHex

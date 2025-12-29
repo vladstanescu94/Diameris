@@ -104,6 +104,10 @@ This document tracks implementation progress. **Update this file after completin
 | Expenses feature | 2025-12-29 | Full Expenses management: category-based grouping, add/edit/delete expenses, frequency (monthly/annual), custom categories |
 | Subcategory removal | 2025-12-29 | Simplified architecture from Category→Subcategory→Expense to Category→Expense; users define expenses within categories |
 | Expenses haptics & animations | 2025-12-29 | HapticManager calls throughout Expenses feature; SpringPreset.snappy/responsive animations |
+| Expense delete functionality | 2025-12-29 | Delete button in edit sheet with confirmation dialog; context menu as secondary option |
+| Custom category search fix | 2025-12-29 | Search now finds expenses in custom categories by looking up from allCategories |
+| Inline category creation | 2025-12-29 | "New Category..." button in AddExpenseSheet for creating categories without leaving expense form |
+| Custom category display fix | 2025-12-29 | Fixed optimistic update race condition; loadExpensesData() now merges @Query with existing categories |
 
 ### In Progress
 
@@ -969,6 +973,66 @@ Packages/Features/Expenses/
 **Domain Package Updates:**
 - `ExpenseCategory.swift` - Default categories with stable UUIDs
 - `Frequency.swift` - Monthly/Annual with multipliers
+
+**Delete Expense Feature:**
+- **Problem:** `.swipeActions` only works inside `List`, but expenses are in `LazyVStack` within custom glass cards
+- **Solution:** Two deletion methods implemented:
+  1. **Edit Sheet (Primary):** Red "Delete Expense" button at bottom of edit form with confirmation dialog
+  2. **Context Menu (Secondary):** Long-press reveals Edit/Delete options for power users
+- **UX Pattern:** Follows iOS conventions (like editing contacts/calendar events)
+- **Files Modified:** `AddExpenseSheet.swift`, `ExpenseItemRow.swift`, `Localizable.xcstrings`
+
+### 2025-12-29 - Expenses Bug Fixes Session
+
+**Focus:** Fix various bugs discovered during expenses feature testing.
+
+**Issues Fixed:**
+
+1. **Search not finding custom categories:**
+   - **Problem:** Searching for an expense by its custom category name didn't work
+   - **Root cause:** `filteredExpenses` was using `expense.category` computed property which only checked defaults
+   - **Solution:** Changed to look up from `allCategories` (defaults + customCategories) by expense.categoryId
+   - **File:** `ExpensesViewModel.swift`
+
+2. **Category creation too obfuscated:**
+   - **Problem:** Users had to go through Categories menu to create custom categories
+   - **Solution:** Added "New Category..." button directly in CategoryPicker section of AddExpenseSheet
+   - **UX:** Category is automatically selected for the expense after creation
+   - **Files:** `AddExpenseSheet.swift`, `CategoryManagementView.swift` (AddCategorySheet onCategoryCreated callback)
+
+3. **Custom categories showing as "Uncategorized":**
+   - **Problem:** After creating a custom category and saving an expense with it, the expense appeared under "Uncategorized"
+   - **Root cause:** Race condition between @Query updates and optimistic UI updates
+   - **Sequence:**
+     1. User creates category → optimistic update to `customCategories`
+     2. User saves expense with that categoryId
+     3. `onChange(of: expenses)` fires before `onChange(of: customCategories)`
+     4. `loadExpensesData()` overwrites `customCategories` with stale @Query result
+     5. Category not found → expense shows as "Uncategorized"
+   - **Solution:** Modified `loadExpensesData()` to merge @Query results with existing optimistic updates instead of replacing:
+     ```swift
+     let queriedCategories = customCategories.map { $0.toCategory() }
+     let queriedIds = Set(queriedCategories.map { $0.id })
+     let existingOptimistic = expensesViewModel.customCategories.filter { !queriedIds.contains($0.id) }
+     expensesViewModel.customCategories = queriedCategories + existingOptimistic
+     ```
+   - **File:** `MainTabView.swift`
+
+4. **"New Category" button not tappable:**
+   - **Problem:** Button was inside VStack with Picker, Picker captured all taps
+   - **Solution:** Moved button to separate row in Form section
+   - **File:** `AddExpenseSheet.swift`
+
+**Key Learnings:**
+1. **@Query timing is non-deterministic:** Different @Query properties may update in different order after SwiftData changes
+2. **Merge vs Replace for optimistic updates:** When loading data from persistence, merge with existing local state instead of replacing
+3. **Picker captures container taps:** Interactive elements in same container as Picker need separate Form rows
+
+**Files Modified:**
+- `MainTabView.swift` - Merge logic for customCategories
+- `ExpensesViewModel.swift` - Search across allCategories
+- `AddExpenseSheet.swift` - Inline category creation button
+- `CategoryManagementView.swift` - AddCategorySheet onCategoryCreated callback
 
 ---
 

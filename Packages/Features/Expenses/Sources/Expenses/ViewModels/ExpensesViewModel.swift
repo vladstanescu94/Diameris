@@ -196,12 +196,23 @@ public final class ExpensesViewModel {
     public var onUpdateExpense: ((ExpenseInput) async -> Void)?
     public var onDeleteExpense: ((UUID) async -> Void)?
     public var onToggleExpense: ((UUID, Bool) async -> Void)?
-    public var onAddCategory: ((String, String, String) async -> Void)?
+    public var onAddCategory: ((UUID, String, String, String) async -> Void)?
     public var onDeleteCategory: ((UUID) async -> Void)?
 
     // MARK: - Initialization
 
     public init() {}
+
+    // MARK: - Category Management
+
+    /// Add a custom category (optimistic local update + persistence)
+    public func addCategory(id: UUID, name: String, icon: String, colorHex: String) async {
+        // Add to local state immediately for instant UI feedback
+        let newCategory = ExpenseCategory.custom(id: id, name: name, icon: icon, colorHex: colorHex, sortOrder: 100)
+        customCategories.append(newCategory)
+        // Persist
+        await onAddCategory?(id, name, icon, colorHex)
+    }
 
     // MARK: - Computed Properties
 
@@ -244,12 +255,19 @@ public final class ExpensesViewModel {
         }
 
         var result: [ExpenseGroup] = []
+        var handledCategoryIds: Set<UUID> = []
 
-        // Add groups for each category that has expenses
+        // Add groups for each known category that has expenses
         for category in allCategories {
             if let expenses = groups[category.id], !expenses.isEmpty {
                 result.append(ExpenseGroup(category: category, expenses: expenses))
+                handledCategoryIds.insert(category.id)
             }
+        }
+
+        // Add groups for expenses with unknown category IDs (category was deleted or not loaded)
+        for (categoryId, expenses) in groups where !handledCategoryIds.contains(categoryId) {
+            result.append(ExpenseGroup(category: nil, expenses: expenses))
         }
 
         // Add uncategorized group if any
@@ -265,9 +283,17 @@ public final class ExpensesViewModel {
         guard !searchText.isEmpty else { return expenses }
         let search = searchText.lowercased()
         return expenses.filter { expense in
-            expense.name.lowercased().contains(search) ||
-            expense.category?.name.lowercased().contains(search) == true ||
-            expense.notes?.lowercased().contains(search) == true
+            // Search by name
+            if expense.name.lowercased().contains(search) { return true }
+            // Search by category name (including custom categories)
+            if let categoryId = expense.categoryId,
+               let category = allCategories.first(where: { $0.id == categoryId }),
+               category.name.lowercased().contains(search) {
+                return true
+            }
+            // Search by notes
+            if let notes = expense.notes, notes.lowercased().contains(search) { return true }
+            return false
         }
     }
 

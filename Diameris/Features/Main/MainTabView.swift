@@ -13,6 +13,7 @@ struct MainTabView: View {
     @Query private var accounts: [Account]
     @Query private var expenses: [Expense]
     @Query private var savingsAllocations: [SavingsAllocation]
+    @Query private var customCategories: [CustomCategory]
 
     @State private var dashboardViewModel = DashboardViewModel()
     @State private var expensesViewModel = ExpensesViewModel()
@@ -81,6 +82,9 @@ struct MainTabView: View {
         }
         .onChange(of: savingsAllocations) { _, _ in
             loadDashboardData()
+        }
+        .onChange(of: customCategories) { _, _ in
+            loadExpensesData()
         }
     }
 
@@ -175,7 +179,14 @@ struct MainTabView: View {
         let currency = Currency(rawValue: profile.currencyCode) ?? .ron
         expensesViewModel.currency = currency
 
-        // Convert expenses to ExpenseDisplayItem
+        // Load custom categories from @Query FIRST
+        // Merge with existing to preserve optimistic updates that might not be in @Query yet
+        let queriedCategories = customCategories.map { $0.toCategory() }
+        let queriedIds = Set(queriedCategories.map { $0.id })
+        let existingOptimistic = expensesViewModel.customCategories.filter { !queriedIds.contains($0.id) }
+        expensesViewModel.customCategories = queriedCategories + existingOptimistic
+
+        // Then convert expenses to ExpenseDisplayItem
         expensesViewModel.expenses = expenses.map { expense in
             ExpenseDisplayItem(
                 id: expense.id,
@@ -188,12 +199,6 @@ struct MainTabView: View {
                 isEnabled: expense.isEnabled,
                 notes: expense.notes
             )
-        }
-
-        // Load custom categories
-        let categoryDescriptor = FetchDescriptor<CustomCategory>()
-        if let customCategories = try? modelContext.fetch(categoryDescriptor) {
-            expensesViewModel.customCategories = customCategories.map { $0.toCategory() }
         }
     }
 
@@ -253,9 +258,9 @@ struct MainTabView: View {
         }
 
         // Add custom category callback
-        expensesViewModel.onAddCategory = { [weak modelContext] name, icon, colorHex in
+        expensesViewModel.onAddCategory = { [weak modelContext] id, name, icon, colorHex in
             guard let context = modelContext else { return }
-            let category = CustomCategory(name: name, icon: icon, colorHex: colorHex)
+            let category = CustomCategory(id: id, name: name, icon: icon, colorHex: colorHex)
             context.insert(category)
             try? context.save()
         }

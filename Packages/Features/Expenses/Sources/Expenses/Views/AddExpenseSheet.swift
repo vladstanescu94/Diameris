@@ -12,6 +12,7 @@ public struct AddExpenseSheet: View {
 
     @State private var input: ExpenseInput
     @State private var showDeleteConfirmation = false
+    @State private var showAddCategory = false
 
     private let isEditing: Bool
     private let editingExpenseId: UUID?
@@ -68,6 +69,13 @@ public struct AddExpenseSheet: View {
                         selection: $input.categoryId,
                         categories: viewModel.allCategories
                     )
+
+                    Button {
+                        HapticManager.lightTap()
+                        showAddCategory = true
+                    } label: {
+                        Label("New Category...".localized, systemImage: "plus.circle")
+                    }
                 } header: {
                     Text("Category".localized)
                 }
@@ -150,6 +158,11 @@ public struct AddExpenseSheet: View {
                     }
                     .disabled(!input.isValid)
                 }
+            }
+            .sheet(isPresented: $showAddCategory) {
+                AddCategorySheet(viewModel: viewModel, onCategoryCreated: { categoryId in
+                    input.categoryId = categoryId
+                })
             }
         }
     }

@@ -381,6 +381,16 @@
         }
       }
     },
+    "New Category..." : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Categorie nouă..."
+          }
+        }
+      }
+    },
     "New Subcategory" : {
       "extractionState" : "stale",
       "localizations" : {

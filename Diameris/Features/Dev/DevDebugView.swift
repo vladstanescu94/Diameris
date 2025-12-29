@@ -245,6 +245,11 @@ private struct DataInspectorView: View {
                             Text("\(expense.amount)")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                            if let linkedId = expense.linkedAccountId {
+                                Text("→ \(accounts.first { $0.id == linkedId }?.name ?? "Unknown")")
+                                    .font(.caption2)
+                                    .foregroundStyle(.blue)
+                            }
                         }
                     }
                 }

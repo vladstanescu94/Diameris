@@ -200,6 +200,7 @@ public final class DashboardViewModel {
         // Convert to AccountEntry for the calculator
         let accountEntries = accounts.map { account in
             AccountEntry(
+                id: account.id,
                 name: account.name,
                 accountType: account.accountType,
                 isPrimary: account.isPrimary,
@@ -239,5 +240,63 @@ public final class DashboardViewModel {
 
     public func openNewMonthFlow() {
         showNewMonthSheet = true
+    }
+
+    // MARK: - Transfer Plan Calculation
+
+    /// Generates a transfer plan with custom income (for New Month flow).
+    public func calculateTransferPlan(withIncome income: Decimal) -> TransferPlan {
+        // Convert to AccountEntry for the calculator
+        let accountEntries = accounts.map { account in
+            AccountEntry(
+                id: account.id,
+                name: account.name,
+                accountType: account.accountType,
+                isPrimary: account.isPrimary,
+                isPrimarySavings: account.isPrimarySavings,
+                emergencyMultiplier: account.emergencyMultiplier,
+                currentBalance: account.currentBalance
+            )
+        }
+
+        // Convert to ExpenseEntry for the calculator
+        let expenseEntries = expenses.map { expense in
+            ExpenseEntry(
+                name: expense.name,
+                amount: expense.amount,
+                icon: expense.icon,
+                linkedAccountId: expense.linkedAccountId
+            )
+        }
+
+        // Create savings allocation entry
+        let savingsAllocation = SavingsAllocationEntry(
+            percentage: savingsPercentage,
+            boostEnabled: savingsBoostEnabled,
+            boostMultiplier: savingsBoostMultiplier
+        )
+
+        return TransferCalculator.calculate(
+            income: income,
+            expenses: expenseEntries,
+            allocation: savingsAllocation,
+            accounts: accountEntries,
+            remainingDestination: remainingMoneyDestination
+        )
+    }
+}
+
+// MARK: - New Month Completion Data
+
+/// Data passed back when completing the New Month flow.
+public struct NewMonthCompletionData: Sendable {
+    public let income: Decimal
+    public let transferPlan: TransferPlan
+    public let reconciledBalances: [UUID: Decimal]
+
+    public init(income: Decimal, transferPlan: TransferPlan, reconciledBalances: [UUID: Decimal]) {
+        self.income = income
+        self.transferPlan = transferPlan
+        self.reconciledBalances = reconciledBalances
     }
 }

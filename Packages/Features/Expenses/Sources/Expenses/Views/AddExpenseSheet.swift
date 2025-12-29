@@ -80,6 +80,23 @@ public struct AddExpenseSheet: View {
                     Text("Category".localized)
                 }
 
+                // Account linking
+                if !viewModel.accounts.isEmpty {
+                    Section {
+                        Picker("Pay From".localized, selection: $input.linkedAccountId) {
+                            Text("Primary".localized).tag(nil as UUID?)
+                            ForEach(viewModel.accounts.filter { !$0.isPrimary }) { account in
+                                Label(account.name, systemImage: account.accountType.icon)
+                                    .tag(account.id as UUID?)
+                            }
+                        }
+                    } header: {
+                        Text("Account".localized)
+                    } footer: {
+                        Text("Choose which account this expense is paid from.".localized)
+                    }
+                }
+
                 // Icon picker
                 Section {
                     IconPicker(selection: $input.icon)

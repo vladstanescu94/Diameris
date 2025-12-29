@@ -118,6 +118,12 @@ This document tracks implementation progress. **Update this file after completin
 | JSON import with accounts | 2025-12-29 | Extended import to include accounts; matches by type, updates existing or creates new; exports 5 ING accounts (Primary, Joint, Emergency, Savings, Personal) |
 | JSON import savings allocation | 2025-12-29 | Import now includes savings config (percentage, boostEnabled, boostMultiplier); fixed Dashboard showing wrong Personal Spending due to missing boost setting |
 | JSON import balance reset | 2025-12-29 | Import now resets account balances to match JSON values (including 0); previously preserved non-zero existing balances which caused stale data |
+| Expense-to-account linking in Expenses feature | 2025-12-29 | Added account picker to AddExpenseSheet; expenses can now be linked to specific accounts (like Joint) just like in onboarding |
+| New Month flow completion | 2025-12-29 | Flow now actually persists changes! Recalculates transfer plan with entered income, updates account balances, updates income if changed |
+| New Month UX fixes | 2025-12-29 | Fixed balance input width (now full-width), added tap-to-dismiss keyboard on SalaryEntryStep and ReconcileAccountsStep |
+| Fix "Unknown Account" in transfer plan | 2025-12-29 | AccountEntry conversion was missing `id: account.id`, causing expense linkedAccountId lookup to fail |
+| Fix stale data in New Month flow | 2025-12-29 | Added `loadDashboardData()` call before opening New Month flow; SwiftData @Query doesn't trigger onChange for property updates on existing objects |
+| Data Inspector linkedAccountId display | 2025-12-29 | Added linked account name display (in blue) for expenses in Dev Tools Data Inspector |
 
 ### In Progress
 
@@ -1084,6 +1090,102 @@ Packages/Features/Expenses/
 
 **Files Modified:**
 - `Diameris/Features/Dev/DevDebugView.swift` - Added savings import, removed balance guard, added SavingsAllocation to clearAllData() and preview
+
+### 2025-12-29 - Expense-to-Account Linking Session
+
+**Focus:** Add missing expense-to-account linking functionality to Expenses feature (was only in Onboarding).
+
+**Problem:** Onboarding allowed linking expenses to specific accounts (e.g., "Food" paid from "Joint"), but the Expenses feature's AddExpenseSheet didn't have this capability.
+
+**Changes Made:**
+
+1. **ExpensesViewModel** (`ExpensesViewModel.swift`):
+   - Added `ExpenseAccount` struct for simplified account representation
+   - Added `accounts: [ExpenseAccount]` property
+
+2. **AddExpenseSheet** (`AddExpenseSheet.swift`):
+   - Added "Account" section with Picker for linking expense to account
+   - Shows "Primary" option (nil = main account) plus all non-primary accounts
+   - Footer explains purpose: "Choose which account this expense is paid from"
+
+3. **MainTabView** (`MainTabView.swift`):
+   - Added account loading in `loadExpensesData()` - converts SwiftData Account models to `ExpenseAccount`
+
+4. **Localization** (`Localizable.xcstrings`):
+   - Added: "Pay From", "Primary", "Account", "Choose which account this expense is paid from"
+   - Romanian translations included
+
+**Files Modified:**
+- `Packages/Features/Expenses/Sources/Expenses/ViewModels/ExpensesViewModel.swift`
+- `Packages/Features/Expenses/Sources/Expenses/Views/AddExpenseSheet.swift`
+- `Diameris/Features/Main/MainTabView.swift`
+- `Packages/Features/Expenses/Sources/Expenses/Resources/Localizable.xcstrings`
+
+### 2025-12-29 - New Month Flow Completion Session
+
+**Focus:** Make the New Month flow actually work - persist changes, recalculate transfer plan, update account balances.
+
+**Problem:** The New Month flow had `// TODO: Save MonthlyRecord and update account balances` in `completeFlow()` - it just dismissed without doing anything!
+
+**What Now Works:**
+
+1. **Dynamic Transfer Plan:**
+   - Transfer plan recalculates when user enters different income in Step 1
+   - `DashboardViewModel.calculateTransferPlan(withIncome:)` method added
+   - Step 3 shows the plan based on the NEW income, not the stored one
+
+2. **Completion Callback:**
+   - `NewMonthCompletionData` struct holds income, transfer plan, reconciled balances
+   - `NewMonthSheet` takes `onComplete` callback
+   - Data passed back to MainTabView for SwiftData persistence
+
+3. **Account Balance Updates:**
+   - Emergency account: +allocation amount
+   - Savings account: +allocation amount
+   - Joint/linked accounts: +expense transfer amounts
+   - Remaining money destination (Savings/Personal): +remaining amount
+   - Primary account: Set to `remainsInPrimary` (what stays for expenses)
+
+4. **Income Update:**
+   - If user enters different income than stored, it updates the Income record
+
+**Architecture:**
+```
+NewMonthSheet                    MainTabView
+     │                               │
+     │ Step 1: Enter income          │
+     │ Step 2: Reconcile balances    │
+     │ Step 3: Review plan           │
+     │                               │
+     │──── onComplete(data) ────────▶│
+     │                               │
+                              handleNewMonthCompletion()
+                                     │
+                              updateAccountBalances()
+                                     │
+                              modelContext.save()
+```
+
+**Files Modified:**
+- `Packages/Features/Dashboard/Sources/Dashboard/ViewModels/DashboardViewModel.swift`
+  - Added `calculateTransferPlan(withIncome:)` method
+  - Added `NewMonthCompletionData` struct
+
+- `Packages/Features/Dashboard/Sources/Dashboard/Views/NewMonthSheet.swift`
+  - Added `onComplete` callback parameter
+  - Added `calculatedPlan` state for dynamic recalculation
+  - `completeFlow()` now creates completion data and calls callback
+
+- `Diameris/Features/Main/MainTabView.swift`
+  - Added `handleNewMonthCompletion(_:)` method
+  - Added `updateAccountBalances(from:)` method
+  - Updated sheet presentation to provide completion callback
+
+**Key Design Decisions:**
+1. Balance updates are ADDITIVE (+=) for transfers, not replacements
+2. Primary account balance is SET (=) to `remainsInPrimary`, not added
+3. Transfer plan recalculates on step advance, not on every keystroke
+4. Haptic feedback on successful completion
 
 ---
 

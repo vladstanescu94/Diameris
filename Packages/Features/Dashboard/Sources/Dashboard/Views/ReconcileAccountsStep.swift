@@ -53,6 +53,14 @@ struct ReconcileAccountsStep: View {
                 .padding(.horizontal, Spacing.lg)
         }
         .padding(.vertical, Spacing.md)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            dismissKeyboard()
+        }
+    }
+
+    private func dismissKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 }
 
@@ -78,25 +86,25 @@ private extension ReconcileAccountsStep {
 
     func accountBalanceCard(for account: DashboardAccount) -> some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            // Account header
-            Label {
-                Text(account.name)
-                    .font(.headline)
-            } icon: {
-                Image(systemName: account.accountType.icon)
-                    .foregroundStyle(iconColor(for: account.accountType))
-            }
-
-            // Balance input
+            // Account header with balance label
             HStack {
-                Text("Current balance".localized)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                Label {
+                    Text(account.name)
+                        .font(.headline)
+                } icon: {
+                    Image(systemName: account.accountType.icon)
+                        .foregroundStyle(iconColor(for: account.accountType))
+                }
 
                 Spacer()
 
-                balanceInput(for: account)
+                Text("Current balance".localized)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
+
+            // Balance input - full width
+            balanceInput(for: account)
 
             // Previous balance hint
             previousBalanceHint(for: account)
@@ -115,7 +123,6 @@ private extension ReconcileAccountsStep {
             currency: $currencyBinding,
             showCurrencyPicker: false
         )
-        .frame(width: ComponentSize.balanceInputWidth)
     }
 
     func previousBalanceHint(for account: DashboardAccount) -> some View {

@@ -3,6 +3,21 @@ import SwiftUI
 import Domain
 import Utilities
 
+/// Simplified account representation for expense linking
+public struct ExpenseAccount: Identifiable, Sendable {
+    public let id: UUID
+    public let name: String
+    public let accountType: AccountType
+    public let isPrimary: Bool
+
+    public init(id: UUID, name: String, accountType: AccountType, isPrimary: Bool) {
+        self.id = id
+        self.name = name
+        self.accountType = accountType
+        self.isPrimary = isPrimary
+    }
+}
+
 /// Display item for expenses in the list view
 public struct ExpenseDisplayItem: Identifiable, Sendable {
     public let id: UUID
@@ -180,6 +195,9 @@ public final class ExpensesViewModel {
 
     /// User's selected currency
     public var currency: Currency = .usd
+
+    /// Available accounts for linking expenses
+    public var accounts: [ExpenseAccount] = []
 
     // MARK: - UI State
 

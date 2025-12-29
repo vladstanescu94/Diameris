@@ -1,19 +1,24 @@
 import SwiftUI
 import DesignSystem
 import Utilities
+import Domain
 
 /// Modal flow for processing a new month's salary.
 public struct NewMonthSheet: View {
     @Bindable var viewModel: DashboardViewModel
+    let onComplete: (NewMonthCompletionData) -> Void
 
-    public init(viewModel: DashboardViewModel) {
+    public init(viewModel: DashboardViewModel, onComplete: @escaping (NewMonthCompletionData) -> Void) {
         self.viewModel = viewModel
+        self.onComplete = onComplete
     }
+
     @Environment(\.dismiss) private var dismiss
 
     @State private var currentStep: NewMonthStep = .salaryEntry
     @State private var enteredIncome: Decimal = 0
     @State private var accountBalances: [UUID: Decimal] = [:]
+    @State private var calculatedPlan: TransferPlan?
 
     enum NewMonthStep: Int, CaseIterable {
         case salaryEntry = 1
@@ -91,7 +96,7 @@ private extension NewMonthSheet {
             TransferPlanStep(
                 income: enteredIncome,
                 expenses: viewModel.totalExpenses,
-                transferPlan: viewModel.transferPlan,
+                transferPlan: calculatedPlan ?? viewModel.transferPlan,
                 currency: viewModel.currency,
                 onComplete: { completeFlow() }
             )
@@ -107,12 +112,16 @@ private extension NewMonthSheet {
         for account in viewModel.accounts {
             accountBalances[account.id] = account.currentBalance
         }
+        // Calculate initial plan
+        calculatedPlan = viewModel.calculateTransferPlan(withIncome: enteredIncome)
     }
 
     func advanceToNextStep() {
         withAnimation(SpringPreset.responsive) {
             switch currentStep {
             case .salaryEntry:
+                // Recalculate transfer plan with new income before moving to next step
+                calculatedPlan = viewModel.calculateTransferPlan(withIncome: enteredIncome)
                 currentStep = .reconcileAccounts
             case .reconcileAccounts:
                 currentStep = .transferPlan
@@ -136,7 +145,20 @@ private extension NewMonthSheet {
     }
 
     func completeFlow() {
-        // TODO: Save MonthlyRecord and update account balances
+        guard let plan = calculatedPlan else {
+            dismiss()
+            return
+        }
+
+        // Create completion data with all necessary info
+        let completionData = NewMonthCompletionData(
+            income: enteredIncome,
+            transferPlan: plan,
+            reconciledBalances: accountBalances
+        )
+
+        // Pass data back to main app for persistence
+        onComplete(completionData)
         dismiss()
     }
 }

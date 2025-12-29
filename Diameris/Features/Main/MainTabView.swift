@@ -49,7 +49,9 @@ struct MainTabView: View {
             newMonthAccessoryButton
         }
         .sheet(isPresented: $dashboardViewModel.showNewMonthSheet) {
-            NewMonthSheet(viewModel: dashboardViewModel)
+            NewMonthSheet(viewModel: dashboardViewModel) { completionData in
+                handleNewMonthCompletion(completionData)
+            }
         }
         .sheet(isPresented: $showSettings) {
             SettingsSheet()
@@ -92,6 +94,8 @@ struct MainTabView: View {
 
     private var newMonthAccessoryButton: some View {
         Button {
+            // Reload data to ensure we have latest expense/account info
+            loadDashboardData()
             dashboardViewModel.openNewMonthFlow()
         } label: {
             HStack {
@@ -200,6 +204,16 @@ struct MainTabView: View {
                 notes: expense.notes
             )
         }
+
+        // Load accounts for expense linking
+        expensesViewModel.accounts = accounts.map { account in
+            ExpenseAccount(
+                id: account.id,
+                name: account.name,
+                accountType: account.accountType,
+                isPrimary: account.isPrimary
+            )
+        }
     }
 
     private func setupExpensesCallbacks() {
@@ -273,6 +287,69 @@ struct MainTabView: View {
             guard let category = try? context.fetch(descriptor).first else { return }
             context.delete(category)
             try? context.save()
+        }
+    }
+
+    // MARK: - New Month Flow Completion
+
+    private func handleNewMonthCompletion(_ data: NewMonthCompletionData) {
+        HapticManager.success()
+
+        // 1. Update income if it changed
+        let incomeDescriptor = FetchDescriptor<Income>()
+        if let income = try? modelContext.fetch(incomeDescriptor).first,
+           income.amount != data.income {
+            income.amount = data.income
+        }
+
+        // 2. Update account balances based on transfer plan
+        updateAccountBalances(from: data.transferPlan)
+
+        // 3. Save changes
+        do {
+            try modelContext.save()
+            // Reload dashboard data to reflect changes
+            loadDashboardData()
+        } catch {
+            print("Failed to save new month data: \(error)")
+        }
+    }
+
+    private func updateAccountBalances(from plan: TransferPlan) {
+        // Process savings allocations (emergency, savings accounts)
+        for allocation in plan.accountAllocations {
+            if let account = accounts.first(where: { $0.name == allocation.accountName }) {
+                account.currentBalance += allocation.amount
+            }
+        }
+
+        // Process expense-linked transfers (e.g., Food → Joint)
+        for expenseTransfer in plan.accountExpenseTransfers {
+            if let account = accounts.first(where: { $0.name == expenseTransfer.accountName }) {
+                account.currentBalance += expenseTransfer.amount
+            }
+        }
+
+        // Process remaining money destination
+        if plan.remainingMoney > 0 {
+            switch plan.remainingDestination {
+            case .primarySavings:
+                if let savingsAccount = accounts.first(where: { $0.isPrimarySavings }) {
+                    savingsAccount.currentBalance += plan.remainingMoney
+                }
+            case .personal:
+                if let personalAccount = accounts.first(where: { $0.accountType == .personal }) {
+                    personalAccount.currentBalance += plan.remainingMoney
+                }
+            case .primary:
+                // Stays in primary, handled by remainsInPrimary
+                break
+            }
+        }
+
+        // Update primary account balance (what stays for expenses)
+        if let primaryAccount = accounts.first(where: { $0.isPrimary }) {
+            primaryAccount.currentBalance = plan.remainsInPrimary
         }
     }
 }

@@ -432,6 +432,46 @@
         }
       }
     },
+    "Pay From" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plătește din"
+          }
+        }
+      }
+    },
+    "Primary" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Principal"
+          }
+        }
+      }
+    },
+    "Account" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cont"
+          }
+        }
+      }
+    },
+    "Choose which account this expense is paid from." : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alege din ce cont se plătește această cheltuială."
+          }
+        }
+      }
+    },
     "Preview" : {
       "localizations" : {
         "ro" : {

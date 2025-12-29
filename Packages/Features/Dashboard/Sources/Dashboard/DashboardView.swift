@@ -105,6 +105,7 @@ private extension DashboardView {
             // Expense Breakdown
             ExpenseBreakdownCard(
                 expenses: viewModel.expenses,
+                totalExpenses: viewModel.totalExpenses,
                 currency: viewModel.currency
             )
         }

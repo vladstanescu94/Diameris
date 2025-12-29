@@ -5,6 +5,7 @@ import Utilities
 /// Card displaying expense breakdown by category.
 struct ExpenseBreakdownCard: View {
     let expenses: [DashboardExpense]
+    let totalExpenses: Decimal
     let currency: Currency
 
     var body: some View {
@@ -23,10 +24,6 @@ struct ExpenseBreakdownCard: View {
         expenses
             .filter { $0.amount > 0 }
             .sorted { $0.amount > $1.amount }
-    }
-
-    private var totalExpenses: Decimal {
-        expenses.reduce(0) { $0 + $1.amount }
     }
 }
 
@@ -78,9 +75,12 @@ private extension ExpenseBreakdownCard {
     }
 
     func percentageBadge(for expense: DashboardExpense) -> some View {
-        let percentage = totalExpenses > 0
-            ? NSDecimalNumber(decimal: expense.amount / totalExpenses * 100).intValue
-            : 0
+        let percentage: Int = {
+            guard totalExpenses > 0 else { return 0 }
+            let amount = NSDecimalNumber(decimal: expense.amount).doubleValue
+            let total = NSDecimalNumber(decimal: totalExpenses).doubleValue
+            return Int((amount / total) * 100)
+        }()
 
         return Text("\(percentage)%")
             .font(.caption2)
@@ -99,6 +99,7 @@ private extension ExpenseBreakdownCard {
             DashboardExpense(id: UUID(), name: "Food", amount: 3000, icon: "cart.fill", linkedAccountId: nil),
             DashboardExpense(id: UUID(), name: "Subscriptions", amount: 605, icon: "creditcard.fill", linkedAccountId: nil)
         ],
+        totalExpenses: 7205,
         currency: .ron
     )
     .padding()

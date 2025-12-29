@@ -108,6 +108,7 @@ This document tracks implementation progress. **Update this file after completin
 | Custom category search fix | 2025-12-29 | Search now finds expenses in custom categories by looking up from allCategories |
 | Inline category creation | 2025-12-29 | "New Category..." button in AddExpenseSheet for creating categories without leaving expense form |
 | Custom category display fix | 2025-12-29 | Fixed optimistic update race condition; loadExpensesData() now merges @Query with existing categories |
+| Expense percentage fix | 2025-12-29 | Fixed 0% showing for all expenses; Decimal division issue resolved by converting to Double |
 
 ### In Progress
 
@@ -1027,12 +1028,27 @@ Packages/Features/Expenses/
 1. **@Query timing is non-deterministic:** Different @Query properties may update in different order after SwiftData changes
 2. **Merge vs Replace for optimistic updates:** When loading data from persistence, merge with existing local state instead of replacing
 3. **Picker captures container taps:** Interactive elements in same container as Picker need separate Form rows
+4. **Decimal division quirks:** Swift's Decimal division can produce unexpected results; convert to Double for percentage calculations
+5. **Single source of truth:** Computed values like `totalExpenses` should be computed once and passed down, not recomputed in child views
 
 **Files Modified:**
 - `MainTabView.swift` - Merge logic for customCategories
 - `ExpensesViewModel.swift` - Search across allCategories
 - `AddExpenseSheet.swift` - Inline category creation button
 - `CategoryManagementView.swift` - AddCategorySheet onCategoryCreated callback
+
+5. **Expense breakdown percentages showing 0%:**
+   - **Problem:** All expenses in Dashboard's ExpenseBreakdownCard showed "0%" despite having correct amounts
+   - **Root cause:** Decimal arithmetic producing unexpected results when dividing `expense.amount / totalExpenses * 100`
+   - **Investigation:** Added debug output showing `totalExpenses` was correct (5,150), but percentage still 0%
+   - **Solution:** Convert Decimal to Double before division:
+     ```swift
+     let amount = NSDecimalNumber(decimal: expense.amount).doubleValue
+     let total = NSDecimalNumber(decimal: totalExpenses).doubleValue
+     return Int((amount / total) * 100)
+     ```
+   - **Also applied:** Single source of truth - `totalExpenses` now passed from `DashboardViewModel` instead of computed locally in `ExpenseBreakdownCard`
+   - **Files:** `ExpenseBreakdownCard.swift`, `DashboardView.swift`
 
 ---
 

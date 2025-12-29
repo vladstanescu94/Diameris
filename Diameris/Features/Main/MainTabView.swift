@@ -17,6 +17,7 @@ struct MainTabView: View {
 
     @State private var dashboardViewModel = DashboardViewModel()
     @State private var expensesViewModel = ExpensesViewModel()
+    @State private var dataObserver = DataObserver()
     @State private var showSettings = false
 
     #if DEBUG
@@ -56,37 +57,18 @@ struct MainTabView: View {
         .sheet(isPresented: $showSettings) {
             SettingsSheet()
         }
-        .onChange(of: showSettings) { _, isShowing in
-            if !isShowing {
-                loadDashboardData()
-            }
-        }
         #if DEBUG
         .sheet(isPresented: $showDevTools) {
             DevDebugView()
         }
         #endif
         .onAppear {
-            loadDashboardData()
-            loadExpensesData()
+            setupDataObserver()
+            refreshAllData()
             setupExpensesCallbacks()
         }
-        .onChange(of: userProfiles) { _, _ in
-            loadDashboardData()
-            loadExpensesData()
-        }
-        .onChange(of: accounts) { _, _ in
-            loadDashboardData()
-        }
-        .onChange(of: expenses) { _, _ in
-            loadDashboardData()
-            loadExpensesData()
-        }
-        .onChange(of: savingsAllocations) { _, _ in
-            loadDashboardData()
-        }
-        .onChange(of: customCategories) { _, _ in
-            loadExpensesData()
+        .onDisappear {
+            dataObserver.stopObserving()
         }
     }
 
@@ -94,8 +76,9 @@ struct MainTabView: View {
 
     private var newMonthAccessoryButton: some View {
         Button {
-            // Reload data to ensure we have latest expense/account info
-            loadDashboardData()
+            // Ensure we have fresh data before opening the flow
+            // (DataObserver handles changes, but this catches any pending saves)
+            refreshAllData()
             dashboardViewModel.openNewMonthFlow()
         } label: {
             HStack {
@@ -114,6 +97,24 @@ struct MainTabView: View {
         #else
         return nil
         #endif
+    }
+
+    // MARK: - Centralized Data Management
+
+    /// Sets up the DataObserver to listen for SwiftData changes.
+    /// This replaces scattered onChange handlers with a single notification-based approach.
+    private func setupDataObserver() {
+        dataObserver.onDataChanged = { [self] in
+            refreshAllData()
+        }
+        dataObserver.startObserving(modelContext: modelContext)
+    }
+
+    /// Refreshes all view model data from SwiftData.
+    /// Called once on appear and automatically when any data changes.
+    private func refreshAllData() {
+        loadDashboardData()
+        loadExpensesData()
     }
 
     private func loadDashboardData() {
@@ -305,11 +306,9 @@ struct MainTabView: View {
         // 2. Update account balances based on transfer plan
         updateAccountBalances(from: data.transferPlan)
 
-        // 3. Save changes
+        // 3. Save changes - DataObserver will automatically refresh data
         do {
             try modelContext.save()
-            // Reload dashboard data to reflect changes
-            loadDashboardData()
         } catch {
             print("Failed to save new month data: \(error)")
         }

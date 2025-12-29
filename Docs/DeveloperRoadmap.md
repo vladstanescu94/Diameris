@@ -124,6 +124,7 @@ This document tracks implementation progress. **Update this file after completin
 | Fix "Unknown Account" in transfer plan | 2025-12-29 | AccountEntry conversion was missing `id: account.id`, causing expense linkedAccountId lookup to fail |
 | Fix stale data in New Month flow | 2025-12-29 | Added `loadDashboardData()` call before opening New Month flow; SwiftData @Query doesn't trigger onChange for property updates on existing objects |
 | Data Inspector linkedAccountId display | 2025-12-29 | Added linked account name display (in blue) for expenses in Dev Tools Data Inspector |
+| Centralized state management | 2025-12-29 | DataObserver class listens to ModelContext.didSave, replaces 5 scattered onChange handlers with single refreshAllData() call |
 
 ### In Progress
 
@@ -1186,6 +1187,69 @@ NewMonthSheet                    MainTabView
 2. Primary account balance is SET (=) to `remainsInPrimary`, not added
 3. Transfer plan recalculates on step advance, not on every keystroke
 4. Haptic feedback on successful completion
+
+### 2025-12-29 - Centralized State Management Session
+
+**Focus:** Replace scattered `loadDashboardData()` and `loadExpensesData()` calls with a centralized notification-based approach.
+
+**Problem:** MainTabView had 5+ separate `onChange` handlers that each called reload methods. This was:
+- Hard to maintain (logic scattered across file)
+- Error-prone (easy to forget adding a handler for new @Query)
+- Redundant (same data often loaded multiple times)
+
+**Solution:** Created `DataObserver` class that listens to `ModelContext.didSave` notifications.
+
+**Implementation:**
+
+1. **DataObserver.swift** (new file):
+   ```swift
+   @Observable
+   @MainActor
+   final class DataObserver {
+       var onDataChanged: (() -> Void)?
+       private var notificationTask: Task<Void, Never>?
+
+       func startObserving(modelContext: ModelContext) {
+           notificationTask = Task { @MainActor [weak self] in
+               let notifications = NotificationCenter.default.notifications(
+                   named: ModelContext.didSave
+               )
+               for await _ in notifications {
+                   guard !Task.isCancelled else { break }
+                   self?.onDataChanged?()
+               }
+           }
+       }
+
+       func stopObserving() {
+           notificationTask?.cancel()
+           notificationTask = nil
+       }
+   }
+   ```
+
+2. **MainTabView changes:**
+   - Added `@State private var dataObserver = DataObserver()`
+   - Removed 5 separate `onChange(of:)` handlers for userProfiles, accounts, expenses, savingsAllocations, customCategories
+   - Added single `refreshAllData()` method
+   - Setup DataObserver on `onAppear`, cleanup on `onDisappear`
+
+**Benefits:**
+- Single source of data refresh logic
+- Automatic refresh when ANY SwiftData model changes
+- Cleaner code (90→65 lines in body section)
+- No missed updates from forgotten onChange handlers
+
+**Key Learnings:**
+1. **Swift 6 concurrency:** Use `@MainActor` annotation on Task closure to access MainActor properties from async context
+2. **deinit not needed:** For `@Observable` classes with `@MainActor`, rely on `stopObserving()` in `onDisappear` rather than deinit (which can't access MainActor properties)
+3. **NotificationCenter.notifications():** Modern async/await API for observing notifications
+
+**Files Created:**
+- `Diameris/Features/Main/DataObserver.swift`
+
+**Files Modified:**
+- `Diameris/Features/Main/MainTabView.swift` - Replaced onChange handlers with DataObserver
 
 ---
 

@@ -516,4 +516,208 @@ struct DashboardViewModelTests {
             #expect(vm.currentMonthDisplay.contains(String(currentYear)))
         }
     }
+
+    // MARK: - Calculate Transfer Plan
+
+    @Suite("Calculate Transfer Plan")
+    @MainActor
+    struct CalculateTransferPlanTests {
+
+        @Test("Uses provided income instead of monthlyIncome")
+        func usesProvidedIncome() {
+            let vm = DashboardViewModel()
+            vm.monthlyIncome = 10000
+            vm.savingsPercentage = 0.25
+            vm.savingsBoostEnabled = false
+            vm.accounts = [
+                DashboardViewModelTests.makeAccount(
+                    name: "Primary",
+                    accountType: .primary,
+                    isPrimary: true
+                ),
+                DashboardViewModelTests.makeAccount(
+                    name: "Savings",
+                    accountType: .savings,
+                    isPrimarySavings: true
+                )
+            ]
+
+            // Calculate with different income than monthlyIncome
+            let plan = vm.calculateTransferPlan(withIncome: 15000)
+
+            // Savings allocation should be 15000 * 0.25 = 3750 (not 10000 * 0.25 = 2500)
+            let savingsAllocation = plan.accountAllocations.first { $0.accountName == "Savings" }
+            #expect(savingsAllocation?.amount == 3750)
+        }
+
+        @Test("Includes expense transfers to linked accounts")
+        func includesExpenseTransfers() {
+            let jointId = UUID()
+            let vm = DashboardViewModel()
+            vm.monthlyIncome = 10000
+            vm.savingsPercentage = 0.10
+            vm.accounts = [
+                DashboardViewModelTests.makeAccount(
+                    name: "Primary",
+                    accountType: .primary,
+                    isPrimary: true
+                ),
+                DashboardAccount(
+                    id: jointId,
+                    name: "Joint",
+                    accountType: .joint,
+                    isPrimary: false,
+                    isPrimarySavings: false,
+                    emergencyMultiplier: nil,
+                    currentBalance: 0
+                )
+            ]
+            vm.expenses = [
+                DashboardExpense(
+                    id: UUID(),
+                    name: "Food",
+                    amount: 1000,
+                    icon: "cart",
+                    linkedAccountId: jointId
+                )
+            ]
+
+            let plan = vm.calculateTransferPlan(withIncome: 10000)
+
+            // Should have transfer to Joint for linked expense
+            let jointTransfer = plan.accountExpenseTransfers.first { $0.accountName == "Joint" }
+            #expect(jointTransfer != nil)
+            #expect(jointTransfer?.amount == 1000)
+        }
+
+        @Test("Respects savings boost setting")
+        func respectsSavingsBoost() {
+            let vm = DashboardViewModel()
+            vm.savingsPercentage = 0.25
+            vm.savingsBoostEnabled = true
+            vm.savingsBoostMultiplier = 2.0
+            vm.accounts = [
+                DashboardViewModelTests.makeAccount(
+                    name: "Primary",
+                    accountType: .primary,
+                    isPrimary: true
+                ),
+                DashboardViewModelTests.makeAccount(
+                    name: "Savings",
+                    accountType: .savings,
+                    isPrimarySavings: true
+                )
+            ]
+
+            let plan = vm.calculateTransferPlan(withIncome: 10000)
+
+            // Savings should be 10000 * 0.50 (boosted) = 5000
+            let savingsAllocation = plan.accountAllocations.first { $0.accountName == "Savings" }
+            #expect(savingsAllocation?.amount == 5000)
+        }
+
+        @Test("Real-world scenario with full setup")
+        func realWorldScenario() {
+            let vm = DashboardViewModel()
+            vm.savingsPercentage = 0.25
+            vm.savingsBoostEnabled = true
+            vm.savingsBoostMultiplier = 3.0
+            vm.remainingMoneyDestination = .personal
+
+            let jointId = UUID()
+            vm.accounts = [
+                DashboardViewModelTests.makeAccount(
+                    name: "ING Primary",
+                    accountType: .primary,
+                    isPrimary: true,
+                    currentBalance: 0
+                ),
+                DashboardViewModelTests.makeAccount(
+                    name: "Emergency Fund",
+                    accountType: .emergency,
+                    emergencyMultiplier: 3.0,
+                    currentBalance: 42000  // Already at target (14000 * 3)
+                ),
+                DashboardViewModelTests.makeAccount(
+                    name: "Savings",
+                    accountType: .savings,
+                    isPrimarySavings: true,
+                    currentBalance: 5000
+                ),
+                DashboardAccount(
+                    id: jointId,
+                    name: "Joint",
+                    accountType: .joint,
+                    isPrimary: false,
+                    isPrimarySavings: false,
+                    emergencyMultiplier: nil,
+                    currentBalance: 0
+                ),
+                DashboardViewModelTests.makeAccount(
+                    name: "Personal",
+                    accountType: .personal,
+                    currentBalance: 500
+                )
+            ]
+
+            vm.expenses = [
+                DashboardExpense(id: UUID(), name: "Rent", amount: 2000, icon: "house", linkedAccountId: nil),
+                DashboardExpense(id: UUID(), name: "Food", amount: 1500, icon: "cart", linkedAccountId: jointId),
+                DashboardExpense(id: UUID(), name: "Utilities", amount: 500, icon: "bolt", linkedAccountId: nil)
+            ]
+
+            let plan = vm.calculateTransferPlan(withIncome: 14000)
+
+            // Verify plan structure
+            #expect(plan.income == 14000)
+            #expect(plan.totalExpenses == 4000)
+            #expect(plan.availableIncome == 10000) // 14000 - 4000
+
+            // Verify joint account gets food expense transfer
+            let jointTransfer = plan.accountExpenseTransfers.first { $0.accountName == "Joint" }
+            #expect(jointTransfer?.amount == 1500)
+
+            // Verify savings allocation exists (boosted: 10000 * 0.75 = 7500)
+            let savingsAllocation = plan.accountAllocations.first { $0.accountName == "Savings" }
+            #expect(savingsAllocation != nil)
+            #expect(savingsAllocation?.amount == 7500)
+
+            // Verify remaining money destination is respected
+            #expect(plan.remainingDestination == .personal)
+
+            // Verify plan is balanced (TransferCalculator guarantees this)
+            #expect(plan.isBalanced == true)
+        }
+
+        @Test("Transfer plan computed property matches calculateTransferPlan with monthlyIncome")
+        func computedPropertyMatchesMethod() {
+            let vm = DashboardViewModel()
+            vm.monthlyIncome = 12000
+            vm.savingsPercentage = 0.20
+            vm.accounts = [
+                DashboardViewModelTests.makeAccount(
+                    name: "Primary",
+                    accountType: .primary,
+                    isPrimary: true
+                ),
+                DashboardViewModelTests.makeAccount(
+                    name: "Savings",
+                    accountType: .savings,
+                    isPrimarySavings: true
+                )
+            ]
+            vm.expenses = [
+                DashboardExpense(id: UUID(), name: "Rent", amount: 2000, icon: "house", linkedAccountId: nil)
+            ]
+
+            let computed = vm.transferPlan
+            let methodResult = vm.calculateTransferPlan(withIncome: vm.monthlyIncome)
+
+            // Both should produce identical results
+            #expect(computed.income == methodResult.income)
+            #expect(computed.totalExpenses == methodResult.totalExpenses)
+            #expect(computed.availableIncome == methodResult.availableIncome)
+            #expect(computed.remainsInPrimary == methodResult.remainsInPrimary)
+        }
+    }
 }

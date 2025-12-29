@@ -125,6 +125,7 @@ This document tracks implementation progress. **Update this file after completin
 | Fix stale data in New Month flow | 2025-12-29 | Added `loadDashboardData()` call before opening New Month flow; SwiftData @Query doesn't trigger onChange for property updates on existing objects |
 | Data Inspector linkedAccountId display | 2025-12-29 | Added linked account name display (in blue) for expenses in Dev Tools Data Inspector |
 | Centralized state management | 2025-12-29 | DataObserver class listens to ModelContext.didSave, replaces 5 scattered onChange handlers with single refreshAllData() call |
+| Dashboard unit tests updated | 2025-12-29 | Added 5 tests for calculateTransferPlan(withIncome:) method; total 60 tests now covering transfer plan calculation with custom income |
 
 ### In Progress
 

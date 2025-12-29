@@ -109,6 +109,7 @@ This document tracks implementation progress. **Update this file after completin
 | Inline category creation | 2025-12-29 | "New Category..." button in AddExpenseSheet for creating categories without leaving expense form |
 | Custom category display fix | 2025-12-29 | Fixed optimistic update race condition; loadExpensesData() now merges @Query with existing categories |
 | Expense percentage fix | 2025-12-29 | Fixed 0% showing for all expenses; Decimal division issue resolved by converting to Double |
+| Dashboard unit tests | 2025-12-29 | 55 tests covering DashboardViewModel and DashboardAccount: computed properties, account lookups, emergency fund calculations |
 
 ### In Progress
 
@@ -123,7 +124,6 @@ This document tracks implementation progress. **Update this file after completin
 | 1 | Test full onboarding → Dashboard → Expenses flow | Verify data flows correctly through all features |
 | 2 | Implement Insights feature | Stats, AI tips (Foundation Models), scenario analysis |
 | 3 | Add Expenses unit tests | ExpensesViewModelTests.swift |
-| 4 | Add Dashboard unit tests | DashboardViewModelTests.swift |
 
 ---
 

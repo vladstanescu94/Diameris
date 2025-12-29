@@ -168,6 +168,70 @@ final class ExpenseEntity {
 
 ---
 
+## Localization Architecture
+
+Each SPM package maintains **its own localization files** and extension. This is intentional and follows the recommended microapps architecture pattern.
+
+### Why Not Centralize?
+
+The `.localized` extension uses `Bundle.module`, which is resolved at **compile time** to the bundle where the code is defined:
+
+```swift
+// In Onboarding package - .module refers to Onboarding's bundle
+extension String {
+    var localized: String {
+        String(localized: String.LocalizationValue(self), bundle: .module)
+    }
+}
+```
+
+If we centralized this to Utilities, `.module` would refer to Utilities' bundle—not the calling package's bundle. **This is a Swift compiler limitation, not a design choice.**
+
+### Current Structure
+
+Each package has:
+```
+FeaturePackage/
+├── Sources/
+│   └── Feature/
+│       ├── Utils/
+│       │   └── Localization.swift     # String extension with bundle: .module
+│       └── Resources/
+│           └── Localizable.xcstrings  # String Catalog (en/ro)
+```
+
+### Package Localization Files
+
+| Package | Localization.swift | Localizable.xcstrings |
+|---------|-------------------|----------------------|
+| Domain | ✅ | ✅ |
+| Onboarding | ✅ | ✅ |
+| Dashboard | ✅ | ✅ |
+| Expenses | ✅ | ✅ |
+| Main App | ✅ (bundle: .main) | ✅ |
+
+### Key Differences
+
+- **SPM packages**: Use `bundle: .module` to access their own strings
+- **Main app**: Uses `bundle: .main` to access app-level strings
+
+### Required App Configuration
+
+The main app's `Info.plist` must include:
+```xml
+<key>CFBundleAllowMixedLocalizations</key>
+<true/>
+```
+
+This allows package localizations to work even if the main app doesn't support all the same languages.
+
+### References
+
+- [Swift with Majid - Microapps Resources & Localization](https://swiftwithmajid.com/2022/01/26/microapps-architecture-in-swift-resources-and-localization/)
+- [Daniel Saidi - Swift Package Localization (2025)](https://danielsaidi.com/blog/2025/12/02/a-better-way-to-localize-swift-packages-with-xcode-string-catalogs)
+
+---
+
 ## Package.swift Examples
 
 ### Core/DesignSystem/Package.swift

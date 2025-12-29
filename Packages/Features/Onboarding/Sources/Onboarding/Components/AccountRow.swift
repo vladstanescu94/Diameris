@@ -378,21 +378,6 @@ private struct BalanceInputField: View {
     }
 }
 
-// MARK: - AccountType Color Extension
-
-extension AccountType {
-    var color: Color {
-        switch self {
-        case .primary: DiamerisColors.accentPrimary
-        case .emergency: .orange
-        case .savings: DiamerisColors.accentSecondary
-        case .personal: .purple
-        case .joint: .pink
-        case .other: .secondary
-        }
-    }
-}
-
 #Preview {
     VStack(spacing: Spacing.md) {
         AccountRow(

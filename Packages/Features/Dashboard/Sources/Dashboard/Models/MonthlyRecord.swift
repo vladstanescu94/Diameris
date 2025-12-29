@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import Utilities
 
 /// Snapshot of an account at the time of a monthly record.
 public struct AccountSnapshot: Codable, Sendable {
@@ -77,8 +78,6 @@ public final class MonthlyRecord {
 
     /// The month and year formatted for display.
     public var monthDisplay: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM yyyy"
-        return formatter.string(from: month)
+        DateFormatters.monthYear.string(from: month)
     }
 }

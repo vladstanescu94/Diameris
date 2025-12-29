@@ -9,12 +9,13 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../DesignSystem"),
-        .package(path: "../Utilities")
+        .package(path: "../Utilities"),
+        .package(path: "../Domain")
     ],
     targets: [
         .target(
             name: "SharedUI",
-            dependencies: ["DesignSystem", "Utilities"],
+            dependencies: ["DesignSystem", "Utilities", "Domain"],
             swiftSettings: [
                 .swiftLanguageMode(.v6)
             ]

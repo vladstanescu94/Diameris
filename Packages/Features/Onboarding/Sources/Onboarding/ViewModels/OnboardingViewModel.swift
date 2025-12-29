@@ -1,6 +1,5 @@
 import Foundation
 import SwiftData
-import UIKit
 import Utilities
 import Domain
 import Persistence
@@ -67,7 +66,7 @@ public final class OnboardingViewModel {
     }
 
     public func dismissKeyboard() {
-        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        KeyboardHelper.dismiss()
     }
 
     public var canAdvance: Bool {

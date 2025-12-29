@@ -10,6 +10,7 @@ import SwiftData
 import Onboarding
 import Dashboard
 import DesignSystem
+import Utilities
 
 @main
 struct DiamerisApp: App {
@@ -81,7 +82,7 @@ private struct RootView: View {
 
     private func completeOnboarding() {
         // Dismiss keyboard first
-        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        KeyboardHelper.dismiss()
 
         // Small delay to let keyboard dismiss, then transition
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {

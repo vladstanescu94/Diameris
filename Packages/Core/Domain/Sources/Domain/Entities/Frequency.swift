@@ -28,4 +28,12 @@ public enum Frequency: String, CaseIterable, Codable, Sendable {
         case .annual: return "calendar.badge.clock"
         }
     }
+
+    /// Localized display name for this frequency
+    public var displayName: String {
+        switch self {
+        case .monthly: return "Monthly".localized
+        case .annual: return "Annual".localized
+        }
+    }
 }

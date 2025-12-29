@@ -188,50 +188,18 @@ public final class DashboardViewModel {
 
     /// Current month and year for header.
     public var currentMonthDisplay: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM yyyy"
-        return formatter.string(from: Date())
+        DateFormatters.monthYear.string(from: Date())
     }
 
     // MARK: - Transfer Plan
 
     /// Generates a transfer plan using the Domain calculator.
     public var transferPlan: TransferPlan {
-        // Convert to AccountEntry for the calculator
-        let accountEntries = accounts.map { account in
-            AccountEntry(
-                id: account.id,
-                name: account.name,
-                accountType: account.accountType,
-                isPrimary: account.isPrimary,
-                isPrimarySavings: account.isPrimarySavings,
-                emergencyMultiplier: account.emergencyMultiplier,
-                currentBalance: account.currentBalance
-            )
-        }
-
-        // Convert to ExpenseEntry for the calculator
-        let expenseEntries = expenses.map { expense in
-            ExpenseEntry(
-                name: expense.name,
-                amount: expense.amount,
-                icon: expense.icon,
-                linkedAccountId: expense.linkedAccountId
-            )
-        }
-
-        // Create savings allocation entry
-        let savingsAllocation = SavingsAllocationEntry(
-            percentage: savingsPercentage,
-            boostEnabled: savingsBoostEnabled,
-            boostMultiplier: savingsBoostMultiplier
-        )
-
-        return TransferCalculator.calculate(
+        TransferCalculator.calculate(
             income: monthlyIncome,
-            expenses: expenseEntries,
-            allocation: savingsAllocation,
-            accounts: accountEntries,
+            expenses: makeExpenseEntries(),
+            allocation: makeSavingsAllocation(),
+            accounts: makeAccountEntries(),
             remainingDestination: remainingMoneyDestination
         )
     }
@@ -246,8 +214,19 @@ public final class DashboardViewModel {
 
     /// Generates a transfer plan with custom income (for New Month flow).
     public func calculateTransferPlan(withIncome income: Decimal) -> TransferPlan {
-        // Convert to AccountEntry for the calculator
-        let accountEntries = accounts.map { account in
+        TransferCalculator.calculate(
+            income: income,
+            expenses: makeExpenseEntries(),
+            allocation: makeSavingsAllocation(),
+            accounts: makeAccountEntries(),
+            remainingDestination: remainingMoneyDestination
+        )
+    }
+
+    // MARK: - Private Helpers
+
+    private func makeAccountEntries() -> [AccountEntry] {
+        accounts.map { account in
             AccountEntry(
                 id: account.id,
                 name: account.name,
@@ -258,9 +237,10 @@ public final class DashboardViewModel {
                 currentBalance: account.currentBalance
             )
         }
+    }
 
-        // Convert to ExpenseEntry for the calculator
-        let expenseEntries = expenses.map { expense in
+    private func makeExpenseEntries() -> [ExpenseEntry] {
+        expenses.map { expense in
             ExpenseEntry(
                 name: expense.name,
                 amount: expense.amount,
@@ -268,20 +248,13 @@ public final class DashboardViewModel {
                 linkedAccountId: expense.linkedAccountId
             )
         }
+    }
 
-        // Create savings allocation entry
-        let savingsAllocation = SavingsAllocationEntry(
+    private func makeSavingsAllocation() -> SavingsAllocationEntry {
+        SavingsAllocationEntry(
             percentage: savingsPercentage,
             boostEnabled: savingsBoostEnabled,
             boostMultiplier: savingsBoostMultiplier
-        )
-
-        return TransferCalculator.calculate(
-            income: income,
-            expenses: expenseEntries,
-            allocation: savingsAllocation,
-            accounts: accountEntries,
-            remainingDestination: remainingMoneyDestination
         )
     }
 }

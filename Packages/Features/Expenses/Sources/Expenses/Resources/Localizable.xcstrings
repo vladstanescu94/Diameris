@@ -7,6 +7,16 @@
     "(%@)" : {
 
     },
+    "Account" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cont"
+          }
+        }
+      }
+    },
     "Add" : {
       "localizations" : {
         "ro" : {
@@ -69,6 +79,16 @@
         }
       }
     },
+    "Are you sure you want to delete this expense? This action cannot be undone." : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ești sigur că vrei să ștergi această cheltuială? Acțiunea nu poate fi anulată."
+          }
+        }
+      }
+    },
     "Cancel" : {
       "localizations" : {
         "ro" : {
@@ -105,6 +125,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nume categorie"
+          }
+        }
+      }
+    },
+    "Choose which account this expense is paid from." : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alege din ce cont se plătește această cheltuială."
           }
         }
       }
@@ -211,16 +241,6 @@
         }
       }
     },
-    "Are you sure you want to delete this expense? This action cannot be undone." : {
-      "localizations" : {
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ești sigur că vrei să ștergi această cheltuială? Acțiunea nu poate fi anulată."
-          }
-        }
-      }
-    },
     "Details" : {
       "localizations" : {
         "ro" : {
@@ -251,6 +271,16 @@
         }
       }
     },
+    "Edit" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Editează"
+          }
+        }
+      }
+    },
     "Edit Expense" : {
       "localizations" : {
         "ro" : {
@@ -277,16 +307,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Activat"
-          }
-        }
-      }
-    },
-    "Edit" : {
-      "localizations" : {
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Editează"
           }
         }
       }
@@ -342,6 +362,7 @@
       }
     },
     "Monthly" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -442,42 +463,22 @@
         }
       }
     },
-    "Primary" : {
-      "localizations" : {
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Principal"
-          }
-        }
-      }
-    },
-    "Account" : {
-      "localizations" : {
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cont"
-          }
-        }
-      }
-    },
-    "Choose which account this expense is paid from." : {
-      "localizations" : {
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Alege din ce cont se plătește această cheltuială."
-          }
-        }
-      }
-    },
     "Preview" : {
       "localizations" : {
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Previzualizare"
+          }
+        }
+      }
+    },
+    "Primary" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Principal"
           }
         }
       }

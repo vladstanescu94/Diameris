@@ -25,17 +25,6 @@ public struct FrequencyPicker: View {
     }
 }
 
-extension Frequency {
-    var displayName: String {
-        switch self {
-        case .monthly:
-            return "Monthly".localized
-        case .annual:
-            return "Annual".localized
-        }
-    }
-}
-
 #Preview {
     @Previewable @State var frequency: Frequency = .monthly
 

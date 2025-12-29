@@ -4,6 +4,7 @@ import DesignSystem
 import Domain
 import Utilities
 import Onboarding
+import SharedUI
 
 struct SettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
@@ -375,19 +376,6 @@ private extension RemainingMoneyDestination {
         case .primarySavings: return "Primary Savings".localized
         case .personal: return "Personal Account".localized
         case .primary: return "Primary Account".localized
-        }
-    }
-}
-
-private extension AccountType {
-    var color: Color {
-        switch self {
-        case .primary: return .blue
-        case .emergency: return .orange
-        case .savings: return DiamerisColors.accentPrimary
-        case .personal: return .purple
-        case .joint: return DiamerisColors.accentSecondary
-        case .other: return .gray
         }
     }
 }

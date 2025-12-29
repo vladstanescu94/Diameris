@@ -126,6 +126,7 @@ This document tracks implementation progress. **Update this file after completin
 | Data Inspector linkedAccountId display | 2025-12-29 | Added linked account name display (in blue) for expenses in Dev Tools Data Inspector |
 | Centralized state management | 2025-12-29 | DataObserver class listens to ModelContext.didSave, replaces 5 scattered onChange handlers with single refreshAllData() call |
 | Dashboard unit tests updated | 2025-12-29 | Added 5 tests for calculateTransferPlan(withIncome:) method; total 60 tests now covering transfer plan calculation with custom income |
+| Duplicate code consolidation | 2025-12-30 | Created KeyboardHelper, DateFormatters in Utilities; AccountType+Color in SharedUI; moved Frequency.displayName to Domain; refactored DashboardViewModel mapping helpers |
 
 ### In Progress
 
@@ -1251,6 +1252,67 @@ NewMonthSheet                    MainTabView
 
 **Files Modified:**
 - `Diameris/Features/Main/MainTabView.swift` - Replaced onChange handlers with DataObserver
+
+### 2025-12-30 - Duplicate Code Consolidation Session
+
+**Focus:** Deep audit and consolidation of duplicate code across SPM packages.
+
+**Audit Findings & Actions:**
+
+1. **Localization extensions (KEPT AS-IS):**
+   - Each package has its own `Localization.swift` with identical `.localized` extension
+   - **Reason:** `bundle: .module` is compile-time resolved; each package MUST have its own
+   - **Action:** Documented in Architecture.md as intentional
+
+2. **KeyboardHelper (CREATED):**
+   - Found identical keyboard dismissal code in 5+ files
+   - **Solution:** Created `Utilities/KeyboardHelper.swift` with centralized `dismiss()` method
+   - **Files updated:** DiamerisApp, SalaryEntryStep, ReconcileAccountsStep, OnboardingViewModel
+
+3. **DateFormatters (CREATED):**
+   - Found DateFormatter recreation in DashboardViewModel and MonthlyRecord
+   - **Solution:** Created `Utilities/DateFormatters.swift` with cached static formatters
+   - **Files updated:** DashboardViewModel, MonthlyRecord
+
+4. **AccountType.color (CONSOLIDATED):**
+   - Found 2 inconsistent implementations (AccountRow used DiamerisColors, SettingsSheet used .blue)
+   - **Solution:** Created `SharedUI/Extensions/AccountType+Color.swift` with consistent colors
+   - **Files updated:** Added Domain dependency to SharedUI, removed duplicates from AccountRow (Onboarding) and SettingsSheet
+
+5. **Frequency.displayName (MOVED TO DOMAIN):**
+   - Found duplicate in Expenses/FrequencyPicker.swift while Domain already had icon property
+   - **Solution:** Added displayName to Domain/Frequency.swift, removed duplicate from FrequencyPicker
+   - **Files updated:** Frequency.swift, FrequencyPicker.swift
+
+6. **DashboardViewModel mapping code (REFACTORED):**
+   - Found identical mapping code in `transferPlan` and `calculateTransferPlan(withIncome:)`
+   - **Solution:** Extracted 3 private helpers: `makeAccountEntries()`, `makeExpenseEntries()`, `makeSavingsAllocation()`
+   - **Files updated:** DashboardViewModel.swift
+
+**Files Created:**
+- `Packages/Core/Utilities/Sources/Utilities/KeyboardHelper.swift`
+- `Packages/Core/Utilities/Sources/Utilities/DateFormatters.swift`
+- `Packages/Core/SharedUI/Sources/SharedUI/Extensions/AccountType+Color.swift`
+
+**Files Modified:**
+- `Packages/Core/SharedUI/Package.swift` - Added Domain dependency
+- `Packages/Core/Domain/Sources/Domain/Entities/Frequency.swift` - Added displayName
+- `Packages/Features/Dashboard/Sources/Dashboard/ViewModels/DashboardViewModel.swift` - Refactored helpers
+- `Packages/Features/Expenses/Sources/Expenses/Components/FrequencyPicker.swift` - Removed duplicate
+- `Packages/Features/Onboarding/Sources/Onboarding/Components/AccountRow.swift` - Removed duplicate
+- `Diameris/Features/Settings/SettingsSheet.swift` - Removed duplicate (already done in prior session)
+- Multiple files updated to use KeyboardHelper and DateFormatters
+
+**Key Learnings:**
+1. **SPM localization cannot be centralized:** `bundle: .module` requires per-package extensions
+2. **DateFormatters are expensive:** Always cache as static properties
+3. **UI extensions belong in SharedUI:** AccountType.color is SwiftUI-specific, not Domain
+4. **Domain stays framework-agnostic:** Only pure Swift business logic, no SwiftUI
+
+**Tests Verified:**
+- Dashboard: 60 tests passed
+- Expenses: 48 tests passed
+- Full project build: SUCCESS
 
 ---
 

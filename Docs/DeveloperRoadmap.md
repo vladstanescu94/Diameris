@@ -115,6 +115,9 @@ This document tracks implementation progress. **Update this file after completin
 | Dev tools JSON import | 2025-12-29 | Import expenses from Python script via JSON; `--export` flag saves to `Resources/expenses_import.json`, `ExpenseImportData` model in Domain, one-tap import in DevDebugView loads from bundle |
 | Dashboard monthly amounts fix | 2025-12-29 | Fixed Dashboard showing annual totals instead of monthly; changed `expense.amount` → `expense.monthlyAmount` in MainTabView |
 | Dashboard summary card redesign | 2025-12-29 | Renamed "Available This Month" → "Monthly Summary"; now shows Income, Expenses, Savings, and Personal Spending (true flexible money after savings) |
+| JSON import with accounts | 2025-12-29 | Extended import to include accounts; matches by type, updates existing or creates new; exports 5 ING accounts (Primary, Joint, Emergency, Savings, Personal) |
+| JSON import savings allocation | 2025-12-29 | Import now includes savings config (percentage, boostEnabled, boostMultiplier); fixed Dashboard showing wrong Personal Spending due to missing boost setting |
+| JSON import balance reset | 2025-12-29 | Import now resets account balances to match JSON values (including 0); previously preserved non-zero existing balances which caused stale data |
 
 ### In Progress
 
@@ -1053,6 +1056,34 @@ Packages/Features/Expenses/
      ```
    - **Also applied:** Single source of truth - `totalExpenses` now passed from `DashboardViewModel` instead of computed locally in `ExpenseBreakdownCard`
    - **Files:** `ExpenseBreakdownCard.swift`, `DashboardView.swift`
+
+### 2025-12-29 - JSON Import Fixes Session
+
+**Focus:** Fix JSON import to properly update all data including savings allocation and account balances.
+
+**Issues Fixed:**
+
+1. **Dashboard showing wrong Personal Spending (7500 RON):**
+   - **Problem:** After import, Dashboard showed ~7500 RON personal spending instead of ~1599 RON
+   - **Root cause:** Import didn't update SavingsAllocation model; app used default `boostEnabled: false` (25% savings) instead of user's `boostEnabled: true` (75% savings with 3x boost)
+   - **Solution:** Added savings allocation import to DevDebugView - creates or updates SavingsAllocation with percentage, boostEnabled, boostMultiplier from JSON
+   - **File:** `DevDebugView.swift`
+
+2. **Account balances not resetting:**
+   - **Problem:** Existing account balances persisted after import even when JSON had 0 values
+   - **Root cause:** Import logic had `if accountData.currentBalance > 0` guard that skipped 0 balances
+   - **Rationale (original):** "preserve manual balances" - but this caused stale data on fresh imports
+   - **Solution:** Removed the guard; import now always sets balance to JSON value
+   - **File:** `DevDebugView.swift`
+
+**Import Now Handles:**
+- Expenses (delete existing, create new)
+- Accounts (match by type, update or create)
+- Savings allocation (update or create)
+- All balances reset to JSON values
+
+**Files Modified:**
+- `Diameris/Features/Dev/DevDebugView.swift` - Added savings import, removed balance guard, added SavingsAllocation to clearAllData() and preview
 
 ---
 

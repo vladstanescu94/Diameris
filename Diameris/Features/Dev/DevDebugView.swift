@@ -80,6 +80,7 @@ struct DevDebugView: View {
             try modelContext.delete(model: Income.self)
             try modelContext.delete(model: Expense.self)
             try modelContext.delete(model: Account.self)
+            try modelContext.delete(model: SavingsAllocation.self)
             try modelContext.save()
         } catch {
             print("Failed to clear data: \(error)")
@@ -102,19 +103,77 @@ struct DevDebugView: View {
             try modelContext.delete(model: Expense.self)
 
             // Import all expenses
-            var importedCount = 0
+            var importedExpenses = 0
             for (index, expenseData) in importData.expenses.enumerated() {
                 let entry = expenseData.toExpenseEntry()
                 let expense = Expense(from: entry, sortOrder: index)
                 modelContext.insert(expense)
-                importedCount += 1
+                importedExpenses += 1
+            }
+
+            // Import accounts if present
+            var importedAccounts = 0
+            var updatedAccounts = 0
+            if let accountsData = importData.accounts {
+                // Fetch existing accounts
+                let existingAccounts = try modelContext.fetch(FetchDescriptor<Account>())
+
+                for (index, accountData) in accountsData.enumerated() {
+                    let accountType = accountData.accountTypeEnum
+
+                    // Try to find existing account by type (most account types are unique)
+                    if let existingAccount = existingAccounts.first(where: { $0.accountType == accountType }) {
+                        // Update existing account
+                        existingAccount.name = accountData.name
+                        existingAccount.isPrimarySavings = accountData.isPrimarySavings
+                        existingAccount.emergencyMultiplier = accountData.emergencyMultiplier
+                        existingAccount.currentBalance = accountData.currentBalance
+                        updatedAccounts += 1
+                    } else {
+                        // Create new account
+                        let entry = accountData.toAccountEntry()
+                        let account = Account(from: entry, sortOrder: index)
+                        modelContext.insert(account)
+                        importedAccounts += 1
+                    }
+                }
+            }
+
+            // Import savings allocation
+            var savingsUpdated = false
+            let existingSavings = try modelContext.fetch(FetchDescriptor<SavingsAllocation>())
+            if let existingSavingsAllocation = existingSavings.first {
+                // Update existing
+                existingSavingsAllocation.percentage = importData.savings.percentage
+                existingSavingsAllocation.boostEnabled = importData.savings.boostEnabled
+                existingSavingsAllocation.boostMultiplier = Double(importData.savings.boostMultiplier)
+                savingsUpdated = true
+            } else {
+                // Create new
+                let savingsAllocation = SavingsAllocation(
+                    percentage: importData.savings.percentage,
+                    boostEnabled: importData.savings.boostEnabled,
+                    boostMultiplier: Double(importData.savings.boostMultiplier)
+                )
+                modelContext.insert(savingsAllocation)
+                savingsUpdated = true
             }
 
             try modelContext.save()
 
+            var message = "Imported \(importedExpenses) expenses"
+            if importedAccounts > 0 || updatedAccounts > 0 {
+                message += ", \(importedAccounts) new accounts, \(updatedAccounts) updated"
+            }
+            if savingsUpdated {
+                let boostStatus = importData.savings.boostEnabled ? "on" : "off"
+                message += ", savings \(Int(importData.savings.percentage * 100))% (boost \(boostStatus))"
+            }
+            message += "!"
+
             importResult = ImportResult(
                 isSuccess: true,
-                message: "Imported \(importedCount) expenses successfully!"
+                message: message
             )
         } catch {
             importResult = ImportResult(
@@ -221,6 +280,6 @@ private struct DataInspectorView: View {
 
 #Preview {
     DevDebugView()
-        .modelContainer(for: [UserProfile.self, Income.self, Expense.self, Account.self], inMemory: true)
+        .modelContainer(for: [UserProfile.self, Income.self, Expense.self, Account.self, SavingsAllocation.self], inMemory: true)
 }
 #endif

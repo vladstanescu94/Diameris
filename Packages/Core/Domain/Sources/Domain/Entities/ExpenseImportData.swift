@@ -7,6 +7,7 @@ public struct ExpenseImportData: Codable, Sendable {
     public let income: IncomeData
     public let savings: SavingsData
     public let emergencyFund: EmergencyFundData
+    public let accounts: [AccountData]?
     public let expenses: [ExpenseData]
 
     public init(
@@ -15,6 +16,7 @@ public struct ExpenseImportData: Codable, Sendable {
         income: IncomeData,
         savings: SavingsData,
         emergencyFund: EmergencyFundData,
+        accounts: [AccountData]? = nil,
         expenses: [ExpenseData]
     ) {
         self.version = version
@@ -22,6 +24,7 @@ public struct ExpenseImportData: Codable, Sendable {
         self.income = income
         self.savings = savings
         self.emergencyFund = emergencyFund
+        self.accounts = accounts
         self.expenses = expenses
     }
 }
@@ -99,6 +102,55 @@ extension ExpenseImportData {
                 icon: icon,
                 categoryId: catId,
                 isEnabled: isEnabled
+            )
+        }
+    }
+
+    public struct AccountData: Codable, Sendable {
+        public let name: String
+        public let accountType: String
+        public let isPrimary: Bool
+        public let isPrimarySavings: Bool
+        public let emergencyMultiplier: Double?
+        public let currentBalance: Decimal
+
+        public init(
+            name: String,
+            accountType: String,
+            isPrimary: Bool,
+            isPrimarySavings: Bool,
+            emergencyMultiplier: Double?,
+            currentBalance: Decimal
+        ) {
+            self.name = name
+            self.accountType = accountType
+            self.isPrimary = isPrimary
+            self.isPrimarySavings = isPrimarySavings
+            self.emergencyMultiplier = emergencyMultiplier
+            self.currentBalance = currentBalance
+        }
+
+        /// Convert string account type to AccountType enum
+        public var accountTypeEnum: AccountType {
+            switch accountType.lowercased() {
+            case "primary": return .primary
+            case "emergency": return .emergency
+            case "savings": return .savings
+            case "personal": return .personal
+            case "joint": return .joint
+            default: return .primary
+            }
+        }
+
+        /// Convert to AccountEntry for use in the app
+        public func toAccountEntry() -> AccountEntry {
+            AccountEntry(
+                name: name,
+                accountType: accountTypeEnum,
+                isPrimary: isPrimary,
+                isPrimarySavings: isPrimarySavings,
+                emergencyMultiplier: emergencyMultiplier,
+                currentBalance: currentBalance
             )
         }
     }

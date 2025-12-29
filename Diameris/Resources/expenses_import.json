@@ -1,6 +1,6 @@
 {
-  "version": "1.0",
-  "exportDate": "2025-12-29T18:35:47.466958",
+  "version": "1.1",
+  "exportDate": "2025-12-29T23:01:50.222377",
   "income": {
     "amount": 14303,
     "frequency": "monthly",
@@ -15,6 +15,48 @@
     "currentBalance": 37056,
     "targetMultiplier": 3.0
   },
+  "accounts": [
+    {
+      "name": "ING Principal",
+      "accountType": "primary",
+      "isPrimary": true,
+      "isPrimarySavings": false,
+      "emergencyMultiplier": null,
+      "currentBalance": 0
+    },
+    {
+      "name": "Joint",
+      "accountType": "joint",
+      "isPrimary": false,
+      "isPrimarySavings": false,
+      "emergencyMultiplier": null,
+      "currentBalance": 0
+    },
+    {
+      "name": "Emergency Fund",
+      "accountType": "emergency",
+      "isPrimary": false,
+      "isPrimarySavings": false,
+      "emergencyMultiplier": 3.0,
+      "currentBalance": 37056
+    },
+    {
+      "name": "Savings",
+      "accountType": "savings",
+      "isPrimary": false,
+      "isPrimarySavings": true,
+      "emergencyMultiplier": null,
+      "currentBalance": 0
+    },
+    {
+      "name": "Personal",
+      "accountType": "personal",
+      "isPrimary": false,
+      "isPrimarySavings": false,
+      "emergencyMultiplier": null,
+      "currentBalance": 0
+    }
+  ],
   "expenses": [
     {
       "name": "Mâncare",

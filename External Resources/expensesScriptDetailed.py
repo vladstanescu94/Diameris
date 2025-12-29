@@ -1163,9 +1163,53 @@ def export_to_json():
             'isEnabled': True
         })
 
+    # Conturi ING
+    accounts = [
+        {
+            'name': 'ING Principal',
+            'accountType': 'primary',
+            'isPrimary': True,
+            'isPrimarySavings': False,
+            'emergencyMultiplier': None,
+            'currentBalance': 0  # Se actualizează manual
+        },
+        {
+            'name': 'Joint',
+            'accountType': 'joint',
+            'isPrimary': False,
+            'isPrimarySavings': False,
+            'emergencyMultiplier': None,
+            'currentBalance': 0  # Se actualizează manual
+        },
+        {
+            'name': 'Emergency Fund',
+            'accountType': 'emergency',
+            'isPrimary': False,
+            'isPrimarySavings': False,
+            'emergencyMultiplier': 3.0,
+            'currentBalance': FOND_URGENTA_CURENT
+        },
+        {
+            'name': 'Savings',
+            'accountType': 'savings',
+            'isPrimary': False,
+            'isPrimarySavings': True,
+            'emergencyMultiplier': None,
+            'currentBalance': 0  # Se actualizează manual
+        },
+        {
+            'name': 'Personal',
+            'accountType': 'personal',
+            'isPrimary': False,
+            'isPrimarySavings': False,
+            'emergencyMultiplier': None,
+            'currentBalance': 0  # Se actualizează manual
+        }
+    ]
+
     # Structura finală pentru export
     export_data = {
-        'version': '1.0',
+        'version': '1.1',
         'exportDate': __import__('datetime').datetime.now().isoformat(),
         'income': {
             'amount': SALARIU_LUNAR_NET,
@@ -1181,6 +1225,7 @@ def export_to_json():
             'currentBalance': FOND_URGENTA_CURENT,
             'targetMultiplier': 3.0
         },
+        'accounts': accounts,
         'expenses': expenses
     }
 

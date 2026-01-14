@@ -127,6 +127,7 @@ This document tracks implementation progress. **Update this file after completin
 | Centralized state management | 2025-12-29 | DataObserver class listens to ModelContext.didSave, replaces 5 scattered onChange handlers with single refreshAllData() call |
 | Dashboard unit tests updated | 2025-12-29 | Added 5 tests for calculateTransferPlan(withIncome:) method; total 60 tests now covering transfer plan calculation with custom income |
 | Duplicate code consolidation | 2025-12-30 | Created KeyboardHelper, DateFormatters in Utilities; AccountType+Color in SharedUI; moved Frequency.displayName to Domain; refactored DashboardViewModel mapping helpers |
+| End-to-end flow testing | 2026-01-12 | Tested full onboarding → Dashboard → Expenses flow; data flows correctly through all features |
 
 ### In Progress
 
@@ -138,8 +139,7 @@ This document tracks implementation progress. **Update this file after completin
 
 | Priority | Task | Reference |
 |----------|------|-----------|
-| 1 | Test full onboarding → Dashboard → Expenses flow | Verify data flows correctly through all features |
-| 2 | Implement Insights feature | Stats, AI tips (Foundation Models), scenario analysis |
+| 1 | Implement Insights feature | Stats, AI tips (Foundation Models), scenario analysis |
 
 ---
 

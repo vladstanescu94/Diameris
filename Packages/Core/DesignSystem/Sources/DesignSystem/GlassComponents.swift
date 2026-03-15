@@ -51,57 +51,5 @@ public extension View {
         modifier(GlassCardModifier(isInteractive: true))
     }
 
-    /// Apply glass effect with large corner radius (16pt)
-    func glassLarge() -> some View {
-        glassEffect(in: .rect(cornerRadius: CornerRadius.large))
-    }
-
-    /// Apply glass effect with medium corner radius (12pt)
-    func glassMedium() -> some View {
-        glassEffect(in: .rect(cornerRadius: CornerRadius.medium))
-    }
-
-    /// Apply interactive glass effect with large corner radius
-    func glassLargeInteractive() -> some View {
-        glassEffect(.regular.interactive(), in: .rect(cornerRadius: CornerRadius.large))
-    }
-
-    /// Apply glass effect tinted with the primary accent color
-    func glassPrimaryTint() -> some View {
-        glassEffect(
-            .regular.tint(DiamerisColors.accentPrimaryLight),
-            in: .rect(cornerRadius: CornerRadius.large)
-        )
-    }
-
-    /// Apply glass effect tinted with the secondary accent color
-    func glassSecondaryTint() -> some View {
-        glassEffect(
-            .regular.tint(DiamerisColors.accentSecondaryLight),
-            in: .rect(cornerRadius: CornerRadius.large)
-        )
-    }
 }
 
-// MARK: - Pressable Card Style
-
-/// A pressable card with subtle scale animation
-public struct PressableCardStyle: ViewModifier {
-    @State private var isPressed = false
-
-    public func body(content: Content) -> some View {
-        content
-            .scaleEffect(isPressed ? 0.98 : 1.0)
-            .animation(.spring(response: 0.3), value: isPressed)
-            .onLongPressGesture(minimumDuration: .infinity, pressing: { pressing in
-                isPressed = pressing
-            }, perform: {})
-    }
-}
-
-public extension View {
-    /// Make a view pressable with subtle scale feedback
-    func pressable() -> some View {
-        modifier(PressableCardStyle())
-    }
-}

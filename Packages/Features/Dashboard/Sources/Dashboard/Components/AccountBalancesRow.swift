@@ -21,24 +21,26 @@ struct AccountBalancesSection: View {
     }
 
     var body: some View {
-        VStack(spacing: Spacing.sm) {
-            Label {
-                Text("Account Balances".localized)
-                    .font(.headline)
-            } icon: {
-                Image(systemName: "building.columns.fill")
-                    .foregroundStyle(DiamerisColors.accentPrimary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+        GlassEffectContainer(spacing: Spacing.sm) {
+            VStack(spacing: Spacing.sm) {
+                Label {
+                    Text("Account Balances".localized)
+                        .font(.headline)
+                } icon: {
+                    Image(systemName: "building.columns.fill")
+                        .foregroundStyle(DiamerisColors.accentPrimary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-            if let primary = primaryAccount {
-                PrimaryAccountCard(account: primary, currency: currency)
-            }
+                if let primary = primaryAccount {
+                    PrimaryAccountCard(account: primary, currency: currency)
+                }
 
-            if !otherAccounts.isEmpty {
-                LazyVGrid(columns: gridColumns, spacing: Spacing.sm) {
-                    ForEach(otherAccounts) { account in
-                        SecondaryAccountCard(account: account, currency: currency)
+                if !otherAccounts.isEmpty {
+                    LazyVGrid(columns: gridColumns, spacing: Spacing.sm) {
+                        ForEach(otherAccounts) { account in
+                            SecondaryAccountCard(account: account, currency: currency)
+                        }
                     }
                 }
             }

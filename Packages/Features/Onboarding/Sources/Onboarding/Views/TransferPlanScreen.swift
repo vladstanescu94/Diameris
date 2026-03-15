@@ -112,11 +112,13 @@ private extension TransferPlanScreen {
 
 private extension TransferPlanScreen {
     var transferCardsSection: some View {
-        VStack(spacing: Spacing.md) {
-            sectionHeader
-            accountAllocationCards
-            expenseTransferCards
-            primaryAccountCard
+        GlassEffectContainer(spacing: Spacing.md) {
+            VStack(spacing: Spacing.md) {
+                sectionHeader
+                accountAllocationCards
+                expenseTransferCards
+                primaryAccountCard
+            }
         }
     }
 
@@ -197,13 +199,15 @@ private extension TransferPlanScreen {
     @ViewBuilder
     var remainingMoneySection: some View {
         if transferPlan.remainingMoney > 0 {
-            VStack(spacing: Spacing.md) {
-                Text("Remaining Money".localized)
-                    .font(.headline)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            GlassEffectContainer(spacing: Spacing.md) {
+                VStack(spacing: Spacing.md) {
+                    Text("Remaining Money".localized)
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, alignment: .leading)
 
-                remainingMoneyCard
-                remainingDestinationPicker
+                    remainingMoneyCard
+                    remainingDestinationPicker
+                }
             }
             .opacity(remainingAppeared ? 1 : 0)
             .offset(y: remainingAppeared ? 0 : SlideOffset.small)

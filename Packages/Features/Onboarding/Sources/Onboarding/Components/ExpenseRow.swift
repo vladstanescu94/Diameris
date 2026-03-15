@@ -46,7 +46,7 @@ public struct ExpenseRow: View {
             }
         }
         .padding(Spacing.md)
-        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: CornerRadius.medium))
+        .glassEffect(in: .rect(cornerRadius: CornerRadius.medium))
         .accessibilityElement(children: .combine)
     }
 

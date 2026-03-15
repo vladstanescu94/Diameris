@@ -15,25 +15,27 @@ struct TransferPlanStep: View {
     var body: some View {
         VStack(spacing: Spacing.lg) {
             ScrollView {
-                VStack(spacing: Spacing.md) {
-                    TransferPlanSummary(
-                        income: income,
-                        expenses: expenses,
-                        availableIncome: transferPlan.availableIncome,
-                        currency: currency
-                    )
+                GlassEffectContainer(spacing: Spacing.md) {
+                    VStack(spacing: Spacing.md) {
+                        TransferPlanSummary(
+                            income: income,
+                            expenses: expenses,
+                            availableIncome: transferPlan.availableIncome,
+                            currency: currency
+                        )
 
-                    TransferPlanTransfers(
-                        transferPlan: transferPlan,
-                        currency: currency
-                    )
+                        TransferPlanTransfers(
+                            transferPlan: transferPlan,
+                            currency: currency
+                        )
 
-                    PrimaryAccountRow(
-                        amount: transferPlan.remainsInPrimary,
-                        currency: currency
-                    )
+                        PrimaryAccountRow(
+                            amount: transferPlan.remainsInPrimary,
+                            currency: currency
+                        )
 
-                    TransferPlanVerificationBadge(isBalanced: transferPlan.isBalanced)
+                        TransferPlanVerificationBadge(isBalanced: transferPlan.isBalanced)
+                    }
                 }
                 .padding(.horizontal, Spacing.lg)
             }

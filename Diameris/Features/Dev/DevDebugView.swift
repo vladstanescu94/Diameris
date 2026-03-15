@@ -228,7 +228,7 @@ private struct DataInspectorView: View {
                     VStack(alignment: .leading) {
                         Text(income.name)
                             .font(.headline)
-                        Text("\(income.amount) (\(income.frequency))")
+                        Text("\(String(describing: income.amount)) (\(String(describing: income.frequency)))")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -242,7 +242,7 @@ private struct DataInspectorView: View {
                         VStack(alignment: .leading) {
                             Text(expense.name)
                                 .font(.headline)
-                            Text("\(expense.amount)")
+                            Text("\(String(describing: expense.amount))")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             if let linkedId = expense.linkedAccountId {

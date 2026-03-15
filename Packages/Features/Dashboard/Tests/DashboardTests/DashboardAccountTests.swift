@@ -16,6 +16,7 @@ struct DashboardAccountTests {
         isPrimary: Bool = false,
         isPrimarySavings: Bool = false,
         emergencyMultiplier: Double? = nil,
+        emergencyHardCap: Decimal? = nil,
         currentBalance: Decimal = 0
     ) -> DashboardAccount {
         DashboardAccount(
@@ -25,6 +26,7 @@ struct DashboardAccountTests {
             isPrimary: isPrimary,
             isPrimarySavings: isPrimarySavings,
             emergencyMultiplier: emergencyMultiplier,
+            emergencyHardCap: emergencyHardCap,
             currentBalance: currentBalance
         )
     }
@@ -98,6 +100,47 @@ struct DashboardAccountTests {
             let target = account.emergencyTarget(monthlyIncome: 0)
 
             #expect(target == 0)
+        }
+
+        @Test("Emergency target respects hard cap when below calculated")
+        func emergencyTargetWithHardCap() {
+            // 3x income = 30000, but hard cap is 20000
+            let account = DashboardAccountTests.makeAccount(
+                accountType: .emergency,
+                emergencyMultiplier: 3.0,
+                emergencyHardCap: 20000
+            )
+
+            let target = account.emergencyTarget(monthlyIncome: 10000)
+
+            #expect(target == 20000)
+        }
+
+        @Test("Emergency target ignores hard cap when above calculated")
+        func emergencyTargetIgnoresHighHardCap() {
+            // 3x income = 30000, hard cap is 50000 (above calculated)
+            let account = DashboardAccountTests.makeAccount(
+                accountType: .emergency,
+                emergencyMultiplier: 3.0,
+                emergencyHardCap: 50000
+            )
+
+            let target = account.emergencyTarget(monthlyIncome: 10000)
+
+            #expect(target == 30000)
+        }
+
+        @Test("Emergency target nil hard cap means no capping")
+        func emergencyTargetNilHardCap() {
+            let account = DashboardAccountTests.makeAccount(
+                accountType: .emergency,
+                emergencyMultiplier: 3.0,
+                emergencyHardCap: nil
+            )
+
+            let target = account.emergencyTarget(monthlyIncome: 10000)
+
+            #expect(target == 30000)
         }
     }
 

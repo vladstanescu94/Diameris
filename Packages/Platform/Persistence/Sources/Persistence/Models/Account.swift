@@ -22,6 +22,10 @@ public final class Account {
     /// Target = monthlyIncome × emergencyMultiplier
     public var emergencyMultiplier: Double?
 
+    /// For emergency-type accounts: optional hard cap on the target amount.
+    /// When set, target = min(monthlyIncome × emergencyMultiplier, emergencyHardCap)
+    public var emergencyHardCap: Decimal?
+
     /// Current balance in this account (for progress tracking).
     public var currentBalance: Decimal
 
@@ -36,6 +40,7 @@ public final class Account {
         accountType: AccountType = .other,
         isPrimarySavings: Bool = false,
         emergencyMultiplier: Double? = nil,
+        emergencyHardCap: Decimal? = nil,
         currentBalance: Decimal = 0
     ) {
         self.id = UUID()
@@ -46,6 +51,7 @@ public final class Account {
         self.accountTypeRaw = accountType.rawValue
         self.isPrimarySavings = isPrimarySavings
         self.emergencyMultiplier = emergencyMultiplier
+        self.emergencyHardCap = emergencyHardCap
         self.currentBalance = currentBalance
         self.createdAt = Date()
     }
@@ -60,6 +66,7 @@ public final class Account {
             accountType: entry.accountType,
             isPrimarySavings: entry.isPrimarySavings,
             emergencyMultiplier: entry.emergencyMultiplier,
+            emergencyHardCap: entry.emergencyHardCap,
             currentBalance: entry.currentBalance
         )
     }
@@ -81,26 +88,23 @@ public final class Account {
             isPrimary: isPrimary,
             isPrimarySavings: isPrimarySavings,
             emergencyMultiplier: emergencyMultiplier,
+            emergencyHardCap: emergencyHardCap,
             currentBalance: currentBalance
         )
     }
 
     /// Calculates the emergency fund target based on monthly income.
+    /// When a hard cap is set, returns the minimum of calculated target and hard cap.
     /// Returns nil if this is not an emergency account.
+    /// - Note: Delegates to the domain entity to avoid code duplication.
     public func emergencyTarget(monthlyIncome: Decimal) -> Decimal? {
-        guard accountType == .emergency, let multiplier = emergencyMultiplier else {
-            return nil
-        }
-        return monthlyIncome * Decimal(multiplier)
+        toEntry().emergencyTarget(monthlyIncome: monthlyIncome)
     }
 
     /// Progress percentage toward emergency target (0.0 to 1.0).
     /// Returns nil if not an emergency account or target is 0.
+    /// - Note: Delegates to the domain entity to avoid code duplication.
     public func emergencyProgress(monthlyIncome: Decimal) -> Double? {
-        guard let target = emergencyTarget(monthlyIncome: monthlyIncome), target > 0 else {
-            return nil
-        }
-        let progress = NSDecimalNumber(decimal: currentBalance / target).doubleValue
-        return min(1.0, max(0.0, progress))
+        toEntry().emergencyProgress(monthlyIncome: monthlyIncome)
     }
 }

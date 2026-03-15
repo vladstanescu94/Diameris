@@ -83,6 +83,9 @@ private extension AccountsScreen {
                 onMultiplierChange: { newMultiplier in
                     updateAccount(id: accountId) { $0.emergencyMultiplier = newMultiplier }
                 },
+                onHardCapChange: { newHardCap in
+                    updateAccount(id: accountId) { $0.emergencyHardCap = newHardCap }
+                },
                 onBalanceChange: { newBalance in
                     updateAccount(id: accountId) { $0.currentBalance = newBalance }
                 },
@@ -314,6 +317,7 @@ private extension AccountsScreen {
                 account.emergencyMultiplier = 3.0
             } else {
                 account.emergencyMultiplier = nil
+                account.emergencyHardCap = nil
             }
 
             // If changing to savings and no primary savings, mark as primary

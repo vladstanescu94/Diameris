@@ -93,6 +93,7 @@ private extension DashboardView {
                     target: target,
                     progress: progress,
                     multiplier: emergencyAccount.emergencyMultiplier ?? 3.0,
+                    emergencyHardCap: emergencyAccount.emergencyHardCap,
                     currency: viewModel.currency
                 )
             }
@@ -146,6 +147,7 @@ private extension DashboardView {
             isPrimary: false,
             isPrimarySavings: false,
             emergencyMultiplier: 3.0,
+            emergencyHardCap: 40000,
             currentBalance: 37056
         ),
         DashboardAccount(

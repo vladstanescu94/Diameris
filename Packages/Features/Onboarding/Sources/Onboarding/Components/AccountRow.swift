@@ -14,6 +14,7 @@ struct AccountRow: View {
     let onTypeChange: (AccountType) -> Void
     let onNameChange: (String) -> Void
     let onMultiplierChange: ((Double) -> Void)?
+    let onHardCapChange: ((Decimal?) -> Void)?
     let onBalanceChange: ((Decimal) -> Void)?
     let onPrimarySavingsToggle: (() -> Void)?
     let onDelete: (() -> Void)?
@@ -223,7 +224,7 @@ private extension AccountRow {
 
     var emergencyExpandedContent: some View {
         VStack(spacing: Spacing.md) {
-            // Multiplier Picker
+            // Multiplier Picker with Hard Cap
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text("Target: months of income".localized)
                     .font(.caption)
@@ -233,6 +234,10 @@ private extension AccountRow {
                     multiplier: Binding(
                         get: { account.emergencyMultiplier ?? 3.0 },
                         set: { onMultiplierChange?($0) }
+                    ),
+                    hardCap: Binding(
+                        get: { account.emergencyHardCap },
+                        set: { onHardCapChange?($0) }
                     ),
                     monthlyIncome: monthlyIncome,
                     currency: currency
@@ -388,6 +393,7 @@ private struct BalanceInputField: View {
             onTypeChange: { _ in },
             onNameChange: { _ in },
             onMultiplierChange: nil,
+            onHardCapChange: nil,
             onBalanceChange: nil,
             onPrimarySavingsToggle: nil,
             onDelete: nil
@@ -401,6 +407,7 @@ private struct BalanceInputField: View {
             onTypeChange: { _ in },
             onNameChange: { _ in },
             onMultiplierChange: { _ in },
+            onHardCapChange: { _ in },
             onBalanceChange: { _ in },
             onPrimarySavingsToggle: nil,
             onDelete: { }
@@ -414,6 +421,7 @@ private struct BalanceInputField: View {
             onTypeChange: { _ in },
             onNameChange: { _ in },
             onMultiplierChange: nil,
+            onHardCapChange: nil,
             onBalanceChange: nil,
             onPrimarySavingsToggle: { },
             onDelete: { }

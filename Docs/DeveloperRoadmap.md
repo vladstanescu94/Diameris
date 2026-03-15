@@ -128,6 +128,10 @@ This document tracks implementation progress. **Update this file after completin
 | Dashboard unit tests updated | 2025-12-29 | Added 5 tests for calculateTransferPlan(withIncome:) method; total 60 tests now covering transfer plan calculation with custom income |
 | Duplicate code consolidation | 2025-12-30 | Created KeyboardHelper, DateFormatters in Utilities; AccountType+Color in SharedUI; moved Frequency.displayName to Domain; refactored DashboardViewModel mapping helpers |
 | End-to-end flow testing | 2026-01-12 | Tested full onboarding → Dashboard → Expenses flow; data flows correctly through all features |
+| Business logic centralization | 2026-02-05 | Refactored SavingsAllocation, Expense, ExpenseDisplayItem to delegate calculations to Domain via toEntry()/toExpenseEntry(); fixed SavingsAllocationEntry to cap effectivePercentage at 100%; Income documented as exception |
+| Emergency hard cap indicator | 2026-02-05 | EmergencyProgressCard now shows "(capped at X)" when emergencyHardCap is set; added emergencyHardCap parameter passthrough from DashboardView; en/ro localization |
+| New Month reconciled balances fix | 2026-02-05 | Fixed `handleNewMonthCompletion` ignoring `reconciledBalances` from Step 2; now applies user's actual balances before adding transfer plan allocations |
+| New Month balance testability | 2026-02-05 | Extracted `computeUpdatedBalances(from:)` pure method on `DashboardViewModel`; MainTabView now delegates to it; added 6 unit tests covering reconcile + allocations + expense transfers + remaining money + primary reset + full scenario |
 
 ### In Progress
 
@@ -1313,6 +1317,104 @@ NewMonthSheet                    MainTabView
 - Dashboard: 60 tests passed
 - Expenses: 48 tests passed
 - Full project build: SUCCESS
+
+### 2026-02-05 - Business Logic Centralization Session
+
+**Focus:** App-wide refactoring to ensure all business logic lives in Domain, other layers delegate.
+
+**Problem Statement:** Multiple files duplicated business logic instead of delegating to Domain:
+- `SavingsAllocation` (Persistence) had own `effectivePercentage` and `calculateSavings()`
+- `Expense` (Persistence) had own `monthlyAmount` and `annualAmount`
+- `ExpenseDisplayItem` (Expenses feature) had own `monthlyAmount` and `annualAmount`
+- `Income` (Persistence) has own frequency calculations (documented exception)
+
+**Architectural Pattern Applied:**
+```
+Domain (Single Source of Truth)
+    │
+    ├── SavingsAllocationEntry.effectivePercentage
+    ├── SavingsAllocationEntry.calculateSavings()
+    ├── ExpenseEntry.monthlyAmount
+    └── ExpenseEntry.annualAmount
+          ↑ delegate via toEntry()/toExpenseEntry()
+          │
+    ┌─────┴─────────────────────────────────┐
+    │                                       │
+SavingsAllocation           Expense        ExpenseDisplayItem
+(Persistence)               (Persistence)  (Expenses feature)
+```
+
+**Changes Made:**
+
+1. **SavingsAllocationEntry (Domain)** - Fixed to cap at 100%:
+   ```swift
+   public var effectivePercentage: Double {
+       boostEnabled ? min(1.0, percentage * boostMultiplier) : percentage
+   }
+   ```
+
+2. **SavingsAllocation (Persistence)** - Now delegates:
+   ```swift
+   public var effectivePercentage: Double {
+       toEntry().effectivePercentage
+   }
+
+   public func calculateSavings(availableIncome: Decimal) -> Decimal {
+       toEntry().calculateSavings(availableIncome: availableIncome)
+   }
+   ```
+
+3. **Expense (Persistence)** - Now delegates:
+   ```swift
+   public var monthlyAmount: Decimal {
+       toEntry().monthlyAmount
+   }
+
+   public var annualAmount: Decimal {
+       toEntry().annualAmount
+   }
+   ```
+
+4. **ExpenseDisplayItem (Expenses feature)** - Added toExpenseEntry() and delegates:
+   ```swift
+   public func toExpenseEntry() -> ExpenseEntry {
+       ExpenseEntry(id: id, name: name, amount: amount, ...)
+   }
+
+   public var monthlyAmount: Decimal {
+       toExpenseEntry().monthlyAmount
+   }
+   ```
+
+5. **Income (Persistence)** - Documented exception, uses Domain's Frequency directly:
+   ```swift
+   /// Note: Uses Domain's Frequency.monthlyMultiplier directly as Income is a simple
+   /// data model without complex business logic requiring a separate Domain entity.
+   public var monthlyAmount: Decimal {
+       amount * frequency.monthlyMultiplier
+   }
+   ```
+
+6. **SavingsAllocationEntryTests** - Updated test from "Boost can exceed 100%" to "Boost is capped at 100%"
+
+**Files Modified:**
+- `Packages/Core/Domain/Sources/Domain/Entities/SavingsAllocationEntry.swift`
+- `Packages/Core/Domain/Tests/DomainTests/SavingsAllocationEntryTests.swift`
+- `Packages/Platform/Persistence/Sources/Persistence/Models/SavingsAllocation.swift`
+- `Packages/Platform/Persistence/Sources/Persistence/Models/Expense.swift`
+- `Packages/Platform/Persistence/Sources/Persistence/Models/Income.swift`
+- `Packages/Features/Expenses/Sources/Expenses/ViewModels/ExpensesViewModel.swift`
+
+**Tests Verified:**
+- Domain: 190 tests passed
+- Dashboard: 63 tests passed
+- Full project build: SUCCESS
+
+**Key Learnings:**
+1. **Domain is the single source of truth:** All business calculations should live in Domain entities
+2. **Other layers delegate via toEntry():** Persistence and Feature layers convert to Domain entities for calculations
+3. **Don't duplicate logic:** Even simple formulas like `amount * multiplier` should come from one place
+4. **Document exceptions:** Income.swift is acceptable because it uses Domain's Frequency multipliers directly
 
 ---
 

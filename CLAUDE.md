@@ -134,6 +134,41 @@ Before creating new components or utilities:
 
 If a component could be reused across features, add it to the appropriate Core package rather than duplicating in feature packages.
 
+### Business Logic Lives in Domain Only
+**NEVER duplicate business logic across layers.** All calculations and business rules must live in the Domain layer (e.g., `AccountEntry`, `TransferCalculator`).
+
+Other layers must **delegate** to Domain, not reimplement:
+- `Account` (Persistence) → use `toEntry().someCalculation()`
+- `DashboardAccount` (Features) → use `toAccountEntry().someCalculation()`
+
+**Example - Emergency Fund Target:**
+```swift
+// ✅ CORRECT: Domain has the logic, others delegate
+// Domain/AccountEntry.swift
+public func emergencyTarget(monthlyIncome: Decimal) -> Decimal? {
+    guard accountType == .emergency, let multiplier = emergencyMultiplier else { return nil }
+    let calculated = monthlyIncome * Decimal(multiplier)
+    return emergencyHardCap.map { min(calculated, $0) } ?? calculated
+}
+
+// Persistence/Account.swift - DELEGATES
+public func emergencyTarget(monthlyIncome: Decimal) -> Decimal? {
+    toEntry().emergencyTarget(monthlyIncome: monthlyIncome)
+}
+
+// Dashboard/DashboardAccount.swift - DELEGATES
+public func emergencyTarget(monthlyIncome: Decimal) -> Decimal? {
+    toAccountEntry().emergencyTarget(monthlyIncome: monthlyIncome)
+}
+```
+
+```swift
+// ❌ WRONG: Duplicating the calculation in multiple files
+// This breaks when logic changes (e.g., adding hard cap)
+```
+
+When adding new features that involve calculations, **only modify Domain** and ensure other layers delegate.
+
 ## After Deep Changes
 
 After completing significant refactoring, feature implementation, or architectural changes:

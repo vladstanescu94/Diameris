@@ -83,13 +83,15 @@ public final class Expense {
         )
     }
 
-    /// Amount converted to monthly equivalent
+    /// Amount converted to monthly equivalent.
+    /// Delegates to Domain's ExpenseEntry for the actual calculation.
     public var monthlyAmount: Decimal {
-        amount * frequency.monthlyMultiplier
+        toEntry().monthlyAmount
     }
 
-    /// Amount converted to annual equivalent
+    /// Amount converted to annual equivalent.
+    /// Delegates to Domain's ExpenseEntry for the actual calculation.
     public var annualAmount: Decimal {
-        amount * frequency.annualMultiplier
+        toEntry().annualAmount
     }
 }

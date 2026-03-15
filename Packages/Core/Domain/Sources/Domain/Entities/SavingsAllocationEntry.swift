@@ -26,9 +26,10 @@ public struct SavingsAllocationEntry: Identifiable, Sendable {
         self.boostMultiplier = boostMultiplier
     }
 
-    /// The effective percentage after applying boost multiplier
+    /// The effective percentage after applying boost multiplier.
+    /// Capped at 1.0 (100%) to prevent invalid savings rates.
     public var effectivePercentage: Double {
-        boostEnabled ? percentage * boostMultiplier : percentage
+        boostEnabled ? min(1.0, percentage * boostMultiplier) : percentage
     }
 
     /// Calculate the savings amount from available income

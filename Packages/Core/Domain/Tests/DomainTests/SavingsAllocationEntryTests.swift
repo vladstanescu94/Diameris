@@ -102,21 +102,21 @@ struct SavingsAllocationEntryTests {
             #expect(allocation.effectivePercentage == expectedPercentage)
         }
 
-        @Test("Boost can exceed 100%")
-        func boostCanExceed100() {
-            // This is allowed at the model level (UI should prevent it)
+        @Test("Boost is capped at 100%")
+        func boostCappedAt100() {
+            // Effective percentage is capped at 100% to prevent invalid savings rates
             let allocation = SavingsAllocationEntry(
                 percentage: 0.50,
                 boostEnabled: true,
                 boostMultiplier: 3.0
             )
 
-            // 50% * 3 = 150%
-            #expect(allocation.effectivePercentage == 1.50)
+            // 50% * 3 = 150%, but capped at 100%
+            #expect(allocation.effectivePercentage == 1.0)
 
-            // Savings would be more than income (edge case)
+            // Savings equals full income when capped
             let savings = allocation.calculateSavings(availableIncome: 10000)
-            #expect(savings == 15000)
+            #expect(savings == 10000)
         }
     }
 

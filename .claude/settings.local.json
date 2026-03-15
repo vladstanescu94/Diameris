@@ -15,7 +15,8 @@
       "Bash(xargs cat:*)",
       "Bash(swift test:*)",
       "Bash(tree:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(find:*)"
     ]
   }
 }

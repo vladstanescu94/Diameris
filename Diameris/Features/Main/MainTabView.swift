@@ -138,6 +138,7 @@ struct MainTabView: View {
                 isPrimary: account.isPrimary,
                 isPrimarySavings: account.isPrimarySavings,
                 emergencyMultiplier: account.emergencyMultiplier,
+                emergencyHardCap: account.emergencyHardCap,
                 currentBalance: account.currentBalance
             )
         }
@@ -303,52 +304,21 @@ struct MainTabView: View {
             income.amount = data.income
         }
 
-        // 2. Update account balances based on transfer plan
-        updateAccountBalances(from: data.transferPlan)
+        // 2. Compute updated balances (reconciled + transfer plan)
+        let updatedBalances = dashboardViewModel.computeUpdatedBalances(from: data)
 
-        // 3. Save changes - DataObserver will automatically refresh data
+        // 3. Apply to SwiftData accounts
+        for (accountId, newBalance) in updatedBalances {
+            if let account = accounts.first(where: { $0.id == accountId }) {
+                account.currentBalance = newBalance
+            }
+        }
+
+        // 4. Save changes - DataObserver will automatically refresh data
         do {
             try modelContext.save()
         } catch {
             print("Failed to save new month data: \(error)")
-        }
-    }
-
-    private func updateAccountBalances(from plan: TransferPlan) {
-        // Process savings allocations (emergency, savings accounts)
-        for allocation in plan.accountAllocations {
-            if let account = accounts.first(where: { $0.name == allocation.accountName }) {
-                account.currentBalance += allocation.amount
-            }
-        }
-
-        // Process expense-linked transfers (e.g., Food → Joint)
-        for expenseTransfer in plan.accountExpenseTransfers {
-            if let account = accounts.first(where: { $0.name == expenseTransfer.accountName }) {
-                account.currentBalance += expenseTransfer.amount
-            }
-        }
-
-        // Process remaining money destination
-        if plan.remainingMoney > 0 {
-            switch plan.remainingDestination {
-            case .primarySavings:
-                if let savingsAccount = accounts.first(where: { $0.isPrimarySavings }) {
-                    savingsAccount.currentBalance += plan.remainingMoney
-                }
-            case .personal:
-                if let personalAccount = accounts.first(where: { $0.accountType == .personal }) {
-                    personalAccount.currentBalance += plan.remainingMoney
-                }
-            case .primary:
-                // Stays in primary, handled by remainsInPrimary
-                break
-            }
-        }
-
-        // Update primary account balance (what stays for expenses)
-        if let primaryAccount = accounts.first(where: { $0.isPrimary }) {
-            primaryAccount.currentBalance = plan.remainsInPrimary
         }
     }
 }

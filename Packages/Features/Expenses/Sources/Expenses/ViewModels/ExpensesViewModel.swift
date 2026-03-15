@@ -65,14 +65,32 @@ public struct ExpenseDisplayItem: Identifiable, Sendable {
         self.notes = entry.notes
     }
 
-    /// Monthly equivalent amount
-    public var monthlyAmount: Decimal {
-        amount * frequency.monthlyMultiplier
+    /// Convert to Domain ExpenseEntry for business logic calculations.
+    /// This ensures all calculations use the single source of truth in Domain.
+    public func toExpenseEntry() -> ExpenseEntry {
+        ExpenseEntry(
+            id: id,
+            name: name,
+            amount: amount,
+            frequency: frequency,
+            icon: icon,
+            categoryId: categoryId,
+            linkedAccountId: linkedAccountId,
+            isEnabled: isEnabled,
+            notes: notes
+        )
     }
 
-    /// Annual equivalent amount
+    /// Monthly equivalent amount.
+    /// Delegates to Domain's ExpenseEntry for the actual calculation.
+    public var monthlyAmount: Decimal {
+        toExpenseEntry().monthlyAmount
+    }
+
+    /// Annual equivalent amount.
+    /// Delegates to Domain's ExpenseEntry for the actual calculation.
     public var annualAmount: Decimal {
-        amount * frequency.annualMultiplier
+        toExpenseEntry().annualAmount
     }
 
     /// Get the category for this expense

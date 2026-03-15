@@ -522,6 +522,22 @@
     "Target: %lld× monthly income" : {
 
     },
+    "Target: %lld× monthly income (capped at %@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Target: %1$lld× monthly income (capped at %2$@)"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Țintă: %1$lld× venit lunar (plafonat la %2$@)"
+          }
+        }
+      }
+    },
     "Transfer to %@" : {
       "localizations" : {
         "en" : {

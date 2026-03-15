@@ -258,6 +258,86 @@ struct TransferCalculatorTests {
                 #expect(abs(progressAfter - expectedProgressAfter) < 0.01)
             }
         }
+
+        @Test("Emergency with hard cap uses capped target")
+        func emergencyWithHardCapUsesCappedTarget() {
+            let accounts = [
+                AccountEntry.primary(name: "Main"),
+                // 3x income = 30000, but capped to 20000
+                AccountEntry.emergency(name: "Emergency", multiplier: 3.0, hardCap: 20000, currentBalance: 0),
+                AccountEntry.savings(name: "Savings", isPrimarySavings: true)
+            ]
+
+            let plan = TransferCalculator.calculate(
+                income: testIncome,
+                expenses: [],
+                allocation: allocation(percentage: 0.25), // 2500 savings
+                accounts: accounts,
+                remainingDestination: .primary
+            )
+
+            let emergencyAlloc = plan.emergencyAllocation
+
+            // Target should be capped at 20000, not 30000
+            #expect(emergencyAlloc?.targetAmount == 20000)
+            #expect(emergencyAlloc?.amount == 2500)
+        }
+
+        @Test("Emergency hard cap overflow goes to savings")
+        func emergencyHardCapOverflowGoesToSavings() {
+            let accounts = [
+                AccountEntry.primary(name: "Main"),
+                // 3x income = 30000, capped to 20000, already has 19000 (needs only 1000)
+                AccountEntry.emergency(name: "Emergency", multiplier: 3.0, hardCap: 20000, currentBalance: 19000),
+                AccountEntry.savings(name: "Savings", isPrimarySavings: true)
+            ]
+
+            let plan = TransferCalculator.calculate(
+                income: testIncome,
+                expenses: [],
+                allocation: allocation(percentage: 0.25), // 2500 savings
+                accounts: accounts,
+                remainingDestination: .primary
+            )
+
+            let emergencyAlloc = plan.emergencyAllocation
+            let savingsAlloc = plan.savingsAllocation
+
+            // Emergency needs only 1000 to reach capped target of 20000
+            #expect(emergencyAlloc?.amount == 1000)
+            #expect(emergencyAlloc?.isComplete == true)
+
+            // Remaining 1500 should go to savings
+            #expect(savingsAlloc?.amount == 1500)
+        }
+
+        @Test("Emergency fully funded at hard cap")
+        func emergencyFullyFundedAtHardCap() {
+            let accounts = [
+                AccountEntry.primary(name: "Main"),
+                // 3x income = 30000, capped to 20000, already at cap
+                AccountEntry.emergency(name: "Emergency", multiplier: 3.0, hardCap: 20000, currentBalance: 20000),
+                AccountEntry.savings(name: "Savings", isPrimarySavings: true)
+            ]
+
+            let plan = TransferCalculator.calculate(
+                income: testIncome,
+                expenses: [],
+                allocation: allocation(percentage: 0.25), // 2500 savings
+                accounts: accounts,
+                remainingDestination: .primary
+            )
+
+            let emergencyAlloc = plan.emergencyAllocation
+            let savingsAlloc = plan.savingsAllocation
+
+            // Emergency is complete at capped target
+            #expect(emergencyAlloc?.amount == 0)
+            #expect(emergencyAlloc?.isComplete == true)
+
+            // All savings go to savings account
+            #expect(savingsAlloc?.amount == 2500)
+        }
     }
 
     // MARK: - Savings Account Behavior

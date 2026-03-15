@@ -33,12 +33,16 @@ public final class Income {
         set { frequencyRaw = newValue.rawValue }
     }
 
-    /// Monthly equivalent amount
+    /// Monthly equivalent amount.
+    /// Note: Uses Domain's Frequency.monthlyMultiplier directly as Income is a simple
+    /// data model without complex business logic requiring a separate Domain entity.
     public var monthlyAmount: Decimal {
         amount * frequency.monthlyMultiplier
     }
 
-    /// Annual equivalent amount
+    /// Annual equivalent amount.
+    /// Note: Uses Domain's Frequency.annualMultiplier directly as Income is a simple
+    /// data model without complex business logic requiring a separate Domain entity.
     public var annualAmount: Decimal {
         amount * frequency.annualMultiplier
     }

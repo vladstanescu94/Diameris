@@ -19,6 +19,10 @@ public struct AccountEntry: Identifiable, Sendable {
     /// Target = monthlyIncome × emergencyMultiplier
     public var emergencyMultiplier: Double?
 
+    /// For emergency-type accounts: optional hard cap on the target amount.
+    /// When set, target = min(monthlyIncome × emergencyMultiplier, emergencyHardCap)
+    public var emergencyHardCap: Decimal?
+
     /// Current balance in this account (for progress tracking).
     public var currentBalance: Decimal
 
@@ -30,6 +34,7 @@ public struct AccountEntry: Identifiable, Sendable {
         isPrimary: Bool = false,
         isPrimarySavings: Bool = false,
         emergencyMultiplier: Double? = nil,
+        emergencyHardCap: Decimal? = nil,
         currentBalance: Decimal = 0
     ) {
         self.id = id
@@ -39,18 +44,24 @@ public struct AccountEntry: Identifiable, Sendable {
         self.isPrimary = isPrimary
         self.isPrimarySavings = isPrimarySavings
         self.emergencyMultiplier = emergencyMultiplier
+        self.emergencyHardCap = emergencyHardCap
         self.currentBalance = currentBalance
     }
 
     // MARK: - Computed Properties
 
     /// Calculates the emergency fund target based on monthly income.
+    /// When a hard cap is set, returns the minimum of calculated target and hard cap.
     /// Returns nil if this is not an emergency account.
     public func emergencyTarget(monthlyIncome: Decimal) -> Decimal? {
         guard accountType == .emergency, let multiplier = emergencyMultiplier else {
             return nil
         }
-        return monthlyIncome * Decimal(multiplier)
+        let calculatedTarget = monthlyIncome * Decimal(multiplier)
+        if let hardCap = emergencyHardCap {
+            return min(calculatedTarget, hardCap)
+        }
+        return calculatedTarget
     }
 
     /// Progress percentage toward emergency target (0.0 to 1.0).
@@ -85,10 +96,11 @@ extension AccountEntry {
         )
     }
 
-    /// Emergency fund account with income multiplier target
+    /// Emergency fund account with income multiplier target and optional hard cap
     public static func emergency(
         name: String? = nil,
         multiplier: Double = 3.0,
+        hardCap: Decimal? = nil,
         currentBalance: Decimal = 0
     ) -> AccountEntry {
         AccountEntry(
@@ -96,6 +108,7 @@ extension AccountEntry {
             purpose: "Protects you from unexpected expenses".localized,
             accountType: .emergency,
             emergencyMultiplier: multiplier,
+            emergencyHardCap: hardCap,
             currentBalance: currentBalance
         )
     }

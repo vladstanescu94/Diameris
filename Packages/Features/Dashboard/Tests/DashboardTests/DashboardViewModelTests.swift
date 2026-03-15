@@ -720,4 +720,306 @@ struct DashboardViewModelTests {
             #expect(computed.remainsInPrimary == methodResult.remainsInPrimary)
         }
     }
+
+    // MARK: - Compute Updated Balances
+
+    @Suite("Compute Updated Balances")
+    @MainActor
+    struct ComputeUpdatedBalancesTests {
+
+        @Test("Reconciled balances are applied as starting point")
+        func reconciledBalancesApplied() {
+            let vm = DashboardViewModel()
+            let savingsId = UUID()
+            vm.monthlyIncome = 10000
+            vm.savingsPercentage = 0.0 // No savings to simplify
+            vm.accounts = [
+                DashboardAccount(
+                    id: UUID(),
+                    name: "Primary",
+                    accountType: .primary,
+                    isPrimary: true,
+                    isPrimarySavings: false,
+                    emergencyMultiplier: nil,
+                    currentBalance: 0
+                ),
+                DashboardAccount(
+                    id: savingsId,
+                    name: "Savings",
+                    accountType: .savings,
+                    isPrimary: false,
+                    isPrimarySavings: true,
+                    emergencyMultiplier: nil,
+                    currentBalance: 0 // Old balance is 0
+                )
+            ]
+
+            // User entered 15000 as their actual savings balance in Step 2
+            let plan = vm.calculateTransferPlan(withIncome: 10000)
+            let data = NewMonthCompletionData(
+                income: 10000,
+                transferPlan: plan,
+                reconciledBalances: [savingsId: 15000]
+            )
+
+            let result = vm.computeUpdatedBalances(from: data)
+
+            // Savings should start from 15000 (reconciled), not 0 (old balance)
+            #expect(result[savingsId] != nil)
+            #expect(result[savingsId]! >= 15000)
+        }
+
+        @Test("Transfer plan allocations are added on top of reconciled balances")
+        func allocationsAddedOnTop() {
+            let vm = DashboardViewModel()
+            let primaryId = UUID()
+            let savingsId = UUID()
+            vm.monthlyIncome = 10000
+            vm.savingsPercentage = 0.25
+            vm.remainingMoneyDestination = .primary
+            vm.accounts = [
+                DashboardAccount(
+                    id: primaryId,
+                    name: "Primary",
+                    accountType: .primary,
+                    isPrimary: true,
+                    isPrimarySavings: false,
+                    emergencyMultiplier: nil,
+                    currentBalance: 0
+                ),
+                DashboardAccount(
+                    id: savingsId,
+                    name: "Savings",
+                    accountType: .savings,
+                    isPrimary: false,
+                    isPrimarySavings: true,
+                    emergencyMultiplier: nil,
+                    currentBalance: 5000
+                )
+            ]
+
+            let plan = vm.calculateTransferPlan(withIncome: 10000)
+            // Savings allocation should be 10000 * 0.25 = 2500
+            let savingsAllocation = plan.accountAllocations.first { $0.accountType == .savings }
+            #expect(savingsAllocation?.amount == 2500)
+
+            // User reconciles savings at 5000 (same as current)
+            let data = NewMonthCompletionData(
+                income: 10000,
+                transferPlan: plan,
+                reconciledBalances: [primaryId: 10000, savingsId: 5000]
+            )
+
+            let result = vm.computeUpdatedBalances(from: data)
+
+            // Savings = 5000 (reconciled) + 2500 (allocation) = 7500
+            #expect(result[savingsId] == 7500)
+        }
+
+        @Test("Expense-linked transfers are added to linked accounts")
+        func expenseTransfersAdded() {
+            let vm = DashboardViewModel()
+            let primaryId = UUID()
+            let jointId = UUID()
+            vm.monthlyIncome = 10000
+            vm.savingsPercentage = 0.0
+            vm.accounts = [
+                DashboardAccount(
+                    id: primaryId,
+                    name: "Primary",
+                    accountType: .primary,
+                    isPrimary: true,
+                    isPrimarySavings: false,
+                    emergencyMultiplier: nil,
+                    currentBalance: 0
+                ),
+                DashboardAccount(
+                    id: jointId,
+                    name: "Joint",
+                    accountType: .joint,
+                    isPrimary: false,
+                    isPrimarySavings: false,
+                    emergencyMultiplier: nil,
+                    currentBalance: 0
+                )
+            ]
+            vm.expenses = [
+                DashboardExpense(
+                    id: UUID(),
+                    name: "Food",
+                    amount: 2000,
+                    icon: "cart",
+                    linkedAccountId: jointId
+                )
+            ]
+
+            let plan = vm.calculateTransferPlan(withIncome: 10000)
+            let data = NewMonthCompletionData(
+                income: 10000,
+                transferPlan: plan,
+                reconciledBalances: [primaryId: 10000, jointId: 500]
+            )
+
+            let result = vm.computeUpdatedBalances(from: data)
+
+            // Joint = 500 (reconciled) + 2000 (food transfer) = 2500
+            #expect(result[jointId] == 2500)
+        }
+
+        @Test("Remaining money goes to designated account")
+        func remainingMoneyDestination() {
+            let vm = DashboardViewModel()
+            let primaryId = UUID()
+            let personalId = UUID()
+            vm.monthlyIncome = 10000
+            vm.savingsPercentage = 0.10
+            vm.remainingMoneyDestination = .personal
+            vm.accounts = [
+                DashboardAccount(
+                    id: primaryId,
+                    name: "Primary",
+                    accountType: .primary,
+                    isPrimary: true,
+                    isPrimarySavings: false,
+                    emergencyMultiplier: nil,
+                    currentBalance: 0
+                ),
+                DashboardAccount(
+                    id: personalId,
+                    name: "Personal",
+                    accountType: .personal,
+                    isPrimary: false,
+                    isPrimarySavings: false,
+                    emergencyMultiplier: nil,
+                    currentBalance: 0
+                )
+            ]
+
+            let plan = vm.calculateTransferPlan(withIncome: 10000)
+            let data = NewMonthCompletionData(
+                income: 10000,
+                transferPlan: plan,
+                reconciledBalances: [primaryId: 10000, personalId: 1000]
+            )
+
+            let result = vm.computeUpdatedBalances(from: data)
+
+            // Personal should have reconciled (1000) + remaining money
+            #expect(result[personalId]! > 1000)
+        }
+
+        @Test("Primary account is set to remainsInPrimary")
+        func primarySetToRemainsInPrimary() {
+            let vm = DashboardViewModel()
+            let primaryId = UUID()
+            vm.monthlyIncome = 10000
+            vm.savingsPercentage = 0.0
+            vm.accounts = [
+                DashboardAccount(
+                    id: primaryId,
+                    name: "Primary",
+                    accountType: .primary,
+                    isPrimary: true,
+                    isPrimarySavings: false,
+                    emergencyMultiplier: nil,
+                    currentBalance: 5000
+                )
+            ]
+
+            let plan = vm.calculateTransferPlan(withIncome: 10000)
+            let data = NewMonthCompletionData(
+                income: 10000,
+                transferPlan: plan,
+                reconciledBalances: [primaryId: 5000]
+            )
+
+            let result = vm.computeUpdatedBalances(from: data)
+
+            // Primary should be set to remainsInPrimary (not added to)
+            #expect(result[primaryId] == plan.remainsInPrimary)
+        }
+
+        @Test("Full scenario: reconcile then apply transfers")
+        func fullScenario() {
+            let vm = DashboardViewModel()
+            let primaryId = UUID()
+            let emergencyId = UUID()
+            let savingsId = UUID()
+            let jointId = UUID()
+
+            vm.monthlyIncome = 14000
+            vm.savingsPercentage = 0.25
+            vm.savingsBoostEnabled = false
+            vm.remainingMoneyDestination = .primarySavings
+            vm.accounts = [
+                DashboardAccount(
+                    id: primaryId,
+                    name: "Primary",
+                    accountType: .primary,
+                    isPrimary: true,
+                    isPrimarySavings: false,
+                    emergencyMultiplier: nil,
+                    currentBalance: 0
+                ),
+                DashboardAccount(
+                    id: emergencyId,
+                    name: "Emergency",
+                    accountType: .emergency,
+                    isPrimary: false,
+                    isPrimarySavings: false,
+                    emergencyMultiplier: 3.0,
+                    currentBalance: 42000 // Already at target
+                ),
+                DashboardAccount(
+                    id: savingsId,
+                    name: "Savings",
+                    accountType: .savings,
+                    isPrimary: false,
+                    isPrimarySavings: true,
+                    emergencyMultiplier: nil,
+                    currentBalance: 5000
+                ),
+                DashboardAccount(
+                    id: jointId,
+                    name: "Joint",
+                    accountType: .joint,
+                    isPrimary: false,
+                    isPrimarySavings: false,
+                    emergencyMultiplier: nil,
+                    currentBalance: 0
+                )
+            ]
+
+            vm.expenses = [
+                DashboardExpense(id: UUID(), name: "Rent", amount: 2000, icon: "house", linkedAccountId: nil),
+                DashboardExpense(id: UUID(), name: "Food", amount: 1500, icon: "cart", linkedAccountId: jointId)
+            ]
+
+            let plan = vm.calculateTransferPlan(withIncome: 14000)
+
+            // User updated savings to 8000 in reconcile step
+            let data = NewMonthCompletionData(
+                income: 14000,
+                transferPlan: plan,
+                reconciledBalances: [
+                    primaryId: 14000,
+                    emergencyId: 42000,
+                    savingsId: 8000,  // User updated from 5000 to 8000
+                    jointId: 200
+                ]
+            )
+
+            let result = vm.computeUpdatedBalances(from: data)
+
+            // Savings should start from 8000 (reconciled), not 5000 (old)
+            let savingsAllocation = plan.accountAllocations.first { $0.accountType == .savings }?.amount ?? 0
+            #expect(result[savingsId]! >= 8000 + savingsAllocation)
+
+            // Joint = 200 (reconciled) + 1500 (food transfer)
+            #expect(result[jointId] == 1700)
+
+            // Emergency should still be at/near target (already full)
+            #expect(result[emergencyId]! >= 42000)
+        }
+    }
 }

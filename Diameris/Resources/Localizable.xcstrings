@@ -843,6 +843,108 @@
           }
         }
       }
+    },
+    "Set maximum amount" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set maximum amount"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Setează suma maximă"
+          }
+        }
+      }
+    },
+    "Caps the emergency fund target at a fixed amount" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Caps the emergency fund target at a fixed amount"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limitează ținta fondului de urgență la o sumă fixă"
+          }
+        }
+      }
+    },
+    "Maximum amount" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maximum amount"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suma maximă"
+          }
+        }
+      }
+    },
+    "Maximum" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maximum"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maxim"
+          }
+        }
+      }
+    },
+    "The fund target will be capped at this amount regardless of income multiplier." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The fund target will be capped at this amount regardless of income multiplier."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ținta fondului va fi limitată la această sumă indiferent de multiplicatorul de venit."
+          }
+        }
+      }
+    },
+    "max" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "max"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "max"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

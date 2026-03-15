@@ -52,14 +52,16 @@ public final class SavingsAllocation {
         )
     }
 
-    /// The effective percentage after applying boost multiplier
+    /// The effective percentage after applying boost multiplier.
+    /// Delegates to Domain's SavingsAllocationEntry for the actual calculation.
     public var effectivePercentage: Double {
-        boostEnabled ? min(1.0, percentage * boostMultiplier) : percentage
+        toEntry().effectivePercentage
     }
 
-    /// Calculate the savings amount from available income
+    /// Calculate the savings amount from available income.
+    /// Delegates to Domain's SavingsAllocationEntry for the actual calculation.
     public func calculateSavings(availableIncome: Decimal) -> Decimal {
-        availableIncome * Decimal(effectivePercentage)
+        toEntry().calculateSavings(availableIncome: availableIncome)
     }
 
     /// Format percentage for display (e.g., "25%")

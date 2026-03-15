@@ -19,6 +19,7 @@ public protocol DashboardDataProvider: Sendable {
 }
 
 /// Simplified account representation for Dashboard.
+/// Business logic is delegated to Domain's AccountEntry to avoid duplication.
 public struct DashboardAccount: Identifiable, Sendable {
     public let id: UUID
     public let name: String
@@ -26,6 +27,7 @@ public struct DashboardAccount: Identifiable, Sendable {
     public let isPrimary: Bool
     public let isPrimarySavings: Bool
     public let emergencyMultiplier: Double?
+    public let emergencyHardCap: Decimal?
     public var currentBalance: Decimal
 
     public init(
@@ -35,6 +37,7 @@ public struct DashboardAccount: Identifiable, Sendable {
         isPrimary: Bool,
         isPrimarySavings: Bool,
         emergencyMultiplier: Double?,
+        emergencyHardCap: Decimal? = nil,
         currentBalance: Decimal
     ) {
         self.id = id
@@ -43,24 +46,35 @@ public struct DashboardAccount: Identifiable, Sendable {
         self.isPrimary = isPrimary
         self.isPrimarySavings = isPrimarySavings
         self.emergencyMultiplier = emergencyMultiplier
+        self.emergencyHardCap = emergencyHardCap
         self.currentBalance = currentBalance
     }
 
+    /// Convert to Domain AccountEntry for business logic calculations.
+    /// This ensures all calculations use the single source of truth in Domain.
+    public func toAccountEntry() -> AccountEntry {
+        AccountEntry(
+            id: id,
+            name: name,
+            accountType: accountType,
+            isPrimary: isPrimary,
+            isPrimarySavings: isPrimarySavings,
+            emergencyMultiplier: emergencyMultiplier,
+            emergencyHardCap: emergencyHardCap,
+            currentBalance: currentBalance
+        )
+    }
+
     /// Calculate emergency fund target based on income.
+    /// Delegates to Domain's AccountEntry for the actual calculation.
     public func emergencyTarget(monthlyIncome: Decimal) -> Decimal? {
-        guard accountType == .emergency, let multiplier = emergencyMultiplier else {
-            return nil
-        }
-        return monthlyIncome * Decimal(multiplier)
+        toAccountEntry().emergencyTarget(monthlyIncome: monthlyIncome)
     }
 
     /// Progress toward emergency target (0.0-1.0).
+    /// Delegates to Domain's AccountEntry for the actual calculation.
     public func emergencyProgress(monthlyIncome: Decimal) -> Double? {
-        guard let target = emergencyTarget(monthlyIncome: monthlyIncome), target > 0 else {
-            return nil
-        }
-        let progress = NSDecimalNumber(decimal: currentBalance / target).doubleValue
-        return min(1.0, max(0.0, progress))
+        toAccountEntry().emergencyProgress(monthlyIncome: monthlyIncome)
     }
 }
 
@@ -226,17 +240,7 @@ public final class DashboardViewModel {
     // MARK: - Private Helpers
 
     private func makeAccountEntries() -> [AccountEntry] {
-        accounts.map { account in
-            AccountEntry(
-                id: account.id,
-                name: account.name,
-                accountType: account.accountType,
-                isPrimary: account.isPrimary,
-                isPrimarySavings: account.isPrimarySavings,
-                emergencyMultiplier: account.emergencyMultiplier,
-                currentBalance: account.currentBalance
-            )
-        }
+        accounts.map { $0.toAccountEntry() }
     }
 
     private func makeExpenseEntries() -> [ExpenseEntry] {
@@ -256,6 +260,57 @@ public final class DashboardViewModel {
             boostEnabled: savingsBoostEnabled,
             boostMultiplier: savingsBoostMultiplier
         )
+    }
+}
+
+// MARK: - New Month Balance Calculation
+
+extension DashboardViewModel {
+    /// Computes updated account balances after a New Month flow completion.
+    /// Pure function: takes reconciled balances + transfer plan, returns new balances per account ID.
+    ///
+    /// Logic:
+    /// 1. Start from reconciled balances (user's actual current balances from Step 2)
+    /// 2. Add transfer plan allocations (emergency, savings)
+    /// 3. Add expense-linked transfers (e.g., Food → Joint)
+    /// 4. Add remaining money to the designated account
+    /// 5. Set primary account to remainsInPrimary
+    public func computeUpdatedBalances(from data: NewMonthCompletionData) -> [UUID: Decimal] {
+        var balances = data.reconciledBalances
+        let plan = data.transferPlan
+
+        // Add savings allocations (emergency, savings accounts)
+        for allocation in plan.accountAllocations {
+            balances[allocation.accountId, default: 0] += allocation.amount
+        }
+
+        // Add expense-linked transfers (e.g., Food → Joint)
+        for expenseTransfer in plan.accountExpenseTransfers {
+            balances[expenseTransfer.accountId, default: 0] += expenseTransfer.amount
+        }
+
+        // Add remaining money to the designated account
+        if plan.remainingMoney > 0 {
+            switch plan.remainingDestination {
+            case .primarySavings:
+                if let savingsAccount = accounts.first(where: { $0.isPrimarySavings }) {
+                    balances[savingsAccount.id, default: 0] += plan.remainingMoney
+                }
+            case .personal:
+                if let personalAccount = accounts.first(where: { $0.accountType == .personal }) {
+                    balances[personalAccount.id, default: 0] += plan.remainingMoney
+                }
+            case .primary:
+                break
+            }
+        }
+
+        // Set primary account to what stays for expenses
+        if let primaryAccount = accounts.first(where: { $0.isPrimary }) {
+            balances[primaryAccount.id] = plan.remainsInPrimary
+        }
+
+        return balances
     }
 }
 

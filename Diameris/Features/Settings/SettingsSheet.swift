@@ -178,9 +178,7 @@ private extension SettingsSheet {
                     }
 
                     if let multiplier = account.emergencyMultiplier {
-                        Text("• \(Int(multiplier))× " + "income".localized)
-                            .font(.caption)
-                            .foregroundStyle(DiamerisColors.accentSecondary)
+                        emergencyMultiplierBadge(multiplier: multiplier, hardCap: account.emergencyHardCap)
                     }
                 }
             }
@@ -205,6 +203,31 @@ private extension SettingsSheet {
             Text("Remaining Money".localized)
         } footer: {
             Text("Where leftover money goes after savings allocation.".localized)
+        }
+    }
+}
+
+// MARK: - Helper Views
+
+private extension SettingsSheet {
+    func emergencyMultiplierBadge(multiplier: Double, hardCap: Decimal?) -> some View {
+        let badgeText = emergencyBadgeText(multiplier: multiplier, hardCap: hardCap)
+        return Text(badgeText)
+            .font(.caption)
+            .foregroundStyle(DiamerisColors.accentSecondary)
+    }
+
+    func emergencyBadgeText(multiplier: Double, hardCap: Decimal?) -> String {
+        let currencyCode = userProfile?.currencyCode ?? "RON"
+        let multiplierInt = Int(multiplier)
+        let incomeText = "income".localized
+
+        if let cap = hardCap {
+            let capFormatted = AmountFormatter.formatForDisplay(cap, currency: currencyCode)
+            let maxText = "max".localized
+            return "• \(multiplierInt)× \(incomeText) (\(maxText) \(capFormatted))"
+        } else {
+            return "• \(multiplierInt)× \(incomeText)"
         }
     }
 }
@@ -262,6 +285,9 @@ private struct AccountEditorSheet: View {
     @State private var accountType: AccountType = .other
     @State private var isPrimarySavings: Bool = false
     @State private var emergencyMultiplier: Double = 3.0
+    @State private var emergencyHardCapEnabled: Bool = false
+    @State private var emergencyHardCap: Decimal = 0
+    @State private var emergencyHardCapText: String = ""
     @State private var currentBalance: Decimal = 0
 
     var body: some View {
@@ -292,25 +318,7 @@ private struct AccountEditorSheet: View {
                 }
 
                 if accountType == .emergency {
-                    Section {
-                        Picker("Target".localized, selection: $emergencyMultiplier) {
-                            Text("3× " + "monthly income".localized).tag(3.0)
-                            Text("4× " + "monthly income".localized).tag(4.0)
-                            Text("5× " + "monthly income".localized).tag(5.0)
-                            Text("6× " + "monthly income".localized).tag(6.0)
-                        }
-
-                        if monthlyIncome > 0 {
-                            HStack {
-                                Text("Target Amount".localized)
-                                Spacer()
-                                Text(AmountFormatter.formatForDisplay(monthlyIncome * Decimal(emergencyMultiplier), currency: currency.rawValue))
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    } header: {
-                        Text("Emergency Fund Target".localized)
-                    }
+                    emergencyTargetSection
                 }
 
                 Section {
@@ -354,6 +362,11 @@ private struct AccountEditorSheet: View {
         accountType = account.accountType
         isPrimarySavings = account.isPrimarySavings
         emergencyMultiplier = account.emergencyMultiplier ?? 3.0
+        emergencyHardCapEnabled = account.emergencyHardCap != nil
+        emergencyHardCap = account.emergencyHardCap ?? 0
+        if let cap = account.emergencyHardCap {
+            emergencyHardCapText = AmountFormatter.formatForEditing(cap)
+        }
         currentBalance = account.currentBalance
     }
 
@@ -362,9 +375,92 @@ private struct AccountEditorSheet: View {
         account.accountType = accountType
         account.isPrimarySavings = accountType == .savings ? isPrimarySavings : false
         account.emergencyMultiplier = accountType == .emergency ? emergencyMultiplier : nil
+        account.emergencyHardCap = accountType == .emergency && emergencyHardCapEnabled && emergencyHardCap > 0
+            ? emergencyHardCap
+            : nil
         account.currentBalance = currentBalance
 
         try? modelContext.save()
+    }
+
+    // MARK: - Emergency Target Section
+
+    private var calculatedTarget: Decimal {
+        monthlyIncome * Decimal(emergencyMultiplier)
+    }
+
+    private var effectiveTarget: Decimal {
+        if emergencyHardCapEnabled && emergencyHardCap > 0 {
+            return min(calculatedTarget, emergencyHardCap)
+        }
+        return calculatedTarget
+    }
+
+    private var isHardCapActive: Bool {
+        emergencyHardCapEnabled && emergencyHardCap > 0 && emergencyHardCap < calculatedTarget
+    }
+
+    private var emergencyTargetSection: some View {
+        Section {
+            Picker("Target".localized, selection: $emergencyMultiplier) {
+                Text("3× " + "monthly income".localized).tag(3.0)
+                Text("4× " + "monthly income".localized).tag(4.0)
+                Text("5× " + "monthly income".localized).tag(5.0)
+                Text("6× " + "monthly income".localized).tag(6.0)
+            }
+
+            if monthlyIncome > 0 {
+                targetAmountRow
+            }
+
+            Toggle("Set maximum amount".localized, isOn: $emergencyHardCapEnabled)
+                .tint(.orange)
+                .accessibilityHint("Caps the emergency fund target at a fixed amount".localized)
+
+            if emergencyHardCapEnabled {
+                hardCapInputRow
+            }
+        } header: {
+            Text("Emergency Fund Target".localized)
+        } footer: {
+            if emergencyHardCapEnabled {
+                Text("The fund target will be capped at this amount regardless of income multiplier.".localized)
+            }
+        }
+    }
+
+    private var targetAmountRow: some View {
+        HStack {
+            Text("Target Amount".localized)
+            Spacer()
+            if isHardCapActive {
+                HStack(spacing: Spacing.xs) {
+                    Text(AmountFormatter.formatForDisplay(calculatedTarget, currency: currency.rawValue))
+                        .strikethrough()
+                        .foregroundStyle(.tertiary)
+                    Text(AmountFormatter.formatForDisplay(effectiveTarget, currency: currency.rawValue))
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                Text(AmountFormatter.formatForDisplay(effectiveTarget, currency: currency.rawValue))
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var hardCapInputRow: some View {
+        HStack {
+            Text("Maximum".localized)
+            Spacer()
+            TextField("0", text: $emergencyHardCapText)
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+                .frame(width: ComponentSize.mediumInputWidth)
+                .onChange(of: emergencyHardCapText) { _, newValue in
+                    emergencyHardCap = AmountFormatter.parse(newValue)
+                }
+                .accessibilityLabel("Maximum amount".localized)
+        }
     }
 }
 

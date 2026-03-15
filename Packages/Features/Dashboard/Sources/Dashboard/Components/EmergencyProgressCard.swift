@@ -9,6 +9,7 @@ struct EmergencyProgressCard: View {
     let target: Decimal
     let progress: Double
     let multiplier: Double
+    let emergencyHardCap: Decimal?
     let currency: Currency
 
     var body: some View {
@@ -70,6 +71,13 @@ private extension EmergencyProgressCard {
 
     var targetText: String {
         let multiplierInt = Int(multiplier)
+        if let cap = emergencyHardCap {
+            let capFormatted = AmountFormatter.formatForDisplay(cap, currency: currency.rawValue)
+            return String(
+                localized: "Target: \(multiplierInt)× monthly income (capped at \(capFormatted))",
+                bundle: .module
+            )
+        }
         return String(
             localized: "Target: \(multiplierInt)× monthly income",
             bundle: .module
@@ -84,6 +92,16 @@ private extension EmergencyProgressCard {
             target: 42909,
             progress: 0.86,
             multiplier: 3.0,
+            emergencyHardCap: nil,
+            currency: .ron
+        )
+
+        EmergencyProgressCard(
+            currentBalance: 35000,
+            target: 40000,
+            progress: 0.875,
+            multiplier: 3.0,
+            emergencyHardCap: 40000,
             currency: .ron
         )
 
@@ -92,6 +110,7 @@ private extension EmergencyProgressCard {
             target: 42909,
             progress: 1.0,
             multiplier: 3.0,
+            emergencyHardCap: nil,
             currency: .ron
         )
 
@@ -100,6 +119,7 @@ private extension EmergencyProgressCard {
             target: 42909,
             progress: 0.23,
             multiplier: 3.0,
+            emergencyHardCap: nil,
             currency: .ron
         )
     }

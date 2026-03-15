@@ -59,6 +59,130 @@ struct AccountEntryTests {
         }
     }
 
+    // MARK: - Emergency Hard Cap
+
+    @Suite("Emergency Hard Cap")
+    struct EmergencyHardCap {
+
+        @Test("Hard cap limits target when below calculated",
+              arguments: [
+                (income: Decimal(10000), multiplier: 3.0, hardCap: Decimal(20000), expected: Decimal(20000)),
+                (income: Decimal(10000), multiplier: 6.0, hardCap: Decimal(42000), expected: Decimal(42000)),
+                (income: Decimal(15000), multiplier: 4.0, hardCap: Decimal(50000), expected: Decimal(50000))
+              ])
+        func hardCapLimitsTarget(income: Decimal, multiplier: Double, hardCap: Decimal, expected: Decimal) {
+            let account = AccountEntry.emergency(
+                name: "Emergency",
+                multiplier: multiplier,
+                hardCap: hardCap
+            )
+            let target = account.emergencyTarget(monthlyIncome: income)
+
+            #expect(target == expected)
+        }
+
+        @Test("Hard cap ignored when above calculated target",
+              arguments: [
+                (income: Decimal(10000), multiplier: 3.0, hardCap: Decimal(50000), expected: Decimal(30000)),
+                (income: Decimal(5000), multiplier: 3.0, hardCap: Decimal(20000), expected: Decimal(15000))
+              ])
+        func hardCapIgnoredWhenAboveCalculated(income: Decimal, multiplier: Double, hardCap: Decimal, expected: Decimal) {
+            let account = AccountEntry.emergency(
+                name: "Emergency",
+                multiplier: multiplier,
+                hardCap: hardCap
+            )
+            let target = account.emergencyTarget(monthlyIncome: income)
+
+            #expect(target == expected)
+        }
+
+        @Test("Nil hard cap means no capping")
+        func nilHardCapMeansNoCapping() {
+            let account = AccountEntry.emergency(name: "Emergency", multiplier: 3.0, hardCap: nil)
+            let target = account.emergencyTarget(monthlyIncome: 10000)
+
+            #expect(target == 30000)
+        }
+
+        @Test("Progress uses capped target")
+        func progressUsesCappedTarget() {
+            // Hard cap 20000, multiplier 3x on 10000 income would be 30000 but capped to 20000
+            let account = AccountEntry.emergency(
+                name: "Emergency",
+                multiplier: 3.0,
+                hardCap: 20000,
+                currentBalance: 10000 // 50% of capped target
+            )
+
+            let progress = account.emergencyProgress(monthlyIncome: 10000)
+
+            #expect(progress != nil)
+            if let progress = progress {
+                #expect(abs(progress - 0.5) < 0.001)
+            }
+        }
+
+        @Test("isComplete uses capped target")
+        func isCompleteUsesCappedTarget() {
+            // Without cap: target would be 30000, balance 25000 = incomplete
+            // With cap of 25000: target is 25000, balance 25000 = complete
+            let account = AccountEntry.emergency(
+                name: "Emergency",
+                multiplier: 3.0,
+                hardCap: 25000,
+                currentBalance: 25000
+            )
+
+            let isComplete = account.isEmergencyComplete(monthlyIncome: 10000)
+            #expect(isComplete == true)
+        }
+
+        @Test("Factory method sets hard cap correctly")
+        func factoryMethodSetsHardCap() {
+            let account = AccountEntry.emergency(
+                name: "Emergency",
+                multiplier: 3.0,
+                hardCap: 42000
+            )
+
+            #expect(account.emergencyHardCap == 42000)
+        }
+
+        @Test("Factory method default hard cap is nil")
+        func factoryMethodDefaultHardCapIsNil() {
+            let account = AccountEntry.emergency()
+
+            #expect(account.emergencyHardCap == nil)
+        }
+
+        @Test("Hard cap exactly equal to calculated target")
+        func hardCapEqualsCalculatedTarget() {
+            // 10000 * 3 = 30000, cap = 30000
+            let account = AccountEntry.emergency(
+                name: "Emergency",
+                multiplier: 3.0,
+                hardCap: 30000
+            )
+            let target = account.emergencyTarget(monthlyIncome: 10000)
+
+            #expect(target == 30000)
+        }
+
+        @Test("Zero hard cap still returns zero")
+        func zeroHardCapReturnsZero() {
+            let account = AccountEntry.emergency(
+                name: "Emergency",
+                multiplier: 3.0,
+                hardCap: 0
+            )
+            let target = account.emergencyTarget(monthlyIncome: 10000)
+
+            // min(30000, 0) = 0
+            #expect(target == 0)
+        }
+    }
+
     // MARK: - Emergency Progress
 
     @Suite("Emergency Progress")

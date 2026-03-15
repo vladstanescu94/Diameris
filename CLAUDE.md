@@ -4,7 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Documentation
 
-The `Docs/` directory at the project root contains `.md` files with feature specifications and project documentation. **Always check this directory** for context before implementing or modifying features.
+The `Docs/` directory at the project root contains `.md` files with feature specifications and project documentation.
+
+**Before starting any change**, you MUST:
+1. **Read the `Docs/` folder** — list its contents and read all relevant files for context
+2. **Read `DeveloperRoadmap.md`** — understand current progress and what's been done
+
+**After completing any feature or change**, you MUST:
+1. **Update existing docs** — if the change affects a documented feature, update the relevant doc file
+2. **Create new docs** — if the change introduces a new feature or pattern not yet documented, create a new `.md` file in `Docs/`
+3. **Update `DeveloperRoadmap.md`** — add completed tasks with date and notes
 
 ### Required Reading
 

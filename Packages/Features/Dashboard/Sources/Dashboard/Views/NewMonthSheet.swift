@@ -46,11 +46,7 @@ public struct NewMonthSheet: View {
                                 dismiss()
                             }
                         } else {
-                            Button {
-                                goBack()
-                            } label: {
-                                Image(systemName: "chevron.left")
-                            }
+                            Button("Back".localized, systemImage: "chevron.left", action: goBack)
                         }
                     }
                 }

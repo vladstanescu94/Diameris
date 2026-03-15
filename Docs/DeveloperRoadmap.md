@@ -132,6 +132,13 @@ This document tracks implementation progress. **Update this file after completin
 | Emergency hard cap indicator | 2026-02-05 | EmergencyProgressCard now shows "(capped at X)" when emergencyHardCap is set; added emergencyHardCap parameter passthrough from DashboardView; en/ro localization |
 | New Month reconciled balances fix | 2026-02-05 | Fixed `handleNewMonthCompletion` ignoring `reconciledBalances` from Step 2; now applies user's actual balances before adding transfer plan allocations |
 | New Month balance testability | 2026-02-05 | Extracted `computeUpdatedBalances(from:)` pure method on `DashboardViewModel`; MainTabView now delegates to it; added 6 unit tests covering reconcile + allocations + expense transfers + remaining money + primary reset + full scenario |
+| SwiftUI Pro code review | 2026-03-15 | Comprehensive SwiftUI best practices audit using SwiftUI Pro skill; fixes across all features |
+| Concurrency modernization | 2026-03-15 | Replaced `DispatchQueue.main.asyncAfter` with `Task` + `Task.sleep(for:)` in DiamerisApp.swift |
+| Accessibility improvements | 2026-03-15 | Added text labels to all icon-only buttons/menus (Dashboard toolbar, NewMonthSheet back, ExpenseList add/options); fixes VoiceOver |
+| Search correctness fix | 2026-03-15 | Replaced `.lowercased().contains()` with `localizedStandardContains()` in ExpensesViewModel; proper locale-aware search for Romanian |
+| View extraction refactoring | 2026-03-15 | Extracted computed view properties to standalone View structs: SummaryRow, BreakdownExpenseRow, PrimaryAccountCard, SecondaryAccountCard, ReconcileAccountCard, AllocationTransferRow, ExpenseTransferRow, RemainingMoneyRow, PrimaryAccountRow, TransferPlanSummary, TransferPlanVerificationBadge |
+| Design system compliance | 2026-03-15 | Replaced `.caption2` with `.caption` (too small), `fontWeight(.bold)` with `bold()`, `fontWeight(.semibold)` with `bold()` where appropriate |
+| Code hygiene cleanup | 2026-03-15 | Removed unnecessary `import UIKit` from 3 Expenses files; removed global `UIScrollView.appearance()` hack; `replacingOccurrences(of:with:)` → `replacing(_:with:)`; `filter().count` → `count(where:)`; `Date()` → `Date.now`; ContentUnavailableView for empty states; fixed Notes Binding(get:set:) in AddExpenseSheet |
 
 ### In Progress
 

@@ -16,26 +16,50 @@ struct TransferPlanStep: View {
         VStack(spacing: Spacing.lg) {
             ScrollView {
                 VStack(spacing: Spacing.md) {
-                    summarySection
-                    transfersSection
-                    primaryAccountSection
-                    verificationBadge
+                    TransferPlanSummary(
+                        income: income,
+                        expenses: expenses,
+                        availableIncome: transferPlan.availableIncome,
+                        currency: currency
+                    )
+
+                    TransferPlanTransfers(
+                        transferPlan: transferPlan,
+                        currency: currency
+                    )
+
+                    PrimaryAccountRow(
+                        amount: transferPlan.remainsInPrimary,
+                        currency: currency
+                    )
+
+                    TransferPlanVerificationBadge(isBalanced: transferPlan.isBalanced)
                 }
                 .padding(.horizontal, Spacing.lg)
             }
             .scrollIndicators(.hidden)
 
-            completeButton
-                .padding(.horizontal, Spacing.lg)
+            Button(action: onComplete) {
+                Label("Done - I made the transfers".localized, systemImage: "checkmark")
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, Spacing.sm)
+            }
+            .buttonStyle(.glassProminent)
+            .padding(.horizontal, Spacing.lg)
         }
         .padding(.vertical, Spacing.md)
     }
 }
 
-// MARK: - Subviews
+// MARK: - Transfer Plan Summary
 
-private extension TransferPlanStep {
-    var summarySection: some View {
+private struct TransferPlanSummary: View {
+    let income: Decimal
+    let expenses: Decimal
+    let availableIncome: Decimal
+    let currency: Currency
+
+    var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Label {
                 Text("Your Transfer Plan".localized)
@@ -66,93 +90,80 @@ private extension TransferPlanStep {
 
             HStack {
                 Text("Available".localized)
-                    .fontWeight(.medium)
+                    .bold()
                 Spacer()
-                Text(formatAmount(transferPlan.availableIncome))
-                    .fontWeight(.semibold)
+                Text(formatAmount(availableIncome))
+                    .bold()
             }
             .font(.subheadline)
         }
         .glassCard()
     }
 
-    @ViewBuilder
-    var transfersSection: some View {
-        let hasTransfers = transferPlan.hasAccountAllocations ||
-                          !transferPlan.accountExpenseTransfers.isEmpty ||
-                          transferPlan.remainingMoney > 0
+    private func formatAmount(_ amount: Decimal, negative: Bool = false) -> String {
+        let prefix = negative && amount > 0 ? "-" : ""
+        return prefix + AmountFormatter.formatForDisplay(amount, currency: currency.rawValue)
+    }
+}
 
+// MARK: - Transfer Plan Transfers
+
+private struct TransferPlanTransfers: View {
+    let transferPlan: TransferPlan
+    let currency: Currency
+
+    private var hasTransfers: Bool {
+        transferPlan.hasAccountAllocations ||
+        !transferPlan.accountExpenseTransfers.isEmpty ||
+        transferPlan.remainingMoney > 0
+    }
+
+    var body: some View {
         if hasTransfers {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 Text("Transfers to make".localized)
                     .font(.headline)
 
-                // Savings allocations (emergency, savings)
                 ForEach(transferPlan.accountAllocations) { allocation in
-                    transferRow(for: allocation)
+                    AllocationTransferRow(allocation: allocation, currency: currency)
                 }
 
-                // Expense-linked account transfers (e.g., Food → Joint)
                 ForEach(transferPlan.accountExpenseTransfers) { expenseTransfer in
-                    expenseTransferRow(for: expenseTransfer)
+                    ExpenseTransferRow(transfer: expenseTransfer, currency: currency)
                 }
 
-                // Show remaining money destination
                 if transferPlan.remainingMoney > 0 {
-                    remainingMoneyRow
+                    RemainingMoneyRow(
+                        amount: transferPlan.remainingMoney,
+                        destination: transferPlan.remainingDestination,
+                        currency: currency
+                    )
                 }
             }
             .glassCard()
         }
     }
+}
 
-    func expenseTransferRow(for transfer: TransferPlan.AccountExpenseTransfer) -> some View {
-        HStack(spacing: Spacing.sm) {
-            Image(systemName: "arrow.right.circle.fill")
-                .font(.body)
-                .foregroundStyle(DiamerisColors.accentSecondary)
-                .frame(width: ComponentSize.iconContainer)
+// MARK: - Allocation Transfer Row
 
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text(transferToAccountText(transfer.accountName))
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+private struct AllocationTransferRow: View {
+    let allocation: TransferPlan.AccountAllocation
+    let currency: Currency
 
-                Text(expenseNamesText(transfer.expenseNames))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            Text("+\(formatAmount(transfer.amount))")
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .foregroundStyle(DiamerisColors.positive)
-        }
-    }
-
-    func transferToAccountText(_ accountName: String) -> String {
-        String.localized("Transfer to \(accountName)")
-    }
-
-    func expenseNamesText(_ names: [String]) -> String {
-        String.localized("for \(names.joined(separator: ", "))")
-    }
-
-    func transferRow(for allocation: TransferPlan.AccountAllocation) -> some View {
+    var body: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: allocation.icon)
                 .font(.body)
-                .foregroundStyle(iconColor(for: allocation.accountType))
+                .foregroundStyle(iconColor)
                 .frame(width: ComponentSize.iconContainer)
 
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(allocation.accountName)
                     .font(.subheadline)
-                    .fontWeight(.medium)
+                    .bold()
 
-                if let note = transferNote(for: allocation) {
+                if let note = transferNote {
                     Text(note)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -161,24 +172,86 @@ private extension TransferPlanStep {
 
             Spacer()
 
-            Text("+\(formatAmount(allocation.amount))")
+            Text("+\(formattedAmount)")
                 .font(.subheadline)
-                .fontWeight(.medium)
+                .bold()
                 .foregroundStyle(DiamerisColors.positive)
         }
     }
 
-    var remainingMoneyRow: some View {
+    private var formattedAmount: String {
+        AmountFormatter.formatForDisplay(allocation.amount, currency: currency.rawValue)
+    }
+
+    private var transferNote: String? {
+        if allocation.accountType == .emergency && allocation.isComplete {
+            return "Completes fund to 100%!".localized
+        }
+        return allocation.progressChangeDisplay
+    }
+
+    private var iconColor: Color {
+        switch allocation.accountType {
+        case .primary: .secondary
+        case .emergency: DiamerisColors.warning
+        case .savings: DiamerisColors.accentPrimary
+        case .personal: DiamerisColors.accentSecondary
+        default: .secondary
+        }
+    }
+}
+
+// MARK: - Expense Transfer Row
+
+private struct ExpenseTransferRow: View {
+    let transfer: TransferPlan.AccountExpenseTransfer
+    let currency: Currency
+
+    var body: some View {
         HStack(spacing: Spacing.sm) {
-            Image(systemName: iconForRemainingDestination)
+            Image(systemName: "arrow.right.circle.fill")
                 .font(.body)
-                .foregroundStyle(colorForRemainingDestination)
+                .foregroundStyle(DiamerisColors.accentSecondary)
                 .frame(width: ComponentSize.iconContainer)
 
             VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text(nameForRemainingDestination)
+                Text(String.localized("Transfer to \(transfer.accountName)"))
                     .font(.subheadline)
-                    .fontWeight(.medium)
+                    .bold()
+
+                Text(String.localized("for \(transfer.expenseNames.joined(separator: ", "))"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Text("+\(AmountFormatter.formatForDisplay(transfer.amount, currency: currency.rawValue))")
+                .font(.subheadline)
+                .bold()
+                .foregroundStyle(DiamerisColors.positive)
+        }
+    }
+}
+
+// MARK: - Remaining Money Row
+
+private struct RemainingMoneyRow: View {
+    let amount: Decimal
+    let destination: RemainingMoneyDestination
+    let currency: Currency
+
+    var body: some View {
+        HStack(spacing: Spacing.sm) {
+            Image(systemName: icon)
+                .font(.body)
+                .foregroundStyle(color)
+                .frame(width: ComponentSize.iconContainer)
+
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                Text(name)
+                    .font(.subheadline)
+                    .bold()
 
                 Text("remaining money".localized)
                     .font(.caption)
@@ -187,14 +260,45 @@ private extension TransferPlanStep {
 
             Spacer()
 
-            Text("+\(formatAmount(transferPlan.remainingMoney))")
+            Text("+\(AmountFormatter.formatForDisplay(amount, currency: currency.rawValue))")
                 .font(.subheadline)
-                .fontWeight(.medium)
+                .bold()
                 .foregroundStyle(DiamerisColors.positive)
         }
     }
 
-    var primaryAccountSection: some View {
+    private var icon: String {
+        switch destination {
+        case .primarySavings: "banknote.fill"
+        case .personal: "person.fill"
+        case .primary: "building.columns.fill"
+        }
+    }
+
+    private var color: Color {
+        switch destination {
+        case .primarySavings: DiamerisColors.accentPrimary
+        case .personal: DiamerisColors.accentSecondary
+        case .primary: .secondary
+        }
+    }
+
+    private var name: String {
+        switch destination {
+        case .primarySavings: "Savings".localized
+        case .personal: "Personal".localized
+        case .primary: "Primary".localized
+        }
+    }
+}
+
+// MARK: - Primary Account Row
+
+private struct PrimaryAccountRow: View {
+    let amount: Decimal
+    let currency: Currency
+
+    var body: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: "building.columns.fill")
                 .font(.body)
@@ -204,7 +308,7 @@ private extension TransferPlanStep {
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text("Primary".localized)
                     .font(.subheadline)
-                    .fontWeight(.medium)
+                    .bold()
 
                 Text("stays for automatic payments".localized)
                     .font(.caption)
@@ -213,75 +317,21 @@ private extension TransferPlanStep {
 
             Spacer()
 
-            Text(formatAmount(transferPlan.remainsInPrimary))
+            Text(AmountFormatter.formatForDisplay(amount, currency: currency.rawValue))
                 .font(.subheadline)
-                .fontWeight(.medium)
+                .bold()
         }
         .glassCard()
     }
+}
 
-    func transferNote(for allocation: TransferPlan.AccountAllocation) -> String? {
-        // Check if emergency fund will be complete after this transfer
-        if allocation.accountType == .emergency && allocation.isComplete {
-            return "Completes fund to 100%!".localized
-        }
-        if let progressChange = allocation.progressChangeDisplay {
-            return progressChange
-        }
-        return nil
-    }
+// MARK: - Verification Badge
 
-    func iconColor(for type: AccountType) -> Color {
-        switch type {
-        case .primary:
-            return .secondary
-        case .emergency:
-            return DiamerisColors.warning
-        case .savings:
-            return DiamerisColors.accentPrimary
-        case .personal:
-            return DiamerisColors.accentSecondary
-        default:
-            return .secondary
-        }
-    }
+private struct TransferPlanVerificationBadge: View {
+    let isBalanced: Bool
 
-    var iconForRemainingDestination: String {
-        switch transferPlan.remainingDestination {
-        case .primarySavings:
-            return "banknote.fill"
-        case .personal:
-            return "person.fill"
-        case .primary:
-            return "building.columns.fill"
-        }
-    }
-
-    var colorForRemainingDestination: Color {
-        switch transferPlan.remainingDestination {
-        case .primarySavings:
-            return DiamerisColors.accentPrimary
-        case .personal:
-            return DiamerisColors.accentSecondary
-        case .primary:
-            return .secondary
-        }
-    }
-
-    var nameForRemainingDestination: String {
-        switch transferPlan.remainingDestination {
-        case .primarySavings:
-            return "Savings".localized
-        case .personal:
-            return "Personal".localized
-        case .primary:
-            return "Primary".localized
-        }
-    }
-
-    @ViewBuilder
-    var verificationBadge: some View {
-        if transferPlan.isBalanced {
+    var body: some View {
+        if isBalanced {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(DiamerisColors.positive)
@@ -295,26 +345,9 @@ private extension TransferPlanStep {
             .background(DiamerisColors.positive.opacity(0.1), in: RoundedRectangle(cornerRadius: CornerRadius.medium))
         }
     }
-
-    var completeButton: some View {
-        Button {
-            onComplete()
-        } label: {
-            Label("Done - I made the transfers".localized, systemImage: "checkmark")
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, Spacing.sm)
-        }
-        .buttonStyle(.glassProminent)
-    }
-
-    func formatAmount(_ amount: Decimal, negative: Bool = false) -> String {
-        let prefix = negative && amount > 0 ? "-" : ""
-        return prefix + AmountFormatter.formatForDisplay(amount, currency: currency.rawValue)
-    }
 }
 
 #Preview {
-    // Create a mock transfer plan - simpler version for preview
     let plan = TransferPlan(
         income: 14303,
         totalExpenses: 7205,

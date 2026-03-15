@@ -192,7 +192,7 @@ public struct ExpenseGroup: Identifiable, Sendable {
 
     /// Count of enabled expenses
     public var enabledCount: Int {
-        expenses.filter { $0.isEnabled }.count
+        expenses.count(where: \.isEnabled)
     }
 }
 
@@ -329,18 +329,17 @@ public final class ExpensesViewModel {
     /// Filtered expenses based on search
     public var filteredExpenses: [ExpenseDisplayItem] {
         guard !searchText.isEmpty else { return expenses }
-        let search = searchText.lowercased()
         return expenses.filter { expense in
             // Search by name
-            if expense.name.lowercased().contains(search) { return true }
+            if expense.name.localizedStandardContains(searchText) { return true }
             // Search by category name (including custom categories)
             if let categoryId = expense.categoryId,
                let category = allCategories.first(where: { $0.id == categoryId }),
-               category.name.lowercased().contains(search) {
+               category.name.localizedStandardContains(searchText) {
                 return true
             }
             // Search by notes
-            if let notes = expense.notes, notes.lowercased().contains(search) { return true }
+            if let notes = expense.notes, notes.localizedStandardContains(searchText) { return true }
             return false
         }
     }

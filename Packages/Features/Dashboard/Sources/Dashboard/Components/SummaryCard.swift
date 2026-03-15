@@ -12,66 +12,73 @@ struct SummaryCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            header
+            Label {
+                Text("Monthly Summary".localized)
+                    .font(.headline)
+            } icon: {
+                Image(systemName: "chart.pie.fill")
+                    .foregroundStyle(DiamerisColors.accentPrimary)
+            }
+
             Divider()
-            summaryRows
+
+            VStack(spacing: Spacing.sm) {
+                SummaryRow(
+                    label: "Income".localized,
+                    amount: income,
+                    style: .neutral,
+                    currency: currency
+                )
+                SummaryRow(
+                    label: "Expenses".localized,
+                    amount: expenses,
+                    style: .negative,
+                    currency: currency
+                )
+                SummaryRow(
+                    label: "Savings".localized,
+                    amount: savings,
+                    style: .positive,
+                    currency: currency
+                )
+                Divider()
+                SummaryRow(
+                    label: "Personal Spending".localized,
+                    amount: personalSpending,
+                    style: .neutral,
+                    currency: currency,
+                    isTotal: true
+                )
+            }
         }
         .glassCard()
     }
 }
 
-// MARK: - Subviews
+// MARK: - Summary Row
 
-private extension SummaryCard {
-    var header: some View {
-        Label {
-            Text("Monthly Summary".localized)
-                .font(.headline)
-        } icon: {
-            Image(systemName: "chart.pie.fill")
-                .foregroundStyle(DiamerisColors.accentPrimary)
-        }
-    }
-
-    var summaryRows: some View {
-        VStack(spacing: Spacing.sm) {
-            summaryRow(
-                label: "Income".localized,
-                amount: income,
-                style: .neutral
-            )
-            summaryRow(
-                label: "Expenses".localized,
-                amount: expenses,
-                style: .negative
-            )
-            summaryRow(
-                label: "Savings".localized,
-                amount: savings,
-                style: .positive
-            )
-            Divider()
-            summaryRow(
-                label: "Personal Spending".localized,
-                amount: personalSpending,
-                style: .neutral,
-                isTotal: true
-            )
-        }
-    }
+private struct SummaryRow: View {
+    let label: String
+    let amount: Decimal
+    let style: RowStyle
+    let currency: Currency
+    var isTotal: Bool = false
 
     enum RowStyle {
         case neutral
         case positive
         case negative
+
+        var color: Color {
+            switch self {
+            case .neutral: .primary
+            case .positive: DiamerisColors.positive
+            case .negative: DiamerisColors.negative
+            }
+        }
     }
 
-    func summaryRow(
-        label: String,
-        amount: Decimal,
-        style: RowStyle,
-        isTotal: Bool = false
-    ) -> some View {
+    var body: some View {
         HStack {
             Text(label)
                 .font(isTotal ? .headline : .subheadline)
@@ -79,24 +86,16 @@ private extension SummaryCard {
 
             Spacer()
 
-            Text(formatAmount(amount, style: style))
+            Text(formattedAmount)
                 .font(isTotal ? .headline : .subheadline)
-                .fontWeight(isTotal ? .semibold : .regular)
-                .foregroundStyle(color(for: style))
+                .bold(isTotal)
+                .foregroundStyle(style.color)
         }
     }
 
-    func formatAmount(_ amount: Decimal, style: RowStyle) -> String {
+    private var formattedAmount: String {
         let prefix = style == .negative && amount > 0 ? "-" : ""
         return prefix + AmountFormatter.formatForDisplay(amount, currency: currency.rawValue)
-    }
-
-    func color(for style: RowStyle) -> Color {
-        switch style {
-        case .neutral: return .primary
-        case .positive: return DiamerisColors.positive
-        case .negative: return DiamerisColors.negative
-        }
     }
 }
 

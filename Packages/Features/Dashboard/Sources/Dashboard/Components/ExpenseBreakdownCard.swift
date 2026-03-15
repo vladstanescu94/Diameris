@@ -10,11 +10,28 @@ struct ExpenseBreakdownCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            header
+            Label {
+                Text("Expense Breakdown".localized)
+                    .font(.headline)
+            } icon: {
+                Image(systemName: "chart.pie.fill")
+                    .foregroundStyle(DiamerisColors.accentSecondary)
+            }
+
             if sortedExpenses.isEmpty {
-                emptyState
+                Text("No expenses set".localized)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             } else {
-                expenseList
+                VStack(spacing: Spacing.xs) {
+                    ForEach(sortedExpenses.prefix(5)) { expense in
+                        BreakdownExpenseRow(
+                            expense: expense,
+                            totalExpenses: totalExpenses,
+                            currency: currency
+                        )
+                    }
+                }
             }
         }
         .glassCard()
@@ -27,34 +44,21 @@ struct ExpenseBreakdownCard: View {
     }
 }
 
-// MARK: - Subviews
+// MARK: - Breakdown Expense Row
 
-private extension ExpenseBreakdownCard {
-    var header: some View {
-        Label {
-            Text("Expense Breakdown".localized)
-                .font(.headline)
-        } icon: {
-            Image(systemName: "chart.pie.fill")
-                .foregroundStyle(DiamerisColors.accentSecondary)
-        }
+private struct BreakdownExpenseRow: View {
+    let expense: DashboardExpense
+    let totalExpenses: Decimal
+    let currency: Currency
+
+    private var percentage: Int {
+        guard totalExpenses > 0 else { return 0 }
+        let amount = NSDecimalNumber(decimal: expense.amount).doubleValue
+        let total = NSDecimalNumber(decimal: totalExpenses).doubleValue
+        return Int((amount / total) * 100)
     }
 
-    var emptyState: some View {
-        Text("No expenses set".localized)
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-    }
-
-    var expenseList: some View {
-        VStack(spacing: Spacing.xs) {
-            ForEach(sortedExpenses.prefix(5)) { expense in
-                expenseRow(expense)
-            }
-        }
-    }
-
-    func expenseRow(_ expense: DashboardExpense) -> some View {
+    var body: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: expense.icon)
                 .font(.body)
@@ -70,25 +74,13 @@ private extension ExpenseBreakdownCard {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
-            percentageBadge(for: expense)
+            Text("\(percentage)%")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, Spacing.xs)
+                .padding(.vertical, Spacing.xxs)
+                .background(Color.secondary.opacity(0.1), in: Capsule())
         }
-    }
-
-    func percentageBadge(for expense: DashboardExpense) -> some View {
-        let percentage: Int = {
-            guard totalExpenses > 0 else { return 0 }
-            let amount = NSDecimalNumber(decimal: expense.amount).doubleValue
-            let total = NSDecimalNumber(decimal: totalExpenses).doubleValue
-            return Int((amount / total) * 100)
-        }()
-
-        return Text("\(percentage)%")
-            .font(.caption2)
-            .fontWeight(.medium)
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, Spacing.xs)
-            .padding(.vertical, Spacing.xxs)
-            .background(Color.secondary.opacity(0.1), in: Capsule())
     }
 }
 

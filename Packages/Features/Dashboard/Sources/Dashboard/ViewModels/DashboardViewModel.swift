@@ -202,7 +202,7 @@ public final class DashboardViewModel {
 
     /// Current month and year for header.
     public var currentMonthDisplay: String {
-        DateFormatters.monthYear.string(from: Date())
+        DateFormatters.monthYear.string(from: .now)
     }
 
     // MARK: - Transfer Plan

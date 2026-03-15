@@ -55,7 +55,7 @@ struct SettingsSheet: View {
                         saveChanges()
                         dismiss()
                     }
-                    .fontWeight(.semibold)
+                    .bold()
                 }
             }
             .onAppear {
@@ -348,7 +348,7 @@ private struct AccountEditorSheet: View {
                         saveAccount()
                         dismiss()
                     }
-                    .fontWeight(.semibold)
+                    .bold()
                 }
             }
             .onAppear {

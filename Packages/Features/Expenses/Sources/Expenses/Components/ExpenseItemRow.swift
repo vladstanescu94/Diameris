@@ -2,8 +2,6 @@ import SwiftUI
 import Domain
 import DesignSystem
 import Utilities
-import UIKit
-
 /// Row displaying a single expense item
 public struct ExpenseItemRow: View {
     let expense: ExpenseDisplayItem
@@ -60,7 +58,7 @@ public struct ExpenseItemRow: View {
 
                     if expense.frequency == .annual && displayFrequency == .monthly {
                         Text("(\("Annual".localized))")
-                            .font(.caption2)
+                            .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 }

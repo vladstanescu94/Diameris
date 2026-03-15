@@ -40,20 +40,12 @@ private extension DashboardView {
         ToolbarItem(placement: .topBarTrailing) {
             HStack(spacing: Spacing.sm) {
                 if let onSettingsTapped {
-                    Button {
-                        onSettingsTapped()
-                    } label: {
-                        Image(systemName: "gearshape")
-                    }
+                    Button("Settings".localized, systemImage: "gearshape", action: onSettingsTapped)
                 }
 
                 #if DEBUG
                 if let onDevToolsTapped {
-                    Button {
-                        onDevToolsTapped()
-                    } label: {
-                        Image(systemName: "hammer.fill")
-                    }
+                    Button("Developer Tools".localized, systemImage: "hammer.fill", action: onDevToolsTapped)
                 }
                 #endif
             }

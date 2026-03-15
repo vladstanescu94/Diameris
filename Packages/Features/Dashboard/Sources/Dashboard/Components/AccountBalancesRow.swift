@@ -22,34 +22,44 @@ struct AccountBalancesSection: View {
 
     var body: some View {
         VStack(spacing: Spacing.sm) {
-            sectionHeader
+            Label {
+                Text("Account Balances".localized)
+                    .font(.headline)
+            } icon: {
+                Image(systemName: "building.columns.fill")
+                    .foregroundStyle(DiamerisColors.accentPrimary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             if let primary = primaryAccount {
-                primaryAccountCard(primary)
+                PrimaryAccountCard(account: primary, currency: currency)
             }
 
             if !otherAccounts.isEmpty {
-                otherAccountsGrid
+                LazyVGrid(columns: gridColumns, spacing: Spacing.sm) {
+                    ForEach(otherAccounts) { account in
+                        SecondaryAccountCard(account: account, currency: currency)
+                    }
+                }
             }
         }
     }
+
+    private var gridColumns: [GridItem] {
+        [
+            GridItem(.flexible(), spacing: Spacing.sm),
+            GridItem(.flexible(), spacing: Spacing.sm)
+        ]
+    }
 }
 
-// MARK: - Subviews
+// MARK: - Primary Account Card
 
-private extension AccountBalancesSection {
-    var sectionHeader: some View {
-        Label {
-            Text("Account Balances".localized)
-                .font(.headline)
-        } icon: {
-            Image(systemName: "building.columns.fill")
-                .foregroundStyle(DiamerisColors.accentPrimary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
+private struct PrimaryAccountCard: View {
+    let account: DashboardAccount
+    let currency: Currency
 
-    func primaryAccountCard(_ account: DashboardAccount) -> some View {
+    var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Label {
@@ -64,7 +74,7 @@ private extension AccountBalancesSection {
 
                 Text(AmountFormatter.formatForDisplay(account.currentBalance, currency: currency.rawValue))
                     .font(.title2)
-                    .fontWeight(.bold)
+                    .bold()
             }
 
             Spacer()
@@ -78,23 +88,15 @@ private extension AccountBalancesSection {
         }
         .glassCard()
     }
+}
 
-    var otherAccountsGrid: some View {
-        LazyVGrid(columns: gridColumns, spacing: Spacing.sm) {
-            ForEach(otherAccounts) { account in
-                accountCard(account)
-            }
-        }
-    }
+// MARK: - Secondary Account Card
 
-    var gridColumns: [GridItem] {
-        [
-            GridItem(.flexible(), spacing: Spacing.sm),
-            GridItem(.flexible(), spacing: Spacing.sm)
-        ]
-    }
+private struct SecondaryAccountCard: View {
+    let account: DashboardAccount
+    let currency: Currency
 
-    func accountCard(_ account: DashboardAccount) -> some View {
+    var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Label {
                 Text(account.name)
@@ -104,12 +106,12 @@ private extension AccountBalancesSection {
             } icon: {
                 Image(systemName: account.accountType.icon)
                     .font(.caption)
-                    .foregroundStyle(iconColor(for: account.accountType))
+                    .foregroundStyle(iconColor)
             }
 
             Text(AmountFormatter.formatForDisplay(account.currentBalance, currency: currency.rawValue))
                 .font(.subheadline)
-                .fontWeight(.semibold)
+                .bold()
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
         }
@@ -117,20 +119,18 @@ private extension AccountBalancesSection {
         .glassCard()
     }
 
-    func iconColor(for type: AccountType) -> Color {
-        switch type {
-        case .primary:
-            return DiamerisColors.accentPrimary
-        case .savings:
-            return DiamerisColors.accentPrimary
+    private var iconColor: Color {
+        switch account.accountType {
+        case .primary, .savings:
+            DiamerisColors.accentPrimary
         case .personal:
-            return DiamerisColors.accentSecondary
+            DiamerisColors.accentSecondary
         case .joint:
-            return .purple
+            .purple
         case .emergency:
-            return DiamerisColors.warning
+            DiamerisColors.warning
         case .other:
-            return .secondary
+            .secondary
         }
     }
 }

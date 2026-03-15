@@ -3,14 +3,13 @@ import Domain
 import DesignSystem
 import SharedUI
 import Utilities
-import UIKit
-
 /// Sheet for adding or editing an expense
 public struct AddExpenseSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var viewModel: ExpensesViewModel
 
     @State private var input: ExpenseInput
+    @State private var notesText: String = ""
     @State private var showDeleteConfirmation = false
     @State private var showAddCategory = false
 
@@ -21,7 +20,9 @@ public struct AddExpenseSheet: View {
         self.viewModel = viewModel
         self.isEditing = editingExpense != nil
         self.editingExpenseId = editingExpense?.id
-        self._input = State(initialValue: editingExpense.map { ExpenseInput(from: $0) } ?? ExpenseInput())
+        let expenseInput = editingExpense.map { ExpenseInput(from: $0) } ?? ExpenseInput()
+        self._input = State(initialValue: expenseInput)
+        self._notesText = State(initialValue: editingExpense?.notes ?? "")
     }
 
     private var title: String {
@@ -106,11 +107,11 @@ public struct AddExpenseSheet: View {
 
                 // Notes
                 Section {
-                    TextField("Notes".localized, text: Binding(
-                        get: { input.notes ?? "" },
-                        set: { input.notes = $0.isEmpty ? nil : $0 }
-                    ), axis: .vertical)
-                    .lineLimit(3...6)
+                    TextField("Notes".localized, text: $notesText, axis: .vertical)
+                        .lineLimit(3...6)
+                        .onChange(of: notesText) { _, newValue in
+                            input.notes = newValue.isEmpty ? nil : newValue
+                        }
                 } header: {
                     Text("Notes".localized)
                 }

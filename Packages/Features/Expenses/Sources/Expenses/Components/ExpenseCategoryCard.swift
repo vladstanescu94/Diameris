@@ -2,8 +2,6 @@ import SwiftUI
 import Domain
 import DesignSystem
 import Utilities
-import UIKit
-
 /// Expandable card showing expenses grouped by category
 public struct ExpenseCategoryCard: View {
     let group: ExpenseGroup
@@ -136,7 +134,7 @@ public struct ExpenseCategoryCard: View {
 extension Color {
     init?(hex: String) {
         var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
-        hexSanitized = hexSanitized.replacingOccurrences(of: "#", with: "")
+        hexSanitized = hexSanitized.replacing("#", with: "")
 
         guard hexSanitized.count == 6 else { return nil }
 

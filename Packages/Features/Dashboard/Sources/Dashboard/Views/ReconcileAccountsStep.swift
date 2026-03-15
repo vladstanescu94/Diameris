@@ -37,20 +37,45 @@ struct ReconcileAccountsStep: View {
 
     var body: some View {
         VStack(spacing: Spacing.lg) {
-            headerSection
+            VStack(spacing: Spacing.sm) {
+                Image(systemName: "arrow.triangle.2.circlepath")
+                    .iconLg()
+                    .foregroundStyle(DiamerisColors.accentSecondary)
+
+                Text("Update your account balances".localized)
+                    .font(.title3)
+                    .bold()
+
+                Text("Did you use any savings this month?".localized)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, Spacing.lg)
 
             ScrollView {
                 VStack(spacing: Spacing.md) {
                     ForEach(reconcilableAccounts) { account in
-                        accountBalanceCard(for: account)
+                        ReconcileAccountCard(
+                            account: account,
+                            balance: Binding(
+                                get: { balances[account.id] ?? account.currentBalance },
+                                set: { balances[account.id] = $0 }
+                            ),
+                            currency: $currencyBinding
+                        )
                     }
                 }
                 .padding(.horizontal, Spacing.lg)
             }
             .scrollIndicators(.hidden)
 
-            continueButton
-                .padding(.horizontal, Spacing.lg)
+            Button(action: onContinue) {
+                Text("Continue".localized)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, Spacing.sm)
+            }
+            .buttonStyle(.glassProminent)
+            .padding(.horizontal, Spacing.lg)
         }
         .padding(.vertical, Spacing.md)
         .contentShape(Rectangle())
@@ -60,36 +85,22 @@ struct ReconcileAccountsStep: View {
     }
 }
 
-// MARK: - Subviews
+// MARK: - Reconcile Account Card
 
-private extension ReconcileAccountsStep {
-    var headerSection: some View {
-        VStack(spacing: Spacing.sm) {
-            Image(systemName: "arrow.triangle.2.circlepath")
-                .iconLg()
-                .foregroundStyle(DiamerisColors.accentSecondary)
+private struct ReconcileAccountCard: View {
+    let account: DashboardAccount
+    @Binding var balance: Decimal
+    @Binding var currency: Currency
 
-            Text("Update your account balances".localized)
-                .font(.title3)
-                .fontWeight(.semibold)
-
-            Text("Did you use any savings this month?".localized)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, Spacing.lg)
-    }
-
-    func accountBalanceCard(for account: DashboardAccount) -> some View {
+    var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            // Account header with balance label
             HStack {
                 Label {
                     Text(account.name)
                         .font(.headline)
                 } icon: {
                     Image(systemName: account.accountType.icon)
-                        .foregroundStyle(iconColor(for: account.accountType))
+                        .foregroundStyle(iconColor)
                 }
 
                 Spacer()
@@ -99,61 +110,26 @@ private extension ReconcileAccountsStep {
                     .foregroundStyle(.secondary)
             }
 
-            // Balance input - full width
-            balanceInput(for: account)
+            CurrencyAmountField(
+                amount: $balance,
+                currency: $currency,
+                showCurrencyPicker: false
+            )
 
-            // Previous balance hint
-            previousBalanceHint(for: account)
+            Text(String(localized: "was \(AmountFormatter.formatForDisplay(account.currentBalance, currency: currency.rawValue)) last month", bundle: .module))
+                .font(.caption)
+                .foregroundStyle(.tertiary)
         }
         .glassCard()
     }
 
-    func balanceInput(for account: DashboardAccount) -> some View {
-        let binding = Binding<Decimal>(
-            get: { balances[account.id] ?? account.currentBalance },
-            set: { balances[account.id] = $0 }
-        )
-
-        return CurrencyAmountField(
-            amount: binding,
-            currency: $currencyBinding,
-            showCurrencyPicker: false
-        )
-    }
-
-    func previousBalanceHint(for account: DashboardAccount) -> some View {
-        let formatted = AmountFormatter.formatForDisplay(
-            account.currentBalance,
-            currency: currency.rawValue
-        )
-
-        return Text(String(localized: "was \(formatted) last month", bundle: .module))
-            .font(.caption)
-            .foregroundStyle(.tertiary)
-    }
-
-    func iconColor(for type: AccountType) -> Color {
-        switch type {
-        case .emergency:
-            return DiamerisColors.warning
-        case .savings:
-            return DiamerisColors.accentPrimary
-        case .personal:
-            return DiamerisColors.accentSecondary
-        default:
-            return .secondary
+    private var iconColor: Color {
+        switch account.accountType {
+        case .emergency: DiamerisColors.warning
+        case .savings: DiamerisColors.accentPrimary
+        case .personal: DiamerisColors.accentSecondary
+        default: .secondary
         }
-    }
-
-    var continueButton: some View {
-        Button {
-            onContinue()
-        } label: {
-            Text("Continue".localized)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, Spacing.sm)
-        }
-        .buttonStyle(.glassProminent)
     }
 }
 

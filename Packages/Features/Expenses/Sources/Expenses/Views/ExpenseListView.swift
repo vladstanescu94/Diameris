@@ -2,8 +2,6 @@ import SwiftUI
 import Domain
 import DesignSystem
 import Utilities
-import UIKit
-
 /// Main view for the Expenses tab
 public struct ExpenseListView: View {
     @Bindable var viewModel: ExpensesViewModel
@@ -37,16 +35,14 @@ public struct ExpenseListView: View {
             .searchable(text: $viewModel.searchText, prompt: "Search expenses".localized)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    Button {
+                    Button("Add Expense".localized, systemImage: "plus") {
                         HapticManager.lightTap()
                         viewModel.startAddingExpense()
-                    } label: {
-                        Image(systemName: "plus")
                     }
                 }
 
                 ToolbarItem(placement: .secondaryAction) {
-                    Menu {
+                    Menu("Options".localized, systemImage: "ellipsis.circle") {
                         Button {
                             HapticManager.lightTap()
                             withAnimation(SpringPreset.responsive) {
@@ -73,8 +69,6 @@ public struct ExpenseListView: View {
                         } label: {
                             Label("Manage Categories".localized, systemImage: "folder.badge.gearshape")
                         }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
                     }
                 }
             }
@@ -155,24 +149,14 @@ public struct ExpenseListView: View {
     // MARK: - Empty State
 
     private var emptyState: some View {
-        VStack(spacing: Spacing.lg) {
-            Image(systemName: "list.bullet.rectangle")
-                .font(.system(size: 60))
-                .foregroundStyle(.secondary)
-
-            Text("No Expenses Yet".localized)
-                .font(.headline)
-
+        ContentUnavailableView {
+            Label("No Expenses Yet".localized, systemImage: "list.bullet.rectangle")
+        } description: {
             Text("Add your first expense to start tracking your budget.".localized)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-
-            Button {
+        } actions: {
+            Button("Add Expense".localized, systemImage: "plus") {
                 HapticManager.mediumTap()
                 viewModel.startAddingExpense()
-            } label: {
-                Label("Add Expense".localized, systemImage: "plus")
             }
             .buttonStyle(.glassProminent)
         }

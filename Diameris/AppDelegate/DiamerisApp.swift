@@ -14,12 +14,6 @@ import Utilities
 
 @main
 struct DiamerisApp: App {
-    init() {
-        // Hide scroll indicators app-wide
-        UIScrollView.appearance().showsVerticalScrollIndicator = false
-        UIScrollView.appearance().showsHorizontalScrollIndicator = false
-    }
-
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             UserProfile.self,
@@ -85,11 +79,11 @@ private struct RootView: View {
         KeyboardHelper.dismiss()
 
         // Small delay to let keyboard dismiss, then transition
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+        Task {
+            try? await Task.sleep(for: .milliseconds(100))
             showMainTab = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                onboardingCompleted = true
-            }
+            try? await Task.sleep(for: .milliseconds(50))
+            onboardingCompleted = true
         }
     }
 }

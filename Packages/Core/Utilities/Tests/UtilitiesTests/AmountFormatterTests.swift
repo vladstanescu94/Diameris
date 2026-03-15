@@ -93,7 +93,7 @@ struct AmountFormatterTests {
             // Result should contain 123 and 4, with trailing zero removed
             #expect(result.contains("123"))
             #expect(result.contains("4"))
-            #expect(!result.hasSuffix("0"))
+            #expect(result.hasSuffix("0") == false)
         }
 
         @Test("Whole numbers have no decimals")

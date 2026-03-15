@@ -106,7 +106,7 @@ struct AccountEntryTests {
         }
 
         @Test("Progress uses capped target")
-        func progressUsesCappedTarget() {
+        func progressUsesCappedTarget() throws {
             // Hard cap 20000, multiplier 3x on 10000 income would be 30000 but capped to 20000
             let account = AccountEntry.emergency(
                 name: "Emergency",
@@ -115,12 +115,8 @@ struct AccountEntryTests {
                 currentBalance: 10000 // 50% of capped target
             )
 
-            let progress = account.emergencyProgress(monthlyIncome: 10000)
-
-            #expect(progress != nil)
-            if let progress = progress {
-                #expect(abs(progress - 0.5) < 0.001)
-            }
+            let progress = try #require(account.emergencyProgress(monthlyIncome: 10000))
+            #expect(abs(progress - 0.5) < 0.001)
         }
 
         @Test("isComplete uses capped target")
@@ -195,20 +191,16 @@ struct AccountEntryTests {
                 (balance: Decimal(30000), expected: 1.0),   // 100%
                 (balance: Decimal(7500), expected: 0.25)    // 25%
               ])
-        func progressPercentage(balance: Decimal, expected: Double) {
+        func progressPercentage(balance: Decimal, expected: Double) throws {
             let account = AccountEntry.emergency(
                 name: "Emergency",
                 multiplier: 3.0,
                 currentBalance: balance
             )
 
-            let progress = account.emergencyProgress(monthlyIncome: 10000)
             // Target is 30000 (10000 * 3)
-
-            #expect(progress != nil)
-            if let progress = progress {
-                #expect(abs(progress - expected) < 0.001)
-            }
+            let progress = try #require(account.emergencyProgress(monthlyIncome: 10000))
+            #expect(abs(progress - expected) < 0.001)
         }
 
         @Test("Progress capped at 100% when over-funded")

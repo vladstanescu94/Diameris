@@ -433,7 +433,7 @@ struct OnboardingViewModelTests {
             let viewModel = OnboardingViewModel()
 
             for expense in viewModel.expenses {
-                #expect(!expense.icon.isEmpty)
+                #expect(expense.icon.isEmpty == false)
             }
         }
 

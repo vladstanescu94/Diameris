@@ -139,6 +139,8 @@ This document tracks implementation progress. **Update this file after completin
 | View extraction refactoring | 2026-03-15 | Extracted computed view properties to standalone View structs: SummaryRow, BreakdownExpenseRow, PrimaryAccountCard, SecondaryAccountCard, ReconcileAccountCard, AllocationTransferRow, ExpenseTransferRow, RemainingMoneyRow, PrimaryAccountRow, TransferPlanSummary, TransferPlanVerificationBadge |
 | Design system compliance | 2026-03-15 | Replaced `.caption2` with `.caption` (too small), `fontWeight(.bold)` with `bold()`, `fontWeight(.semibold)` with `bold()` where appropriate |
 | Code hygiene cleanup | 2026-03-15 | Removed unnecessary `import UIKit` from 3 Expenses files; removed global `UIScrollView.appearance()` hack; `replacingOccurrences(of:with:)` → `replacing(_:with:)`; `filter().count` → `count(where:)`; `Date()` → `Date.now`; ContentUnavailableView for empty states; fixed Notes Binding(get:set:) in AddExpenseSheet |
+| Liquid Glass validation | 2026-03-15 | Audit of all `.glassEffect()` usage against iOS 26 best practices. Removed `.interactive()` from non-tappable ExpenseRow card. Added `GlassEffectContainer` wrappers to TransferPlanScreen, AccountBalancesSection, TransferPlanStep for shared glass rendering. Removed unused helpers from GlassComponents.swift (`glassLarge`, `glassMedium`, `glassLargeInteractive`, `glassPrimaryTint`, `glassSecondaryTint`, `PressableCardStyle`). |
+| Deprecation warning fix | 2026-03-15 | Fixed `appendInterpolation` deprecation in DevDebugView by wrapping `Decimal`/enum interpolations in `String(describing:)` for `LocalizedStringKey` compatibility |
 
 ### In Progress
 

@@ -150,7 +150,7 @@ struct ExpensesViewModelTests {
             viewModel.expandedCategories.insert(categoryId)
             viewModel.toggleCategory(categoryId)
 
-            #expect(!viewModel.expandedCategories.contains(categoryId))
+            #expect(viewModel.expandedCategories.contains(categoryId) == false)
         }
 
         @Test("Expand all expands all groups")
@@ -267,19 +267,19 @@ struct ExpensesViewModelTests {
         @Test("Empty name is invalid")
         func emptyNameInvalid() {
             let input = ExpenseInput(name: "", amount: 100, icon: "star")
-            #expect(!input.isValid)
+            #expect(input.isValid == false)
         }
 
         @Test("Whitespace only name is invalid")
         func whitespaceNameInvalid() {
             let input = ExpenseInput(name: "   ", amount: 100, icon: "star")
-            #expect(!input.isValid)
+            #expect(input.isValid == false)
         }
 
         @Test("Zero amount is invalid")
         func zeroAmountInvalid() {
             let input = ExpenseInput(name: "Test", amount: 0, icon: "star")
-            #expect(!input.isValid)
+            #expect(input.isValid == false)
         }
 
         @Test("Valid name and amount is valid")

@@ -96,14 +96,14 @@ struct CategoryTests {
         @Test("All defaults have non-empty names")
         func nonEmptyNames() {
             for category in Category.defaults {
-                #expect(!category.name.isEmpty)
+                #expect(category.name.isEmpty == false)
             }
         }
 
         @Test("All defaults have non-empty icons")
         func nonEmptyIcons() {
             for category in Category.defaults {
-                #expect(!category.icon.isEmpty)
+                #expect(category.icon.isEmpty == false)
             }
         }
 

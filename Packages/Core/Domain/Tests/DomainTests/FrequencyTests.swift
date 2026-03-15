@@ -129,7 +129,7 @@ struct FrequencyTests {
 
         @Test("All frequencies have non-empty icons", arguments: Frequency.allCases)
         func allHaveIcons(frequency: Frequency) {
-            #expect(!frequency.icon.isEmpty)
+            #expect(frequency.icon.isEmpty == false)
         }
     }
 

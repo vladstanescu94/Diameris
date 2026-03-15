@@ -189,18 +189,15 @@ struct DashboardAccountTests {
         }
 
         @Test("Progress is 0.5 at halfway point")
-        func progressHalfway() {
+        func progressHalfway() throws {
             let account = DashboardAccountTests.makeAccount(
                 accountType: .emergency,
                 emergencyMultiplier: 3.0,
                 currentBalance: 15000 // Half of 30000 target
             )
 
-            let progress = account.emergencyProgress(monthlyIncome: 10000)
-
-            // Use tolerance for floating point comparison
-            #expect(progress != nil)
-            #expect(abs(progress! - 0.5) < 0.001)
+            let progress = try #require(account.emergencyProgress(monthlyIncome: 10000))
+            #expect(abs(progress - 0.5) < 0.001)
         }
 
         @Test("Progress returns nil for non-emergency accounts")
@@ -233,17 +230,15 @@ struct DashboardAccountTests {
                 (balance: Decimal(30000), expected: 1.0),
                 (balance: Decimal(45000), expected: 1.0)  // Capped
               ])
-        func progressWithBalances(balance: Decimal, expected: Double) {
+        func progressWithBalances(balance: Decimal, expected: Double) throws {
             let account = DashboardAccountTests.makeAccount(
                 accountType: .emergency,
                 emergencyMultiplier: 3.0,
                 currentBalance: balance
             )
 
-            let progress = account.emergencyProgress(monthlyIncome: 10000)
-
-            #expect(progress != nil)
-            #expect(abs(progress! - expected) < 0.001)
+            let progress = try #require(account.emergencyProgress(monthlyIncome: 10000))
+            #expect(abs(progress - expected) < 0.001)
         }
     }
 

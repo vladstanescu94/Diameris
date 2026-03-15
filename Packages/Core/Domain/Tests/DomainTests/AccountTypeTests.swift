@@ -80,21 +80,21 @@ struct AccountTypeTests {
         @Test("All types have display names")
         func allTypesHaveDisplayNames() {
             for type in AccountType.allCases {
-                #expect(!type.displayName.isEmpty, "Type \(type) should have a display name")
+                #expect(type.displayName.isEmpty == false, "Type \(type) should have a display name")
             }
         }
 
         @Test("All types have icons")
         func allTypesHaveIcons() {
             for type in AccountType.allCases {
-                #expect(!type.icon.isEmpty, "Type \(type) should have an icon")
+                #expect(type.icon.isEmpty == false, "Type \(type) should have an icon")
             }
         }
 
         @Test("All types have descriptions")
         func allTypesHaveDescriptions() {
             for type in AccountType.allCases {
-                #expect(!type.description.isEmpty, "Type \(type) should have a description")
+                #expect(type.description.isEmpty == false, "Type \(type) should have a description")
             }
         }
 

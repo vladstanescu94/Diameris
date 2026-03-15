@@ -65,7 +65,7 @@ struct CurrencyTests {
         @Test("All currencies have symbols")
         func allHaveSymbols() {
             for currency in Currency.allCases {
-                #expect(!currency.symbol.isEmpty)
+                #expect(currency.symbol.isEmpty == false)
             }
         }
     }

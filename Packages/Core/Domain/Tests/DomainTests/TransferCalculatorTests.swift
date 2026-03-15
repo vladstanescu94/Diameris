@@ -210,7 +210,7 @@ struct TransferCalculatorTests {
 
         @Test("Emergency multiplier affects target",
               arguments: [3.0, 4.0, 5.0, 6.0])
-        func emergencyMultiplierAffectsTarget(multiplier: Double) {
+        func emergencyMultiplierAffectsTarget(multiplier: Double) throws {
             let accounts = [
                 AccountEntry.primary(name: "Main"),
                 AccountEntry.emergency(name: "Emergency", multiplier: multiplier, currentBalance: 0)
@@ -224,14 +224,14 @@ struct TransferCalculatorTests {
                 remainingDestination: .primary
             )
 
-            let emergencyAlloc = try? #require(plan.emergencyAllocation)
+            let emergencyAlloc = try #require(plan.emergencyAllocation)
             let expectedTarget = testIncome * Decimal(multiplier)
 
-            #expect(emergencyAlloc?.targetAmount == expectedTarget)
+            #expect(emergencyAlloc.targetAmount == expectedTarget)
         }
 
         @Test("Emergency progress tracking is accurate")
-        func emergencyProgressTracking() {
+        func emergencyProgressTracking() throws {
             let accounts = [
                 AccountEntry.primary(name: "Main"),
                 // 15000 of 30000 = 50% progress
@@ -247,16 +247,15 @@ struct TransferCalculatorTests {
                 remainingDestination: .primary
             )
 
-            let emergencyAlloc = plan.emergencyAllocation
+            let emergencyAlloc = try #require(plan.emergencyAllocation)
 
             // Before: 15000/30000 = 50%
-            #expect(emergencyAlloc?.progressBefore == 0.5)
+            #expect(emergencyAlloc.progressBefore == 0.5)
 
             // After: (15000 + 2500) / 30000 = 58.33%
             let expectedProgressAfter = 17500.0 / 30000.0
-            if let progressAfter = emergencyAlloc?.progressAfter {
-                #expect(abs(progressAfter - expectedProgressAfter) < 0.01)
-            }
+            let progressAfter = try #require(emergencyAlloc.progressAfter)
+            #expect(abs(progressAfter - expectedProgressAfter) < 0.01)
         }
 
         @Test("Emergency with hard cap uses capped target")
@@ -470,7 +469,7 @@ struct TransferCalculatorTests {
         }
 
         @Test("Linked expenses create transfers to target accounts")
-        func linkedExpensesCreateTransfers() {
+        func linkedExpensesCreateTransfers() throws {
             let jointAccount = AccountEntry(
                 name: "Joint Account",
                 accountType: .joint,
@@ -497,11 +496,10 @@ struct TransferCalculatorTests {
             #expect(plan.remainsInPrimary == 1500) // Only unlinked rent
             #expect(plan.accountExpenseTransfers.count == 1)
 
-            if let jointTransfer = plan.accountExpenseTransfers.first {
-                #expect(jointTransfer.amount == 400) // 300 + 100
-                #expect(jointTransfer.accountName == "Joint Account")
-                #expect(jointTransfer.expenseNames.count == 2)
-            }
+            let jointTransfer = try #require(plan.accountExpenseTransfers.first)
+            #expect(jointTransfer.amount == 400) // 300 + 100
+            #expect(jointTransfer.accountName == "Joint Account")
+            #expect(jointTransfer.expenseNames.count == 2)
         }
 
         @Test("Zero amount expenses are ignored")

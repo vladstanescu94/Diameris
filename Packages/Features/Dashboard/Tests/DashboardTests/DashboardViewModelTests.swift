@@ -393,7 +393,7 @@ struct DashboardViewModelTests {
             vm.accounts = [primary, savings, emergency]
 
             #expect(vm.displayAccounts.count == 2)
-            #expect(!vm.displayAccounts.contains { $0.isPrimary })
+            #expect(vm.displayAccounts.allSatisfy { $0.isPrimary == false })
         }
     }
 
@@ -404,7 +404,7 @@ struct DashboardViewModelTests {
     struct EmergencyFundTests {
 
         @Test("Emergency progress returns account progress")
-        func emergencyProgressFromAccount() {
+        func emergencyProgressFromAccount() throws {
             let vm = DashboardViewModel()
             vm.monthlyIncome = 10000
             vm.accounts = [
@@ -415,10 +415,8 @@ struct DashboardViewModelTests {
                 )
             ]
 
-            let progress = vm.emergencyProgress
-
-            #expect(progress != nil)
-            #expect(abs(progress! - 0.5) < 0.001)
+            let progress = try #require(vm.emergencyProgress)
+            #expect(abs(progress - 0.5) < 0.001)
         }
 
         @Test("Emergency progress nil without emergency account")
@@ -505,7 +503,7 @@ struct DashboardViewModelTests {
         func currentMonthNotEmpty() {
             let vm = DashboardViewModel()
 
-            #expect(!vm.currentMonthDisplay.isEmpty)
+            #expect(vm.currentMonthDisplay.isEmpty == false)
         }
 
         @Test("Current month display contains year")

@@ -147,6 +147,11 @@ Settings
 ├── savingsPercentage: Double (default: 0.25)
 ├── savingsBoostEnabled: Bool
 ├── savingsBoostMultiplier: Double (default: 3)
+├── allocationMode: AllocationMode (default: .prioritized)
+├── savingsInputMode: SavingsInputMode (default: .percentage)
+├── fixedAmount: Decimal (default: 0)
+├── splitEmergencyAmount: Decimal (default: 0)
+├── splitSavingsAmount: Decimal (default: 0)
 └── locale: String
 ```
 

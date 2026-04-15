@@ -141,6 +141,11 @@ This document tracks implementation progress. **Update this file after completin
 | Code hygiene cleanup | 2026-03-15 | Removed unnecessary `import UIKit` from 3 Expenses files; removed global `UIScrollView.appearance()` hack; `replacingOccurrences(of:with:)` → `replacing(_:with:)`; `filter().count` → `count(where:)`; `Date()` → `Date.now`; ContentUnavailableView for empty states; fixed Notes Binding(get:set:) in AddExpenseSheet |
 | Liquid Glass validation | 2026-03-15 | Audit of all `.glassEffect()` usage against iOS 26 best practices. Removed `.interactive()` from non-tappable ExpenseRow card. Added `GlassEffectContainer` wrappers to TransferPlanScreen, AccountBalancesSection, TransferPlanStep for shared glass rendering. Removed unused helpers from GlassComponents.swift (`glassLarge`, `glassMedium`, `glassLargeInteractive`, `glassPrimaryTint`, `glassSecondaryTint`, `PressableCardStyle`). |
 | Deprecation warning fix | 2026-03-15 | Fixed `appendInterpolation` deprecation in DevDebugView by wrapping `Decimal`/enum interpolations in `String(describing:)` for `LocalizedStringKey` compatibility |
+| Flexible savings allocation | 2026-04-15 | New `AllocationMode` enum (.prioritized/.split) and `SavingsInputMode` (.percentage/.fixedAmount) in Domain. Split mode allows independent fixed amounts for emergency + savings. Fixed amount mode allows exact currency values instead of percentages. TransferCalculator updated with `distributeSplitToAccounts()`. Settings and Onboarding UI redesigned with mode-aware conditional sections. 25 new tests (218→218 Domain, 69→76 Dashboard). Persistence updated with backward-compatible SwiftData fields. Localization in en/ro across Domain, Onboarding, and App targets. |
+| Code review fixes | 2026-04-15 | 8 issues found and fixed: `SettingsSheet.availableIncome` always equaled `monthlyIncome` (expenses not queried), `DashboardViewModel.loadData(from:)` missing 5 new fields, dead `totalSavings` variable in TransferCalculator, empty Picker labels invisible to VoiceOver, deprecated `showsIndicators` on ScrollView, and more |
+| CustomCategory schema fix | 2026-04-15 | `CustomCategory.self` was missing from `ModelContainer` schema in DiamerisApp.swift - caused custom categories to be lost on migration |
+| QA target | 2026-04-15 | Added "Diameris QA" target with separate bundle ID `ro.svc.Diameris-QA`, shared codebase, isolated data sandbox via different app container |
+| SwiftData migration fix | 2026-04-15 | Property-level defaults required on new stored fields for lightweight migration; init parameter defaults alone cause runtime crash |
 
 ### In Progress
 
@@ -168,7 +173,7 @@ Based on [MVP Overview](./MVP/00-MVP-Overview.md)
 | 04 | Categories | Done | [04-Categories.md](./MVP/04-Categories.md) | Default + custom categories; simplified (no subcategories) |
 | 05 | Emergency Fund | In Progress | [05-EmergencyFund.md](./MVP/05-EmergencyFund.md) | Progress tracking in Dashboard |
 | 06 | Loans | Not Started | [06-Loans.md](./MVP/06-Loans.md) | |
-| 07 | Savings | In Progress | [07-Savings.md](./MVP/07-Savings.md) | Basic allocation + Dashboard display |
+| 07 | Savings | In Progress | [07-Savings.md](./MVP/07-Savings.md) | Allocation + Dashboard display; flexible allocation (priority/split) + fixed amounts |
 | 08 | Accounts | In Progress | [08-Accounts.md](./MVP/08-Accounts.md) | Account types with behavioral meaning; Dashboard display |
 | 09 | Transfer Planning | In Progress | [09-TransferPlanning.md](./MVP/09-TransferPlanning.md) | TransferCalculator + NewMonthFlow |
 | 10 | Budget Analysis | Not Started | [10-BudgetAnalysis.md](./MVP/10-BudgetAnalysis.md) | |
@@ -206,6 +211,7 @@ Based on [Architecture.md](./Architecture.md)
 | AppRouter | Not Started | Navigation state management |
 | MainTabView | Done | 3 tabs (Dashboard, Expenses, Insights) + NewMonth accessory |
 | Onboarding flow | Done | Forward-only, UserDefaults flag, SwiftData persistence, polished UX |
+| QA Target | Done | Separate bundle ID (ro.svc.Diameris-QA), shared codebase, isolated data sandbox |
 
 ---
 
@@ -1424,6 +1430,48 @@ SavingsAllocation           Expense        ExpenseDisplayItem
 2. **Other layers delegate via toEntry():** Persistence and Feature layers convert to Domain entities for calculations
 3. **Don't duplicate logic:** Even simple formulas like `amount * multiplier` should come from one place
 4. **Document exceptions:** Income.swift is acceptable because it uses Domain's Frequency multipliers directly
+
+### 2026-04-15 - Flexible Savings Allocation & QA Target Session
+
+**Focus:** Add split allocation mode (independent fixed amounts for emergency + savings), fixed amount savings input mode, and QA testing target.
+
+**Major Changes:**
+1. **AllocationMode enum** (.prioritized / .split) - Controls how savings distribute between emergency and savings accounts
+2. **SavingsInputMode enum** (.percentage / .fixedAmount) - Controls whether savings use slider percentage or exact currency amount
+3. **TransferCalculator split mode** - `distributeSplitToAccounts()` with proportional reduction when exceeding available income, emergency overflow redirect to savings
+4. **Settings redesign** - Mode-aware savings section with conditional content (allocation mode picker, input mode toggle, split amount fields)
+5. **Onboarding redesign** - SavingsScreen with allocation strategy picker and conditional sections
+6. **QA Target** - Separate "Diameris QA" target with bundle ID `ro.svc.Diameris-QA`, shared codebase, isolated data via app sandbox
+
+**Bug Fixes:**
+1. `CustomCategory.self` missing from `ModelContainer` schema - caused custom categories to be lost on migration
+2. SwiftData property-level defaults needed for lightweight migration (runtime crash)
+3. `SettingsSheet.availableIncome` always equaled `monthlyIncome` - expenses weren't queried
+4. `DashboardViewModel.loadData(from:)` missing 5 new fields
+5. Dead `totalSavings` variable in TransferCalculator
+6. Empty Picker labels invisible to VoiceOver (accessibility)
+7. Deprecated `showsIndicators` parameter on ScrollView
+
+**Key Learnings:**
+1. SwiftData lightweight migration requires **property-level defaults** on new stored fields, not just init parameter defaults
+2. All `@Model` types must be registered in `ModelContainer` schema or risk data loss during migration
+3. Different bundle IDs = different app sandboxes = naturally isolated data stores (no code changes needed for QA)
+
+**Files Created:**
+- `Domain/Entities/AllocationMode.swift`
+- `Domain/Entities/SavingsInputMode.swift`
+- `DesignSystem/ComponentSize.swift` - added `flowItemNumber` constant
+
+**Files Modified:**
+- `Domain/Entities/SavingsAllocationEntry.swift` - 5 new fields
+- `Domain/UseCases/TransferCalculator.swift` - split mode distribution
+- `Persistence/Models/SavingsAllocation.swift` - 5 new stored fields with defaults
+- `Dashboard/ViewModels/DashboardViewModel.swift` - new properties, updated computed properties
+- `Diameris/Features/Main/MainTabView.swift` - wire new fields
+- `Diameris/Features/Settings/SettingsSheet.swift` - mode-aware savings section
+- `Onboarding/Views/SavingsScreen.swift` - allocation strategy UI
+- `Onboarding/ViewModels/OnboardingViewModel.swift` - use `SavingsAllocation(from:)`
+- `Diameris/AppDelegate/DiamerisApp.swift` - added CustomCategory.self to schema
 
 ---
 

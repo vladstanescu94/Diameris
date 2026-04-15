@@ -317,4 +317,203 @@ struct SavingsAllocationEntryTests {
             #expect(allocation.effectivePercentage == 0.20)
         }
     }
+
+    // MARK: - Fixed Amount Mode
+
+    @Suite("Fixed Amount Mode")
+    struct FixedAmountMode {
+
+        @Test("calculateSavings returns fixed amount in fixedAmount mode")
+        func fixedAmountReturnsExactValue() {
+            let allocation = SavingsAllocationEntry(
+                savingsInputMode: .fixedAmount,
+                fixedAmount: 1500
+            )
+
+            let savings = allocation.calculateSavings(availableIncome: 10000)
+            #expect(savings == 1500)
+        }
+
+        @Test("Fixed amount capped at available income")
+        func fixedAmountCappedAtAvailable() {
+            let allocation = SavingsAllocationEntry(
+                savingsInputMode: .fixedAmount,
+                fixedAmount: 5000
+            )
+
+            let savings = allocation.calculateSavings(availableIncome: 3000)
+            #expect(savings == 3000)
+        }
+
+        @Test("Fixed amount with zero available income returns zero")
+        func fixedAmountZeroAvailable() {
+            let allocation = SavingsAllocationEntry(
+                savingsInputMode: .fixedAmount,
+                fixedAmount: 1000
+            )
+
+            let savings = allocation.calculateSavings(availableIncome: 0)
+            #expect(savings == 0)
+        }
+
+        @Test("isValid requires fixedAmount > 0 in fixedAmount mode")
+        func fixedAmountValidation() {
+            let valid = SavingsAllocationEntry(
+                savingsInputMode: .fixedAmount,
+                fixedAmount: 100
+            )
+            let invalid = SavingsAllocationEntry(
+                savingsInputMode: .fixedAmount,
+                fixedAmount: 0
+            )
+
+            #expect(valid.isValid == true)
+            #expect(invalid.isValid == false)
+        }
+
+        @Test("isBoostApplicable is false for fixedAmount mode")
+        func boostNotApplicable() {
+            let allocation = SavingsAllocationEntry(
+                boostEnabled: true,
+                savingsInputMode: .fixedAmount,
+                fixedAmount: 1000
+            )
+
+            #expect(allocation.isBoostApplicable == false)
+        }
+
+        @Test("effectivePercentage ignores boost in fixedAmount mode")
+        func effectivePercentageIgnoresBoost() {
+            let allocation = SavingsAllocationEntry(
+                percentage: 0.20,
+                boostEnabled: true,
+                boostMultiplier: 3.0,
+                savingsInputMode: .fixedAmount,
+                fixedAmount: 1000
+            )
+
+            // Since boost is not applicable, effectivePercentage should be base
+            #expect(allocation.effectivePercentage == 0.20)
+        }
+    }
+
+    // MARK: - Split Mode Properties
+
+    @Suite("Split Mode Properties")
+    struct SplitModeProperties {
+
+        @Test("splitTotal sums emergency and savings fixed amounts")
+        func splitTotalSumsAmounts() {
+            let allocation = SavingsAllocationEntry(
+                allocationMode: .split,
+                splitEmergencyAmount: 500,
+                splitSavingsAmount: 700
+            )
+
+            // With fixed amounts, splitTotal at any income returns the sum
+            #expect(allocation.splitTotal(availableIncome: 10000) == 1200)
+        }
+
+        @Test("isBoostApplicable is false for split mode")
+        func boostNotApplicableInSplit() {
+            let allocation = SavingsAllocationEntry(
+                boostEnabled: true,
+                allocationMode: .split,
+                splitEmergencyAmount: 500,
+                splitSavingsAmount: 500
+            )
+
+            #expect(allocation.isBoostApplicable == false)
+        }
+
+        @Test("isValid in split mode requires at least one non-zero amount")
+        func splitValidation() {
+            let valid = SavingsAllocationEntry(
+                allocationMode: .split,
+                splitEmergencyAmount: 500,
+                splitSavingsAmount: 0
+            )
+            let alsoValid = SavingsAllocationEntry(
+                allocationMode: .split,
+                splitEmergencyAmount: 0,
+                splitSavingsAmount: 300
+            )
+            let invalid = SavingsAllocationEntry(
+                allocationMode: .split,
+                splitEmergencyAmount: 0,
+                splitSavingsAmount: 0
+            )
+
+            #expect(valid.isValid == true)
+            #expect(alsoValid.isValid == true)
+            #expect(invalid.isValid == false)
+        }
+
+        @Test("Split mode splitTotal with zero amounts")
+        func splitTotalZero() {
+            let allocation = SavingsAllocationEntry(
+                allocationMode: .split,
+                splitEmergencyAmount: 0,
+                splitSavingsAmount: 0
+            )
+
+            #expect(allocation.splitTotal(availableIncome: 10000) == 0)
+        }
+    }
+
+    // MARK: - Backward Compatibility
+
+    @Suite("Backward Compatibility")
+    struct BackwardCompatibility {
+
+        @Test("Default allocationMode is prioritized")
+        func defaultAllocationMode() {
+            let allocation = SavingsAllocationEntry()
+            #expect(allocation.allocationMode == .prioritized)
+        }
+
+        @Test("Default savingsInputMode is percentage")
+        func defaultSavingsInputMode() {
+            let allocation = SavingsAllocationEntry()
+            #expect(allocation.savingsInputMode == .percentage)
+        }
+
+        @Test("Default fixedAmount is 0")
+        func defaultFixedAmount() {
+            let allocation = SavingsAllocationEntry()
+            #expect(allocation.fixedAmount == 0)
+        }
+
+        @Test("Default split amounts are 0")
+        func defaultSplitAmounts() {
+            let allocation = SavingsAllocationEntry()
+            #expect(allocation.splitEmergencyAmount == 0)
+            #expect(allocation.splitSavingsAmount == 0)
+        }
+
+        @Test("Existing init without new params works unchanged")
+        func existingInitStillWorks() {
+            // This mirrors the old constructor signature
+            let allocation = SavingsAllocationEntry(
+                percentage: 0.30,
+                boostEnabled: true,
+                boostMultiplier: 2.0
+            )
+
+            #expect(allocation.percentage == 0.30)
+            #expect(allocation.boostEnabled == true)
+            #expect(allocation.boostMultiplier == 2.0)
+            #expect(allocation.allocationMode == .prioritized)
+            #expect(allocation.savingsInputMode == .percentage)
+            #expect(allocation.fixedAmount == 0)
+        }
+
+        @Test("calculateSavings unchanged for default mode")
+        func calculateSavingsUnchanged() {
+            let allocation = SavingsAllocationEntry(percentage: 0.25)
+            let savings = allocation.calculateSavings(availableIncome: 10000)
+
+            #expect(savings == 2500) // Same as before
+        }
+    }
 }

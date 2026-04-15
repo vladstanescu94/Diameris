@@ -16,6 +16,15 @@ public protocol DashboardDataProvider: Sendable {
     var savingsBoostEnabled: Bool { get }
     var savingsBoostMultiplier: Double { get }
     var remainingMoneyDestination: RemainingMoneyDestination { get }
+    var allocationMode: AllocationMode { get }
+    var savingsInputMode: SavingsInputMode { get }
+    var savingsFixedAmount: Decimal { get }
+    var splitEmergencyInputMode: SavingsInputMode { get }
+    var splitEmergencyAmount: Decimal { get }
+    var splitEmergencyPercentage: Double { get }
+    var splitSavingsInputMode: SavingsInputMode { get }
+    var splitSavingsAmount: Decimal { get }
+    var splitSavingsPercentage: Double { get }
 }
 
 /// Simplified account representation for Dashboard.
@@ -116,6 +125,15 @@ public final class DashboardViewModel {
     public var savingsBoostEnabled: Bool = false
     public var savingsBoostMultiplier: Double = 3.0
     public var remainingMoneyDestination: RemainingMoneyDestination = .primarySavings
+    public var allocationMode: AllocationMode = .prioritized
+    public var savingsInputMode: SavingsInputMode = .percentage
+    public var savingsFixedAmount: Decimal = 0
+    public var splitEmergencyInputMode: SavingsInputMode = .fixedAmount
+    public var splitEmergencyAmount: Decimal = 0
+    public var splitEmergencyPercentage: Double = 0.10
+    public var splitSavingsInputMode: SavingsInputMode = .fixedAmount
+    public var splitSavingsAmount: Decimal = 0
+    public var splitSavingsPercentage: Double = 0.15
 
     // MARK: - UI State
 
@@ -140,6 +158,15 @@ public final class DashboardViewModel {
         self.savingsBoostEnabled = provider.savingsBoostEnabled
         self.savingsBoostMultiplier = provider.savingsBoostMultiplier
         self.remainingMoneyDestination = provider.remainingMoneyDestination
+        self.allocationMode = provider.allocationMode
+        self.savingsInputMode = provider.savingsInputMode
+        self.savingsFixedAmount = provider.savingsFixedAmount
+        self.splitEmergencyInputMode = provider.splitEmergencyInputMode
+        self.splitEmergencyAmount = provider.splitEmergencyAmount
+        self.splitEmergencyPercentage = provider.splitEmergencyPercentage
+        self.splitSavingsInputMode = provider.splitSavingsInputMode
+        self.splitSavingsAmount = provider.splitSavingsAmount
+        self.splitSavingsPercentage = provider.splitSavingsPercentage
         self.hasCompletedOnboarding = !userName.isEmpty && monthlyIncome > 0
     }
 
@@ -156,13 +183,23 @@ public final class DashboardViewModel {
     }
 
     /// Effective savings percentage after boost.
+    /// Only meaningful in prioritized + percentage mode.
     public var effectiveSavingsPercentage: Double {
-        savingsBoostEnabled ? min(1.0, savingsPercentage * savingsBoostMultiplier) : savingsPercentage
+        let allocation = makeSavingsAllocation()
+        guard allocation.isBoostApplicable else { return savingsPercentage }
+        return savingsBoostEnabled ? min(1.0, savingsPercentage * savingsBoostMultiplier) : savingsPercentage
     }
 
-    /// Total savings amount based on available income.
+    /// Total savings amount based on allocation mode.
     public var totalSavings: Decimal {
-        availableIncome * Decimal(effectiveSavingsPercentage)
+        switch allocationMode {
+        case .prioritized:
+            return makeSavingsAllocation().calculateSavings(availableIncome: availableIncome)
+        case .split:
+            let allocation = makeSavingsAllocation()
+            let total = allocation.splitTotal(availableIncome: availableIncome)
+            return min(total, availableIncome)
+        }
     }
 
     /// Emergency fund account, if exists.
@@ -258,7 +295,16 @@ public final class DashboardViewModel {
         SavingsAllocationEntry(
             percentage: savingsPercentage,
             boostEnabled: savingsBoostEnabled,
-            boostMultiplier: savingsBoostMultiplier
+            boostMultiplier: savingsBoostMultiplier,
+            allocationMode: allocationMode,
+            savingsInputMode: savingsInputMode,
+            fixedAmount: savingsFixedAmount,
+            splitEmergencyInputMode: splitEmergencyInputMode,
+            splitEmergencyAmount: splitEmergencyAmount,
+            splitEmergencyPercentage: splitEmergencyPercentage,
+            splitSavingsInputMode: splitSavingsInputMode,
+            splitSavingsAmount: splitSavingsAmount,
+            splitSavingsPercentage: splitSavingsPercentage
         )
     }
 }

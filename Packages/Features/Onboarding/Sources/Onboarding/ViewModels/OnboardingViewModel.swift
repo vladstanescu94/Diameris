@@ -235,12 +235,8 @@ public final class OnboardingViewModel {
             context.insert(account)
         }
 
-        // Save savings allocation
-        let allocation = SavingsAllocation(
-            percentage: savingsAllocation.percentage,
-            boostEnabled: savingsAllocation.boostEnabled,
-            boostMultiplier: savingsAllocation.boostMultiplier
-        )
+        // Save savings allocation (includes all fields: mode, strategy, fixed amounts)
+        let allocation = SavingsAllocation(from: savingsAllocation)
         context.insert(allocation)
 
         try? context.save()

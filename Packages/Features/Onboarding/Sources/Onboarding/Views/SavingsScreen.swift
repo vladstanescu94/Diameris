@@ -4,8 +4,8 @@ import SharedUI
 import Utilities
 import Domain
 
-/// Screen for setting up savings allocation percentage.
-/// Simplified version - account types now drive savings distribution.
+/// Screen for setting up savings allocation.
+/// Supports both prioritized (emergency-first) and split (independent amounts) modes.
 struct SavingsScreen: View {
     @Bindable var viewModel: OnboardingViewModel
 
@@ -24,9 +24,10 @@ struct SavingsScreen: View {
     }
 
     var body: some View {
-        ScrollView(.vertical, showsIndicators: true) {
+        ScrollView(.vertical) {
             VStack(spacing: Spacing.xl) {
                 header
+                allocationModePicker
                 allocationSection
                 savingsFlowInfo
                 savingsPreview
@@ -61,28 +62,197 @@ private extension SavingsScreen {
     }
 }
 
+// MARK: - Allocation Mode Picker
+
+private extension SavingsScreen {
+    var allocationModePicker: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("Allocation Strategy".localized)
+                .font(.headline)
+
+            Picker("Allocation Strategy".localized, selection: $viewModel.savingsAllocation.allocationMode) {
+                ForEach(AllocationMode.allCases) { mode in
+                    Text(mode.displayName).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            Text(viewModel.savingsAllocation.allocationMode.description)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .opacity(contentAppeared ? 1 : 0)
+        .offset(y: contentAppeared ? 0 : SlideOffset.small)
+    }
+}
+
 // MARK: - Allocation Section
 
 private extension SavingsScreen {
+    @ViewBuilder
     var allocationSection: some View {
+        switch viewModel.savingsAllocation.allocationMode {
+        case .prioritized:
+            prioritizedSection
+        case .split:
+            splitSection
+        }
+    }
+
+    var prioritizedSection: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             Text("Monthly Savings".localized)
                 .font(.headline)
 
-            SavingsSlider(
-                percentage: $viewModel.savingsAllocation.percentage,
-                availableIncome: availableIncome,
-                currency: viewModel.currency.rawValue,
-                boostEnabled: viewModel.savingsAllocation.boostEnabled,
-                boostMultiplier: viewModel.savingsAllocation.boostMultiplier
-            )
+            // Input mode toggle
+            Picker("Savings Type".localized, selection: $viewModel.savingsAllocation.savingsInputMode) {
+                ForEach(SavingsInputMode.allCases) { mode in
+                    Text(mode.displayName).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
 
-            boostToggleCard
+            if viewModel.savingsAllocation.savingsInputMode == .percentage {
+                SavingsSlider(
+                    percentage: $viewModel.savingsAllocation.percentage,
+                    availableIncome: availableIncome,
+                    currency: viewModel.currency.rawValue,
+                    boostEnabled: viewModel.savingsAllocation.boostEnabled,
+                    boostMultiplier: viewModel.savingsAllocation.boostMultiplier
+                )
+
+                boostToggleCard
+            } else {
+                fixedAmountInput
+            }
         }
         .opacity(contentAppeared ? 1 : 0)
         .offset(y: contentAppeared ? 0 : SlideOffset.small)
     }
 
+    var fixedAmountInput: some View {
+        VStack(spacing: Spacing.md) {
+            CurrencyAmountField(
+                amount: $viewModel.savingsAllocation.fixedAmount,
+                currency: $viewModel.currency,
+                showCurrencyPicker: false
+            )
+        }
+    }
+
+    var splitSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            Text("Monthly Amounts".localized)
+                .font(.headline)
+
+            if viewModel.hasEmergencyAccount {
+                VStack(alignment: .leading, spacing: Spacing.sm) {
+                    Label("Emergency Fund".localized, systemImage: AccountType.emergency.icon)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    Picker("Emergency Fund".localized, selection: $viewModel.savingsAllocation.splitEmergencyInputMode) {
+                        ForEach(SavingsInputMode.allCases) { mode in
+                            Text(mode.displayName).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    if viewModel.savingsAllocation.splitEmergencyInputMode == .percentage {
+                        VStack(alignment: .leading, spacing: Spacing.xs) {
+                            HStack {
+                                Text("\(Int(viewModel.savingsAllocation.splitEmergencyPercentage * 100))%")
+                                    .font(.title3)
+                                    .bold()
+                                    .foregroundStyle(DiamerisColors.accentSecondary)
+                                    .monospacedDigit()
+                                Spacer()
+                                if availableIncome > 0 {
+                                    let amount = availableIncome * Decimal(viewModel.savingsAllocation.splitEmergencyPercentage)
+                                    Text(AmountFormatter.formatForDisplay(amount, currency: viewModel.currency.rawValue))
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            Slider(
+                                value: $viewModel.savingsAllocation.splitEmergencyPercentage,
+                                in: 0.05...0.50,
+                                step: 0.01
+                            )
+                            .tint(DiamerisColors.accentSecondary)
+                        }
+                    } else {
+                        CurrencyAmountField(
+                            amount: $viewModel.savingsAllocation.splitEmergencyAmount,
+                            currency: $viewModel.currency,
+                            showCurrencyPicker: false
+                        )
+                    }
+                }
+            }
+
+            if viewModel.hasPrimarySavingsAccount {
+                VStack(alignment: .leading, spacing: Spacing.sm) {
+                    Label("Savings".localized, systemImage: AccountType.savings.icon)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    Picker("Savings".localized, selection: $viewModel.savingsAllocation.splitSavingsInputMode) {
+                        ForEach(SavingsInputMode.allCases) { mode in
+                            Text(mode.displayName).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    if viewModel.savingsAllocation.splitSavingsInputMode == .percentage {
+                        VStack(alignment: .leading, spacing: Spacing.xs) {
+                            HStack {
+                                Text("\(Int(viewModel.savingsAllocation.splitSavingsPercentage * 100))%")
+                                    .font(.title3)
+                                    .bold()
+                                    .foregroundStyle(DiamerisColors.accentSecondary)
+                                    .monospacedDigit()
+                                Spacer()
+                                if availableIncome > 0 {
+                                    let amount = availableIncome * Decimal(viewModel.savingsAllocation.splitSavingsPercentage)
+                                    Text(AmountFormatter.formatForDisplay(amount, currency: viewModel.currency.rawValue))
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            Slider(
+                                value: $viewModel.savingsAllocation.splitSavingsPercentage,
+                                in: 0.05...0.50,
+                                step: 0.01
+                            )
+                            .tint(DiamerisColors.accentSecondary)
+                        }
+                    } else {
+                        CurrencyAmountField(
+                            amount: $viewModel.savingsAllocation.splitSavingsAmount,
+                            currency: $viewModel.currency,
+                            showCurrencyPicker: false
+                        )
+                    }
+                }
+            }
+
+            if !viewModel.hasEmergencyAccount && !viewModel.hasPrimarySavingsAccount {
+                Text("Add an emergency or savings account first to use split mode.".localized)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, Spacing.md)
+            }
+        }
+        .opacity(contentAppeared ? 1 : 0)
+        .offset(y: contentAppeared ? 0 : SlideOffset.small)
+    }
+}
+
+// MARK: - Boost Toggle Card
+
+private extension SavingsScreen {
     var boostToggleCard: some View {
         // GlassEffectContainer enables morphing when warning appears/disappears
         GlassEffectContainer(spacing: 0) {
@@ -173,22 +343,10 @@ private extension SavingsScreen {
                 }
 
                 VStack(alignment: .leading, spacing: Spacing.xs) {
-                    if viewModel.hasEmergencyAccount {
-                        flowItem(
-                            number: "1",
-                            text: "Emergency fund fills first until target reached".localized,
-                            icon: "shield.fill"
-                        )
-                        .transition(.opacity.animation(.easeOut(duration: AnimationDuration.appear)))
-                    }
-
-                    if viewModel.hasPrimarySavingsAccount {
-                        flowItem(
-                            number: viewModel.hasEmergencyAccount ? "2" : "1",
-                            text: "Remaining savings go to your savings account".localized,
-                            icon: "banknote.fill"
-                        )
-                        .transition(.opacity.animation(.easeOut(duration: AnimationDuration.appear)))
+                    if viewModel.savingsAllocation.allocationMode == .prioritized {
+                        prioritizedFlowItems
+                    } else {
+                        splitFlowItems
                     }
                 }
             }
@@ -198,12 +356,60 @@ private extension SavingsScreen {
         }
     }
 
+    @ViewBuilder
+    var prioritizedFlowItems: some View {
+        if viewModel.hasEmergencyAccount {
+            flowItem(
+                number: "1",
+                text: "Emergency fund fills first until target reached".localized,
+                icon: "shield.fill"
+            )
+            .transition(.opacity.animation(.easeOut(duration: AnimationDuration.appear)))
+        }
+
+        if viewModel.hasPrimarySavingsAccount {
+            flowItem(
+                number: viewModel.hasEmergencyAccount ? "2" : "1",
+                text: "Remaining savings go to your savings account".localized,
+                icon: "banknote.fill"
+            )
+            .transition(.opacity.animation(.easeOut(duration: AnimationDuration.appear)))
+        }
+    }
+
+    @ViewBuilder
+    var splitFlowItems: some View {
+        if viewModel.hasEmergencyAccount {
+            let emergencyText = viewModel.savingsAllocation.splitEmergencyInputMode == .percentage
+                ? "Percentage of income to emergency each month".localized
+                : "Fixed amount to emergency each month".localized
+            flowItem(
+                number: "1",
+                text: emergencyText,
+                icon: "shield.fill"
+            )
+            .transition(.opacity.animation(.easeOut(duration: AnimationDuration.appear)))
+        }
+
+        if viewModel.hasPrimarySavingsAccount {
+            let savingsText = viewModel.savingsAllocation.splitSavingsInputMode == .percentage
+                ? "Percentage of income to savings each month".localized
+                : "Fixed amount to savings each month".localized
+            flowItem(
+                number: viewModel.hasEmergencyAccount ? "2" : "1",
+                text: savingsText,
+                icon: "banknote.fill"
+            )
+            .transition(.opacity.animation(.easeOut(duration: AnimationDuration.appear)))
+        }
+    }
+
     func flowItem(number: String, text: String, icon: String) -> some View {
         HStack(spacing: Spacing.sm) {
             Text(number)
                 .font(.caption)
-                .fontWeight(.bold)
-                .frame(width: 20, height: 20)
+                .bold()
+                .frame(width: ComponentSize.flowItemNumber, height: ComponentSize.flowItemNumber)
                 .background(DiamerisColors.accentSecondary.opacity(0.2))
                 .clipShape(Circle())
 
@@ -224,29 +430,41 @@ private extension SavingsScreen {
     @ViewBuilder
     var savingsPreview: some View {
         if viewModel.monthlyIncome > 0 {
-            let savingsAmount = viewModel.savingsAllocation.calculateSavings(availableIncome: availableIncome)
+            let savingsAmount = calculatePreviewSavings()
 
-            VStack(alignment: .leading, spacing: Spacing.sm) {
-                Text("This month's savings".localized)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-
-                HStack {
-                    Text(AmountFormatter.formatForDisplay(savingsAmount, currency: viewModel.currency.rawValue))
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundStyle(DiamerisColors.accentSecondary)
-
-                    Text("going to your accounts".localized)
+            if savingsAmount > 0 {
+                VStack(alignment: .leading, spacing: Spacing.sm) {
+                    Text("This month's savings".localized)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
+
+                    HStack {
+                        Text(AmountFormatter.formatForDisplay(savingsAmount, currency: viewModel.currency.rawValue))
+                            .font(.title2)
+                            .bold()
+                            .foregroundStyle(DiamerisColors.accentSecondary)
+
+                        Text("going to your accounts".localized)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(Spacing.md)
+                .background(DiamerisColors.accentSecondary.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.medium))
+                .opacity(contentAppeared ? 1 : 0)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(Spacing.md)
-            .background(DiamerisColors.accentSecondary.opacity(0.1))
-            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.medium))
-            .opacity(contentAppeared ? 1 : 0)
+        }
+    }
+
+    func calculatePreviewSavings() -> Decimal {
+        switch viewModel.savingsAllocation.allocationMode {
+        case .prioritized:
+            return viewModel.savingsAllocation.calculateSavings(availableIncome: availableIncome)
+        case .split:
+            let total = viewModel.savingsAllocation.splitTotal(availableIncome: availableIncome)
+            return min(total, availableIncome)
         }
     }
 }

@@ -13,6 +13,14 @@
 		DE6CCDC22F018354005B3DFA /* Dashboard in Frameworks */ = {isa = PBXBuildFile; productRef = DE6CCDC12F018354005B3DFA /* Dashboard */; };
 		DE6CCDCD2F028FE0005B3DFA /* Persistence in Frameworks */ = {isa = PBXBuildFile; productRef = DE6CCDCC2F028FE0005B3DFA /* Persistence */; };
 		DE6CCDD02F0291BD005B3DFA /* Expenses in Frameworks */ = {isa = PBXBuildFile; productRef = DE6CCDCF2F0291BD005B3DFA /* Expenses */; };
+		DEE6C4F02F8FA74E00FD6E9E /* DesignSystem in Frameworks */ = {isa = PBXBuildFile; productRef = DEE6C4EF2F8FA74E00FD6E9E /* DesignSystem */; };
+		DEE6C4F22F8FA74E00FD6E9E /* Onboarding in Frameworks */ = {isa = PBXBuildFile; productRef = DEE6C4F12F8FA74E00FD6E9E /* Onboarding */; };
+		DEE6C4F42F8FA74E00FD6E9E /* SharedUI in Frameworks */ = {isa = PBXBuildFile; productRef = DEE6C4F32F8FA74E00FD6E9E /* SharedUI */; };
+		DEE6C4F62F8FA74E00FD6E9E /* Utilities in Frameworks */ = {isa = PBXBuildFile; productRef = DEE6C4F52F8FA74E00FD6E9E /* Utilities */; };
+		DEE6C4F82F8FA74E00FD6E9E /* Domain in Frameworks */ = {isa = PBXBuildFile; productRef = DEE6C4F72F8FA74E00FD6E9E /* Domain */; };
+		DEE6C4FA2F8FA74E00FD6E9E /* Dashboard in Frameworks */ = {isa = PBXBuildFile; productRef = DEE6C4F92F8FA74E00FD6E9E /* Dashboard */; };
+		DEE6C4FC2F8FA74E00FD6E9E /* Persistence in Frameworks */ = {isa = PBXBuildFile; productRef = DEE6C4FB2F8FA74E00FD6E9E /* Persistence */; };
+		DEE6C4FE2F8FA74E00FD6E9E /* Expenses in Frameworks */ = {isa = PBXBuildFile; productRef = DEE6C4FD2F8FA74E00FD6E9E /* Expenses */; };
 		DEFC41CA2EFFEBA2009AA81A /* SharedUI in Frameworks */ = {isa = PBXBuildFile; productRef = DEFC41C92EFFEBA2009AA81A /* SharedUI */; };
 		DEFC41CD2EFFEBAD009AA81A /* Utilities in Frameworks */ = {isa = PBXBuildFile; productRef = DEFC41CC2EFFEBAD009AA81A /* Utilities */; };
 /* End PBXBuildFile section */
@@ -38,6 +46,7 @@
 		DE0EA2AA2EF963440037FB3A /* Diameris.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Diameris.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DE0EA2B92EF963470037FB3A /* DiamerisTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DiamerisTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DE0EA2C32EF963470037FB3A /* DiamerisUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DiamerisUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		DEE6C4BC2F8F9F6E00FD6E9E /* Diameris QA.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Diameris QA.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -88,6 +97,21 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		DEE6C4B92F8F9F6E00FD6E9E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DEE6C4F82F8FA74E00FD6E9E /* Domain in Frameworks */,
+				DEE6C4F42F8FA74E00FD6E9E /* SharedUI in Frameworks */,
+				DEE6C4FC2F8FA74E00FD6E9E /* Persistence in Frameworks */,
+				DEE6C4FE2F8FA74E00FD6E9E /* Expenses in Frameworks */,
+				DEE6C4F62F8FA74E00FD6E9E /* Utilities in Frameworks */,
+				DEE6C4F02F8FA74E00FD6E9E /* DesignSystem in Frameworks */,
+				DEE6C4F22F8FA74E00FD6E9E /* Onboarding in Frameworks */,
+				DEE6C4FA2F8FA74E00FD6E9E /* Dashboard in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -97,6 +121,7 @@
 				DE0EA2AC2EF963440037FB3A /* Diameris */,
 				DE0EA2BC2EF963470037FB3A /* DiamerisTests */,
 				DE0EA2C62EF963470037FB3A /* DiamerisUITests */,
+				DEE6C4EE2F8FA74E00FD6E9E /* Frameworks */,
 				DE0EA2AB2EF963440037FB3A /* Products */,
 			);
 			sourceTree = "<group>";
@@ -107,8 +132,16 @@
 				DE0EA2AA2EF963440037FB3A /* Diameris.app */,
 				DE0EA2B92EF963470037FB3A /* DiamerisTests.xctest */,
 				DE0EA2C32EF963470037FB3A /* DiamerisUITests.xctest */,
+				DEE6C4BC2F8F9F6E00FD6E9E /* Diameris QA.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		DEE6C4EE2F8FA74E00FD6E9E /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -190,6 +223,36 @@
 			productReference = DE0EA2C32EF963470037FB3A /* DiamerisUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		DEE6C4BB2F8F9F6E00FD6E9E /* Diameris QA */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DEE6C4E22F8F9F7000FD6E9E /* Build configuration list for PBXNativeTarget "Diameris QA" */;
+			buildPhases = (
+				DEE6C4B82F8F9F6E00FD6E9E /* Sources */,
+				DEE6C4B92F8F9F6E00FD6E9E /* Frameworks */,
+				DEE6C4BA2F8F9F6E00FD6E9E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				DE0EA2AC2EF963440037FB3A /* Diameris */,
+			);
+			name = "Diameris QA";
+			packageProductDependencies = (
+				DEE6C4EF2F8FA74E00FD6E9E /* DesignSystem */,
+				DEE6C4F12F8FA74E00FD6E9E /* Onboarding */,
+				DEE6C4F32F8FA74E00FD6E9E /* SharedUI */,
+				DEE6C4F52F8FA74E00FD6E9E /* Utilities */,
+				DEE6C4F72F8FA74E00FD6E9E /* Domain */,
+				DEE6C4F92F8FA74E00FD6E9E /* Dashboard */,
+				DEE6C4FB2F8FA74E00FD6E9E /* Persistence */,
+				DEE6C4FD2F8FA74E00FD6E9E /* Expenses */,
+			);
+			productName = "Diameris QA";
+			productReference = DEE6C4BC2F8F9F6E00FD6E9E /* Diameris QA.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -197,7 +260,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2620;
+				LastSwiftUpdateCheck = 2630;
 				LastUpgradeCheck = 2620;
 				TargetAttributes = {
 					DE0EA2A92EF963440037FB3A = {
@@ -210,6 +273,9 @@
 					DE0EA2C22EF963470037FB3A = {
 						CreatedOnToolsVersion = 26.2;
 						TestTargetID = DE0EA2A92EF963440037FB3A;
+					};
+					DEE6C4BB2F8F9F6E00FD6E9E = {
+						CreatedOnToolsVersion = 26.3;
 					};
 				};
 			};
@@ -241,6 +307,7 @@
 				DE0EA2A92EF963440037FB3A /* Diameris */,
 				DE0EA2B82EF963470037FB3A /* DiamerisTests */,
 				DE0EA2C22EF963470037FB3A /* DiamerisUITests */,
+				DEE6C4BB2F8F9F6E00FD6E9E /* Diameris QA */,
 			);
 		};
 /* End PBXProject section */
@@ -267,6 +334,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		DEE6C4BA2F8F9F6E00FD6E9E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -285,6 +359,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		DE0EA2BF2EF963470037FB3A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DEE6C4B82F8F9F6E00FD6E9E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -580,6 +661,70 @@
 			};
 			name = Release;
 		};
+		DEE6C4DC2F8F9F7000FD6E9E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5ZWZB58683;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "ro.svc.Diameris-QA";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		DEE6C4DD2F8F9F7000FD6E9E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5ZWZB58683;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "ro.svc.Diameris-QA";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -615,6 +760,15 @@
 			buildConfigurations = (
 				DE0EA2D42EF963470037FB3A /* Debug */,
 				DE0EA2D52EF963470037FB3A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DEE6C4E22F8F9F7000FD6E9E /* Build configuration list for PBXNativeTarget "Diameris QA" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DEE6C4DC2F8F9F7000FD6E9E /* Debug */,
+				DEE6C4DD2F8F9F7000FD6E9E /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -679,6 +833,46 @@
 		};
 		DE6CCDCF2F0291BD005B3DFA /* Expenses */ = {
 			isa = XCSwiftPackageProductDependency;
+			productName = Expenses;
+		};
+		DEE6C4EF2F8FA74E00FD6E9E /* DesignSystem */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DE0EA2DD2EF9882C0037FB3A /* XCLocalSwiftPackageReference "Packages/Core/DesignSystem" */;
+			productName = DesignSystem;
+		};
+		DEE6C4F12F8FA74E00FD6E9E /* Onboarding */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DE0EA2E62EF98E7C0037FB3A /* XCLocalSwiftPackageReference "Packages/Features/Onboarding" */;
+			productName = Onboarding;
+		};
+		DEE6C4F32F8FA74E00FD6E9E /* SharedUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DEFC41C82EFFEBA2009AA81A /* XCLocalSwiftPackageReference "Packages/Core/SharedUI" */;
+			productName = SharedUI;
+		};
+		DEE6C4F52F8FA74E00FD6E9E /* Utilities */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DEFC41CB2EFFEBAD009AA81A /* XCLocalSwiftPackageReference "Packages/Core/Utilities" */;
+			productName = Utilities;
+		};
+		DEE6C4F72F8FA74E00FD6E9E /* Domain */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DE6CCDBD2F018349005B3DFA /* XCLocalSwiftPackageReference "Packages/Core/Domain" */;
+			productName = Domain;
+		};
+		DEE6C4F92F8FA74E00FD6E9E /* Dashboard */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DE6CCDC02F018354005B3DFA /* XCLocalSwiftPackageReference "Packages/Features/Dashboard" */;
+			productName = Dashboard;
+		};
+		DEE6C4FB2F8FA74E00FD6E9E /* Persistence */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DE6CCDCB2F028FE0005B3DFA /* XCLocalSwiftPackageReference "Packages/Platform/Persistence" */;
+			productName = Persistence;
+		};
+		DEE6C4FD2F8FA74E00FD6E9E /* Expenses */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DE6CCDCE2F0291BD005B3DFA /* XCLocalSwiftPackageReference "Packages/Features/Expenses" */;
 			productName = Expenses;
 		};
 		DEFC41C92EFFEBA2009AA81A /* SharedUI */ = {

@@ -166,6 +166,15 @@ struct MainTabView: View {
         dashboardViewModel.savingsPercentage = allocation?.percentage ?? 0.25
         dashboardViewModel.savingsBoostEnabled = allocation?.boostEnabled ?? false
         dashboardViewModel.savingsBoostMultiplier = allocation?.boostMultiplier ?? 3.0
+        dashboardViewModel.allocationMode = allocation?.allocationMode ?? .prioritized
+        dashboardViewModel.savingsInputMode = allocation?.savingsInputMode ?? .percentage
+        dashboardViewModel.savingsFixedAmount = allocation?.fixedAmount ?? 0
+        dashboardViewModel.splitEmergencyInputMode = allocation?.splitEmergencyInputMode ?? .fixedAmount
+        dashboardViewModel.splitEmergencyAmount = allocation?.splitEmergencyAmount ?? 0
+        dashboardViewModel.splitEmergencyPercentage = allocation?.splitEmergencyPercentage ?? 0.10
+        dashboardViewModel.splitSavingsInputMode = allocation?.splitSavingsInputMode ?? .fixedAmount
+        dashboardViewModel.splitSavingsAmount = allocation?.splitSavingsAmount ?? 0
+        dashboardViewModel.splitSavingsPercentage = allocation?.splitSavingsPercentage ?? 0.15
         dashboardViewModel.remainingMoneyDestination = profile.remainingMoneyDestination
         dashboardViewModel.hasCompletedOnboarding = true
     }

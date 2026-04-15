@@ -1,397 +1,499 @@
 {
-  "sourceLanguage" : "en",
-  "strings" : {
-    "Add to your savings for future goals" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add to your savings for future goals"
+  "sourceLanguage": "en",
+  "strings": {
+    "Add to your savings for future goals": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add to your savings for future goals"
           }
         },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Adaugă la economii pentru obiective viitoare"
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adaugă la economii pentru obiective viitoare"
           }
         }
       }
     },
-    "Custom account" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Custom account"
+    "Custom account": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Custom account"
           }
         },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cont personalizat"
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cont personalizat"
           }
         }
       }
     },
-    "Emergency" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Emergency"
+    "Emergency": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Emergency"
           }
         },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Urgență"
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Urgență"
           }
         }
       }
     },
-    "Emergency Fund" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Emergency Fund"
+    "Emergency Fund": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Emergency Fund"
           }
         },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fond de urgență"
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fond de urgență"
           }
         }
       }
     },
-    "Fills first until target reached" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fills first until target reached"
+    "Fills first until target reached": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fills first until target reached"
           }
         },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Se completează primul până la țintă"
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se completează primul până la țintă"
           }
         }
       }
     },
-    "Financial experts recommend saving 20-30% of your income" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Financial experts recommend saving 20-30% of your income"
+    "Financial experts recommend saving 20-30% of your income": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Financial experts recommend saving 20-30% of your income"
           }
         },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Experții financiari recomandă economisirea a 20-30% din venit"
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Experții financiari recomandă economisirea a 20-30% din venit"
           }
         }
       }
     },
-    "For building wealth over time" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "For building wealth over time"
+    "For building wealth over time": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "For building wealth over time"
           }
         },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pentru a construi avere în timp"
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pentru a construi avere în timp"
           }
         }
       }
     },
-    "For flexible spending" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "For flexible spending"
+    "For flexible spending": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "For flexible spending"
           }
         },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pentru cheltuieli flexibile"
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pentru cheltuieli flexibile"
           }
         }
       }
     },
-    "For shared expenses" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "For shared expenses"
+    "For shared expenses": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "For shared expenses"
           }
         },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pentru cheltuieli comune"
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pentru cheltuieli comune"
           }
         }
       }
     },
-    "Joint" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Joint"
+    "Joint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Joint"
           }
         },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Comun"
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comun"
           }
         }
       }
     },
-    "Keep in Primary" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keep in Primary"
+    "Keep in Primary": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep in Primary"
           }
         },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Păstrează în Principal"
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Păstrează în Principal"
           }
         }
       }
     },
-    "Leave in your main account" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Leave in your main account"
+    "Leave in your main account": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leave in your main account"
           }
         },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lasă în contul principal"
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lasă în contul principal"
           }
         }
       }
     },
-    "Main Account" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Main Account"
+    "Main Account": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Main Account"
           }
         },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cont principal"
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cont principal"
           }
         }
       }
     },
-    "Other" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Other"
+    "Other": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other"
           }
         },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Altul"
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Altul"
           }
         }
       }
     },
-    "Personal" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Personal"
+    "Personal": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personal"
           }
         },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Personal"
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personal"
           }
         }
       }
     },
-    "Personal Account" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Personal Account"
+    "Personal Account": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personal Account"
           }
         },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cont personal"
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cont personal"
           }
         }
       }
     },
-    "Primary" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Primary"
+    "Primary": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Primary"
           }
         },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Principal"
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Principal"
           }
         }
       }
     },
-    "Primary Savings" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Primary Savings"
+    "Primary Savings": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Primary Savings"
           }
         },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Economii principale"
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Economii principale"
           }
         }
       }
     },
-    "Protects you from unexpected expenses" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Protects you from unexpected expenses"
+    "Protects you from unexpected expenses": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protects you from unexpected expenses"
           }
         },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Te protejează de cheltuieli neașteptate"
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Te protejează de cheltuieli neașteptate"
           }
         }
       }
     },
-    "Receives savings after emergency" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Receives savings after emergency"
+    "Receives savings after emergency": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Receives savings after emergency"
           }
         },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Primește economii după fondul de urgență"
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Primește economii după fondul de urgență"
           }
         }
       }
     },
-    "Savings" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Savings"
+    "Savings": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Savings"
           }
         },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Economii"
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Economii"
           }
         }
       }
     },
-    "Where your salary lands" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Where your salary lands"
+    "Where your salary lands": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Where your salary lands"
           }
         },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unde îți intră salariul"
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unde îți intră salariul"
           }
         }
       }
     },
-    "Your flexible spending money" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your flexible spending money"
+    "Your flexible spending money": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your flexible spending money"
           }
         },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Banii tăi pentru cheltuieli flexibile"
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Banii tăi pentru cheltuieli flexibile"
+          }
+        }
+      }
+    },
+    "Priority": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Priority"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prioritizat"
+          }
+        }
+      }
+    },
+    "Split": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Split"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Separat"
+          }
+        }
+      }
+    },
+    "Emergency fund fills first, then savings": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Emergency fund fills first, then savings"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fondul de urgență se completează primul, apoi economiile"
+          }
+        }
+      }
+    },
+    "Fixed amounts to each account every month": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fixed amounts to each account every month"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sume fixe către fiecare cont în fiecare lună"
+          }
+        }
+      }
+    },
+    "Percentage": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Percentage"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Procent"
+          }
+        }
+      }
+    },
+    "Fixed Amount": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fixed Amount"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sumă fixă"
           }
         }
       }
     }
   },
-  "version" : "1.0"
+  "version": "1.0"
 }

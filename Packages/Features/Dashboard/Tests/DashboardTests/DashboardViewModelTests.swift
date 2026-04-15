@@ -1020,4 +1020,84 @@ struct DashboardViewModelTests {
             #expect(result[emergencyId]! >= 42000)
         }
     }
+
+    // MARK: - Allocation Strategy
+
+    @Suite("Allocation Strategy")
+    @MainActor
+    struct AllocationStrategy {
+
+        @Test("Initial allocation mode is prioritized")
+        func initialAllocationMode() {
+            let vm = DashboardViewModel()
+            #expect(vm.allocationMode == .prioritized)
+        }
+
+        @Test("Initial savings input mode is percentage")
+        func initialSavingsInputMode() {
+            let vm = DashboardViewModel()
+            #expect(vm.savingsInputMode == .percentage)
+        }
+
+        @Test("Initial fixed amounts are zero")
+        func initialFixedAmounts() {
+            let vm = DashboardViewModel()
+            #expect(vm.savingsFixedAmount == 0)
+            #expect(vm.splitEmergencyAmount == 0)
+            #expect(vm.splitSavingsAmount == 0)
+        }
+
+        @Test("Total savings in split mode uses split amounts")
+        func totalSavingsInSplitMode() {
+            let vm = DashboardViewModel()
+            vm.monthlyIncome = 10000
+            vm.allocationMode = .split
+            vm.splitEmergencyAmount = 500
+            vm.splitSavingsAmount = 500
+
+            #expect(vm.totalSavings == 1000)
+        }
+
+        @Test("Total savings in split mode capped at available income")
+        func totalSavingsSplitCapped() {
+            let vm = DashboardViewModel()
+            vm.monthlyIncome = 1000
+            vm.expenses = [makeExpense(amount: 800)] // Available = 200
+            vm.allocationMode = .split
+            vm.splitEmergencyAmount = 500
+            vm.splitSavingsAmount = 500
+
+            #expect(vm.totalSavings == 200)
+        }
+
+        @Test("Total savings in fixed amount mode uses fixed amount")
+        func totalSavingsFixedAmount() {
+            let vm = DashboardViewModel()
+            vm.monthlyIncome = 10000
+            vm.savingsInputMode = .fixedAmount
+            vm.savingsFixedAmount = 1500
+
+            #expect(vm.totalSavings == 1500)
+        }
+
+        @Test("Transfer plan uses split mode when configured")
+        func transferPlanUsesSplitMode() {
+            let vm = DashboardViewModel()
+            vm.monthlyIncome = 10000
+            vm.allocationMode = .split
+            vm.splitEmergencyAmount = 500
+            vm.splitSavingsAmount = 500
+            vm.accounts = [
+                makeAccount(name: "Main", accountType: .primary, isPrimary: true),
+                makeAccount(name: "Emergency", accountType: .emergency, emergencyMultiplier: 3.0),
+                makeAccount(name: "Savings", accountType: .savings, isPrimarySavings: true)
+            ]
+
+            let plan = vm.transferPlan
+
+            #expect(plan.emergencyAllocation?.amount == 500)
+            #expect(plan.savingsAllocation?.amount == 500)
+            #expect(plan.isBalanced)
+        }
+    }
 }

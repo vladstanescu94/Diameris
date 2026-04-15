@@ -80,6 +80,11 @@ public enum ComponentSize {
 
     /// 0.05 - Minimum progress fill scale (ensures visibility at 0%)
     public static let progressMinFillScale: CGFloat = 0.05
+
+    // MARK: - Flow Items
+
+    /// 20pt - Flow item number circle size
+    public static let flowItemNumber: CGFloat = 20
 }
 
 // MARK: - Opacity Constants

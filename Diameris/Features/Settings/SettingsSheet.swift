@@ -14,6 +14,7 @@ struct SettingsSheet: View {
     @Query private var savingsAllocations: [SavingsAllocation]
     @Query private var accounts: [Account]
     @Query private var incomes: [Income]
+    @Query private var expenses: [Expense]
 
     // MARK: - Editable State
 
@@ -23,6 +24,18 @@ struct SettingsSheet: View {
     @State private var boostEnabled: Bool = false
     @State private var boostMultiplier: Double = 3.0
     @State private var remainingDestination: RemainingMoneyDestination = .primarySavings
+    @State private var allocationMode: AllocationMode = .prioritized
+    @State private var savingsInputMode: SavingsInputMode = .percentage
+    @State private var savingsFixedAmount: Decimal = 0
+    @State private var savingsFixedAmountText: String = ""
+    @State private var splitEmergencyInputMode: SavingsInputMode = .fixedAmount
+    @State private var splitEmergencyPercentage: Double = 0.10
+    @State private var splitEmergencyAmount: Decimal = 0
+    @State private var splitEmergencyAmountText: String = ""
+    @State private var splitSavingsInputMode: SavingsInputMode = .fixedAmount
+    @State private var splitSavingsPercentage: Double = 0.15
+    @State private var splitSavingsAmount: Decimal = 0
+    @State private var splitSavingsAmountText: String = ""
 
     // MARK: - UI State
 
@@ -32,6 +45,35 @@ struct SettingsSheet: View {
     private var userProfile: UserProfile? { userProfiles.first }
     private var savingsAllocation: SavingsAllocation? { savingsAllocations.first }
     private var monthlyIncome: Decimal { incomes.first?.amount ?? 0 }
+
+    private var totalExpenses: Decimal {
+        expenses.filter { $0.isEnabled }.reduce(0) { $0 + $1.monthlyAmount }
+    }
+
+    private var availableIncome: Decimal {
+        max(0, monthlyIncome - totalExpenses)
+    }
+
+    private var hasEmergencyAccount: Bool {
+        accounts.contains { $0.accountType == .emergency }
+    }
+
+    private var hasSavingsAccount: Bool {
+        accounts.contains { $0.accountType == .savings || $0.isPrimarySavings }
+    }
+
+    private var resolvedSplitTotal: Decimal {
+        let entry = SavingsAllocationEntry(
+            allocationMode: .split,
+            splitEmergencyInputMode: splitEmergencyInputMode,
+            splitEmergencyAmount: splitEmergencyAmount,
+            splitEmergencyPercentage: splitEmergencyPercentage,
+            splitSavingsInputMode: splitSavingsInputMode,
+            splitSavingsAmount: splitSavingsAmount,
+            splitSavingsPercentage: splitSavingsPercentage
+        )
+        return entry.splitTotal(availableIncome: availableIncome)
+    }
 
     var body: some View {
         NavigationStack {
@@ -93,6 +135,53 @@ private extension SettingsSheet {
 
     var savingsSection: some View {
         Section {
+            allocationModePicker
+
+            if allocationMode == .prioritized {
+                prioritizedModeContent
+            } else {
+                splitModeContent
+            }
+        } header: {
+            Text("Savings".localized)
+        } footer: {
+            Text(savingsSectionFooter)
+        }
+    }
+
+    var allocationModePicker: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Picker("Allocation Mode".localized, selection: $allocationMode) {
+                ForEach(AllocationMode.allCases) { mode in
+                    Text(mode.displayName).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            Text(allocationMode.description)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    var prioritizedModeContent: some View {
+        Picker("Savings Type".localized, selection: $savingsInputMode) {
+            ForEach(SavingsInputMode.allCases) { mode in
+                Text(mode.displayName).tag(mode)
+            }
+        }
+        .pickerStyle(.segmented)
+
+        if savingsInputMode == .percentage {
+            percentageModeContent
+        } else {
+            fixedAmountModeContent
+        }
+    }
+
+    var percentageModeContent: some View {
+        Group {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 HStack {
                     Text("Savings Rate".localized)
@@ -113,7 +202,7 @@ private extension SettingsSheet {
                 HStack {
                     Text("Boost Multiplier".localized)
                     Spacer()
-                    Picker("", selection: $boostMultiplier) {
+                    Picker("Boost Multiplier".localized, selection: $boostMultiplier) {
                         Text("2×").tag(2.0)
                         Text("3×").tag(3.0)
                     }
@@ -132,11 +221,127 @@ private extension SettingsSheet {
                         .monospacedDigit()
                 }
             }
-        } header: {
-            Text("Savings".localized)
-        } footer: {
-            Text("Savings are calculated from income after expenses.".localized)
         }
+    }
+
+    var fixedAmountModeContent: some View {
+        HStack {
+            Text("Monthly Savings".localized)
+            Spacer()
+            TextField("0", text: $savingsFixedAmountText)
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+                .frame(width: ComponentSize.balanceInputWidth)
+                .onChange(of: savingsFixedAmountText) { _, newValue in
+                    savingsFixedAmount = AmountFormatter.parse(newValue)
+                }
+            Text(selectedCurrency.rawValue)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    var splitModeContent: some View {
+        if hasEmergencyAccount {
+            Label("Emergency".localized, systemImage: AccountType.emergency.icon)
+                .font(.subheadline)
+
+            Picker("Emergency".localized, selection: $splitEmergencyInputMode) {
+                ForEach(SavingsInputMode.allCases) { mode in
+                    Text(mode.displayName).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            if splitEmergencyInputMode == .percentage {
+                VStack(alignment: .leading, spacing: Spacing.sm) {
+                    HStack {
+                        Text("Rate".localized)
+                        Spacer()
+                        Text("\(Int(splitEmergencyPercentage * 100))%")
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    }
+                    Slider(value: $splitEmergencyPercentage, in: 0.05...0.50, step: 0.01)
+                        .tint(DiamerisColors.accentSecondary)
+                }
+            } else {
+                HStack {
+                    Spacer()
+                    TextField("0", text: $splitEmergencyAmountText)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: ComponentSize.balanceInputWidth)
+                        .onChange(of: splitEmergencyAmountText) { _, newValue in
+                            splitEmergencyAmount = AmountFormatter.parse(newValue)
+                        }
+                    Text(selectedCurrency.rawValue)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+
+        if hasSavingsAccount {
+            Label("Savings".localized, systemImage: AccountType.savings.icon)
+                .font(.subheadline)
+
+            Picker("Savings".localized, selection: $splitSavingsInputMode) {
+                ForEach(SavingsInputMode.allCases) { mode in
+                    Text(mode.displayName).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            if splitSavingsInputMode == .percentage {
+                VStack(alignment: .leading, spacing: Spacing.sm) {
+                    HStack {
+                        Text("Rate".localized)
+                        Spacer()
+                        Text("\(Int(splitSavingsPercentage * 100))%")
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    }
+                    Slider(value: $splitSavingsPercentage, in: 0.05...0.50, step: 0.01)
+                        .tint(DiamerisColors.accentSecondary)
+                }
+            } else {
+                HStack {
+                    Spacer()
+                    TextField("0", text: $splitSavingsAmountText)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: ComponentSize.balanceInputWidth)
+                        .onChange(of: splitSavingsAmountText) { _, newValue in
+                            splitSavingsAmount = AmountFormatter.parse(newValue)
+                        }
+                    Text(selectedCurrency.rawValue)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+
+        if hasEmergencyAccount || hasSavingsAccount {
+            splitTotalRow
+        }
+    }
+
+    var splitTotalRow: some View {
+        HStack {
+            Text("Total Monthly".localized)
+                .bold()
+            Spacer()
+            Text(AmountFormatter.formatForDisplay(resolvedSplitTotal, currency: selectedCurrency.rawValue))
+                .bold()
+                .foregroundStyle(resolvedSplitTotal > availableIncome ? .red : DiamerisColors.accentPrimary)
+                .monospacedDigit()
+        }
+    }
+
+    var savingsSectionFooter: String {
+        if allocationMode == .split && resolvedSplitTotal > availableIncome && availableIncome > 0 {
+            return "Total exceeds available income. Amounts will be reduced proportionally.".localized
+        }
+        return "Savings are calculated from income after expenses.".localized
     }
 
     var accountsSection: some View {
@@ -246,6 +451,21 @@ private extension SettingsSheet {
             savingsPercentage = allocation.percentage
             boostEnabled = allocation.boostEnabled
             boostMultiplier = allocation.boostMultiplier
+            allocationMode = allocation.allocationMode
+            savingsInputMode = allocation.savingsInputMode
+            savingsFixedAmount = allocation.fixedAmount
+            savingsFixedAmountText = allocation.fixedAmount > 0
+                ? AmountFormatter.formatForEditing(allocation.fixedAmount) : ""
+            splitEmergencyInputMode = allocation.splitEmergencyInputMode
+            splitEmergencyPercentage = allocation.splitEmergencyPercentage
+            splitEmergencyAmount = allocation.splitEmergencyAmount
+            splitEmergencyAmountText = allocation.splitEmergencyAmount > 0
+                ? AmountFormatter.formatForEditing(allocation.splitEmergencyAmount) : ""
+            splitSavingsInputMode = allocation.splitSavingsInputMode
+            splitSavingsPercentage = allocation.splitSavingsPercentage
+            splitSavingsAmount = allocation.splitSavingsAmount
+            splitSavingsAmountText = allocation.splitSavingsAmount > 0
+                ? AmountFormatter.formatForEditing(allocation.splitSavingsAmount) : ""
         }
     }
 
@@ -262,6 +482,15 @@ private extension SettingsSheet {
             allocation.percentage = savingsPercentage
             allocation.boostEnabled = boostEnabled
             allocation.boostMultiplier = boostMultiplier
+            allocation.allocationMode = allocationMode
+            allocation.savingsInputMode = savingsInputMode
+            allocation.fixedAmount = savingsFixedAmount
+            allocation.splitEmergencyInputMode = splitEmergencyInputMode
+            allocation.splitEmergencyPercentage = splitEmergencyPercentage
+            allocation.splitEmergencyAmount = splitEmergencyAmount
+            allocation.splitSavingsInputMode = splitSavingsInputMode
+            allocation.splitSavingsPercentage = splitSavingsPercentage
+            allocation.splitSavingsAmount = splitSavingsAmount
         }
 
         // Save context

@@ -37,13 +37,40 @@ Before implementing features, **read the relevant API documentation**:
 | `SwiftUI-New-Toolbar-Features.md` | Navigation/toolbar work - customizable toolbars, search |
 | `Swift-Concurrency-Updates.md` | Async code - Swift 6.2 `@concurrent`, MainActor patterns |
 | `Swift-Testing-Framework.md` | Writing tests - `@Test`, `@Suite`, `#expect`, parameterized tests |
+| `XcodeBuildMCP-Simulator-Workflow.md` | **Required** - Building, running, and driving the iOS Simulator via XcodeBuildMCP |
 | `Swift-Charts-3D-Visualization.md` | Data visualization - `Chart3D`, `SurfacePlot` |
 | `FoundationModels-Using-on-device-LLM.md` | AI features - on-device LLM, `@Generable`, guided generation |
 | `Diameris-AI-Features.md` | Pre-MVP AI feature ideas (brainstorming) |
 
 **Important:** This project targets iOS 26+ with Liquid Glass design. Always use the new APIs documented above rather than deprecated patterns.
 
+## Running the App & Simulator (XcodeBuildMCP)
+
+**ALWAYS use the XcodeBuildMCP tools to build, run, and interact with the iOS Simulator.**
+Do not shell out to `xcodebuild` or `xcrun simctl` for these — the MCP tools capture runtime logs,
+carry the project's session defaults, and are the only way to actually drive the UI.
+
+**Read `Docs/XcodeBuildMCP-Simulator-Workflow.md` before any simulator work.**
+
+Non-negotiables:
+
+1. **Build & run** with `simulator_build_and_run` (boots + installs + launches + captures logs).
+   Defaults are preconfigured in `.mcp.json`: scheme `Diameris`, `Debug`, iPhone 17 Pro, latest OS.
+2. **Never tap by coordinates.** Call `snapshot_ui` first, act on the returned `elementRef`s.
+3. **Re-snapshot after every UI change** — navigation, scroll, sheet present/dismiss, layout shift.
+4. **Verify UI changes in the running app.** After a SwiftUI change, run it, drive to the affected
+   screen, and take a `screenshot`. Compiling is not the same as working.
+5. **Check both appearances** for Liquid Glass work — `set_appearance` to flip light/dark.
+
+Interaction tools: `snapshot_ui`, `wait_for_ui`, `tap`, `batch`, `swipe`, `drag`, `long_press`,
+`type_text`, `key_press`, `button`, `gesture`, `screenshot`, `record_video`.
+
+Requires AXe on `PATH` (`brew install axe` from the `cameroncooke/axe` tap) — already installed.
+
 ## Build Commands
+
+Prefer the MCP tools above for anything simulator-related. These raw commands are a fallback for
+CI or when the MCP server is unavailable.
 
 ```bash
 # Build the project

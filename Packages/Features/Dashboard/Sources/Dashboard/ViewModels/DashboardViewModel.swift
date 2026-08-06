@@ -264,20 +264,31 @@ public final class DashboardViewModel {
     // MARK: - Transfer Plan Calculation
 
     /// Generates a transfer plan with custom income (for New Month flow).
-    public func calculateTransferPlan(withIncome income: Decimal) -> TransferPlan {
+    /// Optionally overrides each account's current balance with reconciled balances
+    /// from the New Month flow's account-reconciliation step.
+    public func calculateTransferPlan(
+        withIncome income: Decimal,
+        reconciledBalances: [UUID: Decimal] = [:]
+    ) -> TransferPlan {
         TransferCalculator.calculate(
             income: income,
             expenses: makeExpenseEntries(),
             allocation: makeSavingsAllocation(),
-            accounts: makeAccountEntries(),
+            accounts: makeAccountEntries(reconciledBalances: reconciledBalances),
             remainingDestination: remainingMoneyDestination
         )
     }
 
     // MARK: - Private Helpers
 
-    private func makeAccountEntries() -> [AccountEntry] {
-        accounts.map { $0.toAccountEntry() }
+    private func makeAccountEntries(reconciledBalances: [UUID: Decimal] = [:]) -> [AccountEntry] {
+        accounts.map { account in
+            var entry = account.toAccountEntry()
+            if let reconciled = reconciledBalances[account.id] {
+                entry.currentBalance = reconciled
+            }
+            return entry
+        }
     }
 
     private func makeExpenseEntries() -> [ExpenseEntry] {

@@ -116,10 +116,18 @@ private extension NewMonthSheet {
         withAnimation(SpringPreset.responsive) {
             switch currentStep {
             case .salaryEntry:
-                // Recalculate transfer plan with new income before moving to next step
-                calculatedPlan = viewModel.calculateTransferPlan(withIncome: enteredIncome)
+                calculatedPlan = viewModel.calculateTransferPlan(
+                    withIncome: enteredIncome,
+                    reconciledBalances: accountBalances
+                )
                 currentStep = .reconcileAccounts
             case .reconcileAccounts:
+                // Recalculate plan using the user's reconciled balances so emergency/savings
+                // deficits created by the user spending money are reflected in the plan.
+                calculatedPlan = viewModel.calculateTransferPlan(
+                    withIncome: enteredIncome,
+                    reconciledBalances: accountBalances
+                )
                 currentStep = .transferPlan
             case .transferPlan:
                 break

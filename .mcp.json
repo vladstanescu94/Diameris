@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "XcodeBuildMCP": {
+      "command": "npx",
+      "args": ["-y", "xcodebuildmcp@latest", "mcp"],
+      "env": {
+        "XCODEBUILDMCP_ENABLED_WORKFLOWS": "simulator,simulator-management,ui-automation,project-discovery,swift-package,coverage,utilities",
+        "XCODEBUILDMCP_PROJECT_PATH": "Diameris.xcodeproj",
+        "XCODEBUILDMCP_SCHEME": "Diameris",
+        "XCODEBUILDMCP_CONFIGURATION": "Debug",
+        "XCODEBUILDMCP_SIMULATOR_NAME": "iPhone 17 Pro",
+        "XCODEBUILDMCP_USE_LATEST_OS": "true",
+        "XCODEBUILDMCP_SENTRY_DISABLED": "true"
+      }
+    }
+  }
+}

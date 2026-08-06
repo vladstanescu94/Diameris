@@ -1,23 +1,7 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "%@" : {
-
-    },
-    "%@ (%@)" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ (%2$@)"
-          }
-        }
-      }
-    },
     "%lld%%" : {
-
-    },
-    "→ %@" : {
 
     },
     "0" : {
@@ -80,9 +64,6 @@
         }
       }
     },
-    "Accounts (%lld)" : {
-
-    },
     "Allocation Mode" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -99,9 +80,6 @@
           }
         }
       }
-    },
-    "App Info" : {
-
     },
     "Balance" : {
       "extractionState" : "stale",
@@ -137,12 +115,6 @@
         }
       }
     },
-    "Build" : {
-
-    },
-    "Bundle ID" : {
-
-    },
     "Cancel" : {
 
     },
@@ -163,9 +135,6 @@
         }
       }
     },
-    "Clear All Data & Reset" : {
-
-    },
     "Coming soon" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -183,9 +152,6 @@
         }
       }
     },
-    "Completed" : {
-
-    },
     "Currency" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -202,9 +168,6 @@
           }
         }
       }
-    },
-    "Currency: %@" : {
-
     },
     "Current Balance" : {
       "extractionState" : "stale",
@@ -240,9 +203,6 @@
         }
       }
     },
-    "Data" : {
-
-    },
     "Destination" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -259,9 +219,6 @@
           }
         }
       }
-    },
-    "Developer" : {
-
     },
     "Edit Account" : {
       "extractionState" : "stale",
@@ -348,21 +305,6 @@
         }
       }
     },
-    "Expenses (%lld)" : {
-
-    },
-    "Import Data" : {
-
-    },
-    "Import Failed" : {
-
-    },
-    "Import from Python Script" : {
-
-    },
-    "Import Successful" : {
-
-    },
     "income" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -379,9 +321,6 @@
           }
         }
       }
-    },
-    "Incomes (%lld)" : {
-
     },
     "Insights" : {
       "extractionState" : "stale",
@@ -536,12 +475,6 @@
         }
       }
     },
-    "OK" : {
-
-    },
-    "Onboarding" : {
-
-    },
     "Other" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -609,9 +542,6 @@
           }
         }
       }
-    },
-    "PRIMARY" : {
-
     },
     "Primary Account" : {
       "extractionState" : "stale",
@@ -697,15 +627,6 @@
           }
         }
       }
-    },
-    "Reset All Data?" : {
-
-    },
-    "Reset Everything" : {
-
-    },
-    "Reset Onboarding Flag" : {
-
     },
     "Save" : {
       "extractionState" : "stale",
@@ -843,9 +764,6 @@
         }
       }
     },
-    "Stored Data" : {
-
-    },
     "Tap an account to edit its settings." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -931,9 +849,6 @@
         }
       }
     },
-    "This will delete all your data and show onboarding again. This cannot be undone." : {
-
-    },
     "Total exceeds available income. Amounts will be reduced proportionally." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -984,15 +899,6 @@
           }
         }
       }
-    },
-    "User Profiles (%lld)" : {
-
-    },
-    "Version" : {
-
-    },
-    "View Stored Data" : {
-
     },
     "Where leftover money goes after savings allocation." : {
       "extractionState" : "stale",

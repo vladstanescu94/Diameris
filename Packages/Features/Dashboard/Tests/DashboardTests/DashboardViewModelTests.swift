@@ -687,6 +687,65 @@ struct DashboardViewModelTests {
             #expect(plan.isBalanced == true)
         }
 
+        @Test("Reconciled balances reduce emergency fullness so plan tops it up")
+        func reconciledBalancesAffectEmergencyAllocation() {
+            let vm = DashboardViewModel()
+            let primaryId = UUID()
+            let emergencyId = UUID()
+            let savingsId = UUID()
+
+            vm.monthlyIncome = 10000
+            vm.savingsPercentage = 0.20 // 2000 of available savings
+            vm.allocationMode = .prioritized
+            vm.accounts = [
+                DashboardAccount(
+                    id: primaryId,
+                    name: "Primary",
+                    accountType: .primary,
+                    isPrimary: true,
+                    isPrimarySavings: false,
+                    emergencyMultiplier: nil,
+                    currentBalance: 0
+                ),
+                DashboardAccount(
+                    id: emergencyId,
+                    name: "Emergency",
+                    accountType: .emergency,
+                    isPrimary: false,
+                    isPrimarySavings: false,
+                    emergencyMultiplier: 3.0, // target = 30000
+                    currentBalance: 30000      // already at target
+                ),
+                DashboardAccount(
+                    id: savingsId,
+                    name: "Savings",
+                    accountType: .savings,
+                    isPrimary: false,
+                    isPrimarySavings: true,
+                    emergencyMultiplier: nil,
+                    currentBalance: 0
+                )
+            ]
+
+            // Without reconciliation: emergency is full, all savings go to savings.
+            let baseline = vm.calculateTransferPlan(withIncome: 10000)
+            let baselineEmergency = baseline.accountAllocations.first { $0.accountId == emergencyId }
+            let baselineSavings = baseline.accountAllocations.first { $0.accountId == savingsId }
+            #expect((baselineEmergency?.amount ?? 0) == 0)
+            #expect(baselineSavings?.amount == 2000)
+
+            // User reduces emergency in Step 2 (spent 500 from it). Plan must redirect savings to top it up.
+            let reconciled: [UUID: Decimal] = [emergencyId: 29500]
+            let reconciledPlan = vm.calculateTransferPlan(
+                withIncome: 10000,
+                reconciledBalances: reconciled
+            )
+            let reconciledEmergency = reconciledPlan.accountAllocations.first { $0.accountId == emergencyId }
+            let reconciledSavings = reconciledPlan.accountAllocations.first { $0.accountId == savingsId }
+            #expect(reconciledEmergency?.amount == 500)
+            #expect(reconciledSavings?.amount == 1500)
+        }
+
         @Test("Transfer plan computed property matches calculateTransferPlan with monthlyIncome")
         func computedPropertyMatchesMethod() {
             let vm = DashboardViewModel()

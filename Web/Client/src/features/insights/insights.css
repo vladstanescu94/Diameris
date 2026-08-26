@@ -1,0 +1,23 @@
+/* Insights placeholder — PARITY-SPEC §6. VStack(spacing: 24), centred, fills the screen. */
+
+.insights {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--space-lg);
+  min-height: 60vh;
+  text-align: center;
+}
+.insights svg {
+  color: var(--accent-primary);
+}
+.insights__title {
+  font-size: var(--font-title-size);
+  line-height: var(--font-title-line);
+  font-weight: 700;
+}
+.insights__body {
+  font-size: var(--font-subheadline-size);
+  line-height: var(--font-subheadline-line);
+  color: var(--label-secondary);
+}

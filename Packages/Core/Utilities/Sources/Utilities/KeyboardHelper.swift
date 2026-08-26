@@ -1,3 +1,5 @@
+#if canImport(UIKit)
+
 import UIKit
 
 /// Centralized keyboard management utilities.
@@ -13,3 +15,5 @@ public enum KeyboardHelper {
         )
     }
 }
+
+#endif

@@ -1,3 +1,5 @@
+#if canImport(UIKit)
+
 import UIKit
 
 /// Centralized haptic feedback manager for consistent tactile feedback.
@@ -56,3 +58,5 @@ public enum HapticManager {
         generator.selectionChanged()
     }
 }
+
+#endif

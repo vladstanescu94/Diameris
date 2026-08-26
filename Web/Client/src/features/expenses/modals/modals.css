@@ -1,0 +1,267 @@
+/*
+ * Expenses modals — AddExpenseSheet, CategoryManagementView, AddCategorySheet.
+ *
+ * These are `Form`/`List` screens (PARITY-SPEC §0.3.1), so the canvas is grey in light and
+ * black in dark while the rows lift to white / #1C1C1E. `Sheet` already applies
+ * `surface--grouped`, which rescopes `--glass-bg` to `--surface-row` — so `.xm-card` reads
+ * white on the sheet without a second component.
+ *
+ * Same rules as everywhere: tokens only, no dark-mode branch.
+ */
+
+.xm-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding-block: var(--space-md);
+}
+
+.xm-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+/* Grouped-list section headers are small, grey and upper-ish — `Text` in a Form `Section`. */
+.xm-section__header {
+  font-size: var(--font-caption-size);
+  line-height: var(--font-caption-line);
+  color: var(--label-secondary);
+  padding-inline: var(--space-md);
+}
+
+.xm-section__footer {
+  font-size: var(--font-caption-size);
+  line-height: var(--font-caption-line);
+  color: var(--label-secondary);
+  padding-inline: var(--space-md);
+}
+
+.xm-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--surface-row);
+}
+
+/* Rows sit flush against each other, separated by hairlines, as a `List` does. */
+.xm-card--rows {
+  gap: 0;
+  padding-block: 0;
+}
+
+.xm-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  min-height: var(--size-touch-min);
+}
+
+.xm-row__label {
+  font-size: var(--font-body-size);
+  color: var(--label-primary);
+}
+
+.xm-row__value {
+  font-size: var(--font-body-size);
+  color: var(--label-secondary);
+}
+
+/* ---- amount field ---------------------------------------------------- */
+
+/* `CurrencyAmountField` is a filled, rounded box — visible around "RON … 0" in
+   `14-add-expense-sheet.jpg`, not a bare row. */
+.xm-amount-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: var(--size-touch-min);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--fill-quaternary);
+}
+
+.xm-currency {
+  font-size: var(--font-body-size);
+  color: var(--label-secondary);
+}
+
+.xm-amount-input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  text-align: right;
+  font-size: var(--font-body-size);
+  color: var(--label-primary);
+}
+
+/* ---- Monthly | Annual ------------------------------------------------ */
+
+.xm-segmented-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: var(--space-xxs);
+  padding: 2px;
+  border-radius: var(--radius-sm);
+  background: var(--fill-tertiary);
+}
+
+.xm-segment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xxs);
+  padding-block: var(--space-xs);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-subheadline-size);
+  color: var(--label-primary);
+}
+
+.xm-segment[aria-selected='true'] {
+  background: var(--segment-selected);
+  font-weight: 600;
+}
+
+/* ---- action rows ----------------------------------------------------- */
+
+.xm-action-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: var(--size-touch-min);
+  color: var(--accent-primary);
+  font-size: var(--font-body-size);
+  text-align: left;
+}
+
+.xm-destructive {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: var(--size-touch-min);
+  color: var(--color-red);
+  font-size: var(--font-body-size);
+}
+
+.xm-textarea {
+  width: 100%;
+  min-height: calc(var(--size-touch-min) * 1.5);
+  background: none;
+  border: none;
+  resize: vertical;
+  font: inherit;
+  font-size: var(--font-body-size);
+  color: var(--label-primary);
+}
+
+/* ---- category rows --------------------------------------------------- */
+
+.xm-category-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding-block: var(--space-xs);
+  min-height: var(--size-touch);
+  border-bottom: 1px solid var(--separator);
+}
+
+.xm-category-row:last-child {
+  border-bottom: none;
+}
+
+.xm-category-row__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--size-icon-container);
+  height: var(--size-icon-container);
+}
+
+.xm-category-row__name {
+  font-size: var(--font-body-size);
+  color: var(--label-primary);
+}
+
+.xm-category-row__delete {
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  min-width: var(--size-touch-min);
+  min-height: var(--size-touch-min);
+  color: var(--color-red);
+}
+
+.xm-default-pill {
+  margin-left: auto;
+  font-size: var(--font-caption-size);
+  color: var(--label-secondary);
+  padding-inline: var(--space-sm);
+  padding-block: var(--space-xxs);
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--label-secondary) 20%, transparent);
+}
+
+/* ---- new-category preview -------------------------------------------- */
+
+.xm-preview {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  min-height: var(--size-touch-min);
+}
+
+.xm-preview__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--size-icon-container);
+  height: var(--size-icon-container);
+}
+
+.xm-preview__name {
+  font-size: var(--font-body-size);
+  color: var(--label-primary);
+}
+
+/* ---- delete confirmation --------------------------------------------- */
+
+.xm-confirm {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: end center;
+  padding: var(--space-md);
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.xm-confirm__box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  width: 100%;
+  max-width: var(--app-width);
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  background: var(--surface-row);
+}
+
+.xm-confirm__title {
+  font-size: var(--font-headline-size);
+  font-weight: var(--font-headline-weight);
+  color: var(--label-primary);
+  text-align: center;
+}
+
+.xm-confirm__message {
+  font-size: var(--font-caption-size);
+  line-height: var(--font-caption-line);
+  color: var(--label-secondary);
+  text-align: center;
+}

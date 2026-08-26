@@ -1,0 +1,125 @@
+/* Base: reset + typography foundation. Values come only from tokens.css. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+figure,
+blockquote,
+dl,
+dd,
+fieldset,
+legend {
+  margin: 0;
+  padding: 0;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  font-size: 16px; /* Dynamic Type "Large" baseline; rem tokens scale off this */
+}
+
+body {
+  min-height: 100vh;
+  background: var(--bg-canvas);
+  color: var(--label-primary);
+  font-family: var(--font-family-system);
+  font-size: var(--font-body-size);
+  line-height: var(--font-body-line);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+#root {
+  min-height: 100vh;
+  isolation: isolate;
+}
+
+img,
+picture,
+svg,
+video,
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+a {
+  color: var(--accent-primary);
+  text-decoration: none;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--glass-border);
+  margin: 0;
+}
+
+/* iOS uses .scrollIndicators(.hidden) everywhere (DESIGN-TOKENS §8). */
+.scroll-hidden {
+  scrollbar-width: none;
+}
+.scroll-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+/* Numbers in iOS use .monospacedDigit() in many places. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* iOS never implemented Reduce Motion (DESIGN-TOKENS §10) — the web port must. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+::selection {
+  background: var(--accent-primary);
+  color: var(--color-white);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}

@@ -1,0 +1,1036 @@
+{
+  "schemaVersion": 1,
+  "owner": "Reviewer",
+  "purpose": "Executable definition of numeric correctness for the Diameris web port (DECISIONS.md R8, axis 1 of D6). Asserted by BOTH the Swift Domain/server tests and Web/Verify/parity/golden.spec.ts, so a divergence between server maths and rendered UI cannot hide.",
+  "seeding": {
+    "endpoint": "POST /api/golden/seed — takes a scenario `input` verbatim, persists nothing, returns {raw, display, percent, flags, accountIds} using these expected.* key names. Preferred over the reset -> onboarding/complete -> new-month dance.",
+    "phase": "Each scenario declares `input.phase` explicitly: 'onboarding' means the first-month plan is applied; 'established' means seeded balances are read as-is. DO NOT infer this from whether balances are zero — a returning user who has spent everything has all-zero balances and is not onboarding. The flag is declarative for exactly that reason.",
+    "accountIds": "The response maps each fixture account key to the deterministic UUID it received, so a failure is traceable to a specific account."
+  },
+  "howToUse": {
+    "swift": "Decode this file in DomainTests / server tests; for each scenario with status=binding, build the inputs, run the Domain functions, and assert expected.raw, expected.percent and expected.flags. expected.display is asserted through AmountFormatter.",
+    "playwright": "Web/Verify/parity/golden.spec.ts seeds each scenario through the API and asserts expected.raw/display/percent/flags from GET /api/state; scenarios with assertInUI=true are additionally driven through the browser and compared against expected.display as rendered text.",
+    "status": "binding = verified against the live iOS app or a mechanical consequence of a verified rule; needs-confirmation = the shape is right but the expected values are NOT yet verified — these MUST NOT be treated as the definition of correct until Analyst fills them from the Swift source and the status is flipped."
+  },
+
+  "rules": {
+    "money": {
+      "statement": "Money is formatted with maximumFractionDigits = 0 and HALF-EVEN (banker's) rounding. Grouping separator is ',' — HARDCODED in Swift, not locale-derived. Exactly ONE ASCII space before the currency. Currency is the CODE 'RON', never the symbol 'lei'. Negatives use an ASCII hyphen.",
+      "source": "AmountFormatter.formatForDisplay; NumberFormatter default roundingMode == .halfEven (rawValue 4), verified at runtime.",
+      "trap": "JS Intl.NumberFormat, Math.round and toFixed all round half-UP and emit 1,183 for 1182.5. Half-even must be hand-written, or (per R2) never computed in JS at all."
+    },
+    "percent": {
+      "statement": "Percentages TRUNCATE toward zero: Int(ratio * 100). Never round. BUT — R20 — truncation is for LABELS ONLY. Progress geometry (ring arc, bar width) is driven by the server's full double (emergencyProgress / progressBefore / progressAfter), never by the truncated integer. Two server fields, two jobs, neither derived from the other client-side.",
+      "source": "ExpenseBreakdownCard.swift:54-59 and ProgressRing.swift:77; confirmed live (Gas 10.53% renders 10%, Streaming 2.81% renders 2%). R20 for the geometry split.",
+      "trap": "Driving geometry from the truncated int is invisible to the eye but is a 2.69px bar error at the ground-truth month-2 case (8.759% shown as 8%) — enough to fail the ±2px criterion at the graded 402px column, and it would be misdiagnosed as a CSS bug. Asserted in the DOM by numbers.spec.ts, not by screenshot."
+    },
+    "isBalanced": {
+      "statement": "abs(total - income) < 0.01, on Swift Decimal.",
+      "source": "TransferCalculator.swift:71. Drives the 'All amounts add up correctly' banner."
+    },
+    "availableIncome": {
+      "statement": "max(0, income - totalExpenses) — clamps at zero, never negative.",
+      "source": "Domain; asserted by scenario S09."
+    },
+    "allocationVsReceived": {
+      "statement": "`savingsAllocation` is what the PLAN allocates to the savings account. `savingsReceived` is what the savings account actually ends up with, including remainingMoney routed there by remainingDestination. They are different quantities and must never share a key.",
+      "source": "Raised by Backend 2026-08-06: S01 and S02 have structurally identical plans (allocation 0, remainder 3547.5 routed to savings) yet the fixture expected '0' and '3547.5' for the same key — a fixture bug, not a Domain bug.",
+      "trap": "Conflating them makes the priority-mode 'emergency absorbs the whole pool' case indistinguishable from a genuine savings allocation, which is exactly what S08 and S27 exist to tell apart."
+    },
+    "decimalTailOnAnnualExpenses": {
+      "statement": "Frequency.annual.monthlyMultiplier is Decimal(1)/12 — inexact. An annual 1,200 normalises to 99.999..., and every sum containing it inherits a 28-digit tail. iOS is identically imprecise. Assert the DISPLAY string; never assert a naive exact raw total for an annual-derived sum.",
+      "source": "Backend, executing the fixture against real Domain 2026-08-06.",
+      "trap": "The only way to obtain exactly 2600 is to recompute outside Domain — a TS reimplementation or server-side rounding — which is the divergence R2 forbids. So the fixture asserts the raw value is NOT 2600 rather than pinning an unreadable 33-digit literal."
+    },
+    "completionStringsDifferByScreen": {
+      "statement": "R30 — `isComplete` drives DIFFERENT strings with DIFFERENT structure on the two screens. New Month: 'Completes fund to 100%!' REPLACES progressChangeDisplay, and additionally requires accountType == .emergency. Onboarding: 'Target reached!' APPENDS a ✓ row. A uniform implementation is wrong on one screen.",
+      "source": "R30, from source. S13 pins the New Month form.",
+      "trap": "A completed SAVINGS target shows 'Target reached!' in onboarding and NOTHING in New Month, because of the emergency-only gate. That asymmetry is invisible unless both screens are asserted separately with a non-emergency account."
+    },
+    "negativeSpaceIsAssertable": {
+      "statement": "R30a — the !isBalanced pair is asymmetric and one side renders NOTHING. New Month: no warning at all. Onboarding: an orange warning AND 'All accounted for!' disappears. Correct output being *nothing* still needs an explicit ABSENCE assertion.",
+      "source": "R30a. Four rows of the narrow-state matrix are negative space.",
+      "trap": "A screenshot cannot assert an absence by looking — a reviewer sees a clean screen and moves on. This is the one place the DOM harness is strictly stronger than visual review, so absence must be asserted explicitly rather than assumed."
+    },
+    "primarySavingsUniqueness": {
+      "statement": "R27 — a golden vector must NEVER contain two accounts flagged isPrimarySavings. Enforced by a fixture-integrity test.",
+      "source": "isPrimarySavings is not enforced unique in iOS (SettingsSheet.swift:605 sets it without clearing others), and accounts.first(where:) runs over an UNSORTED @Query array.",
+      "trap": "iOS therefore credits a NONDETERMINISTIC account between launches. Any assertion over two such accounts would encode one arbitrary run — the fixture would certify a coin flip and then fail randomly, which is worse than not testing it. Screenshot scenarios use one account per type for the same reason: the Dashboard must not flake on iOS ordering rather than on ours."
+    },
+    "transferPlanRowIdentity": {
+      "statement": "R25 row 8 — transfer-plan rows are an ORDERED LIST rendered from more than one source. CORRECTED 2026-08-06 by Backend: `accountAllocations` contains only ONE savings allocation (distributeSplitToAccounts appends requested + emergencyOverflow, TransferCalculator.swift:441-445); the second on-screen 'Savings' row is `remainingMoney`, a separate field. So the collapse hazard is real but lives in the CLIENT'S RENDERING: a UI that renders only accountAllocations silently drops the 3,548 row. Additionally AccountAllocation.id is a fresh UUID() per computation, so it is unstable across responses and unusable as a key. Never key, group or de-duplicate rows by account id or name.",
+      "source": "walked 2026-08-06, reference-screens/24-split-at-target-transferplan.jpg. Pinned by S27.",
+      "trap": "The Priority-mode ground truth has Emergency and Savings as distinct rows, so it CANNOT catch this — the harness's own transfer-row test ids were account-keyed until 2026-08-06, which meant the collapsing bug was baked into the test contract and unfalsifiable. They are now ordinal."
+    },
+    "twoExpenseTotals": {
+      "statement": "CORRECTED 2026-08-06 (OQ2). The two totals are EQUAL BY CONSTRUCTION and the web client must reproduce that equality. DashboardViewModel's own sum does ignore isEnabled and frequency, but it never sees an unfiltered set: MainTabView.swift:147 filters isEnabled and normalises to monthlyAmount BEFORE handing the expenses over. So availableIncome is computed over the already-normalised set, and the two tabs always agree. Both field names are still pinned separately in S10/S11 — as an INVARIANT that they match, which is stronger than picking a side.",
+      "source": "MainTabView.swift:147 (the pre-filter) + DashboardViewModel.swift:176-178 + ExpensesViewModel.swift:180-195.",
+      "supersedes": "DECISIONS.md R3 as written instructs Backend to expose two DIFFERING fields and to mirror a disagreement. That disagreement is unreachable through the UI. R3 needs amending — flagged to main."
+    }
+  },
+
+  "formatterVectors": {
+    "comment": "Pure AmountFormatter cases. Asserted Swift-side directly. Every '.5' pair below is a half-even/half-up discriminator except where noted; the scenarios are constructed so the starred ones also surface in rendered UI.",
+    "assertedBy": ["swift"],
+    "cases": [
+      { "raw": "0", "display": "0 RON" },
+      { "raw": "0.5", "display": "0 RON", "note": "half-up would give 1" },
+      { "raw": "1.5", "display": "2 RON", "note": "rounds UP because 2 is even" },
+      { "raw": "2.5", "display": "2 RON", "note": "half-up would give 3 — surfaced in UI by S03" },
+      { "raw": "3.5", "display": "4 RON" },
+      { "raw": "1182.5", "display": "1,182 RON", "note": "half-up would give 1,183 — surfaced in UI by S01" },
+      { "raw": "1183.5", "display": "1,184 RON", "note": "surfaced in UI by S04" },
+      { "raw": "3547.5", "display": "3,548 RON", "note": "surfaced in UI by S01" },
+      { "raw": "3550.5", "display": "3,550 RON", "note": "half-up would give 3,551 — surfaced in UI by S04" },
+      { "raw": "-4270", "display": "-4,270 RON", "note": "ASCII hyphen, per reference-screens/08-dashboard.jpg" },
+      { "raw": "27000", "display": "27,000 RON" },
+      { "raw": "1000000.5", "display": "1,000,000 RON", "note": "grouping size 3 at scale; half-even down" }
+    ]
+  },
+
+  "percentVectors": {
+    "comment": "Pure truncation cases. numerator/denominator -> displayed integer percent.",
+    "assertedBy": ["swift", "playwright"],
+    "cases": [
+      { "numerator": "2500", "denominator": "4270", "exact": "58.548%", "percent": 58 },
+      { "numerator": "1200", "denominator": "4270", "exact": "28.103%", "percent": 28 },
+      { "numerator": "450", "denominator": "4270", "exact": "10.538%", "percent": 10, "note": "rounding would give 11 — this is the discriminator the live app proves" },
+      { "numerator": "120", "denominator": "4270", "exact": "2.811%", "percent": 2, "note": "rounding would give 3" },
+      { "numerator": "1182.5", "denominator": "27000", "exact": "4.379%", "percent": 4 },
+      { "numerator": "2365", "denominator": "27000", "exact": "8.759%", "percent": 8, "note": "rounding would give 9" },
+      { "numerator": "26999", "denominator": "27000", "exact": "99.996%", "percent": 99, "note": "must NOT display 100% before the target is actually reached" },
+      { "numerator": "27000", "denominator": "27000", "exact": "100%", "percent": 100 },
+      { "numerator": "0", "denominator": "27000", "exact": "0%", "percent": 0 }
+    ]
+  },
+
+  "isBalancedVectors": {
+    "comment": "abs(total - income) < 0.01 — strict less-than, so exactly 0.01 is NOT balanced.",
+    "assertedBy": ["swift", "playwright"],
+    "cases": [
+      { "income": "9000", "total": "9000", "delta": "0", "isBalanced": true },
+      { "income": "9000", "total": "9000.009", "delta": "0.009", "isBalanced": true },
+      { "income": "9000", "total": "8999.991", "delta": "-0.009", "isBalanced": true },
+      { "income": "9000", "total": "9000.01", "delta": "0.01", "isBalanced": false, "note": "boundary is exclusive" },
+      { "income": "9000", "total": "8999.99", "delta": "-0.01", "isBalanced": false },
+      { "income": "9000", "total": "9000.011", "delta": "0.011", "isBalanced": false }
+    ]
+  },
+
+  "edgeCaseVectors": {
+    "comment": "Empirical Swift probes from the Critic — real divergences already found in the client's money.ts. Pinned so they cannot regress. These are formatter/parser probes, NOT scenario outputs, so they carry no ' RON' assumption.",
+    "assertedBy": ["swift"],
+    "formatForDisplay": [
+      { "input": "-0.4", "output": "-0", "status": "binding", "note": "iOS really does render a signed zero. The client currently emits '0'." },
+      { "input": "-0.5", "output": "-0", "status": "binding", "note": "half-even takes -0.5 to -0, not -1 and not 0." },
+      { "input": "0", "output": "0", "status": "binding", "note": "⚠️ CONTRAST WITH THE -0 CASES BELOW. A total of exactly ZERO renders '0 RON', never '-0 RON'. This is REACHABLE on the first dashboard a new user sees, via the 'Skip for now' expenses path (S22). Frontend currently renders '-0 RON' there — a live defect. Do NOT unify this with formatForDisplay(-0.4): same glyph, opposite expectations. iOS emits '-0' for a small negative and '0' for a true zero, and we reproduce BOTH." },
+      { "input": "-0.6", "output": "-1", "status": "binding", "note": "Probed in real Swift on macOS (Critic's formatter table, VERIFICATION-LOG.md) and matches money.ts. The sign boundary is now fully covered: -0.4 -> -0, -0.5 -> -0, -0.6 -> -1." }
+    ],
+    "parse": [
+      { "input": "1e3", "output": "1000", "status": "binding", "note": "Decimal(string:) accepts scientific notation; the client's parser gives 1. Real divergence." }
+    ],
+    "formatForEditing": [
+      {
+        "input": "1182.5",
+        "output": "1182.5",
+        "status": "binding",
+        "note": "RESOLVED 2026-08-06. Backend pinned the formatter locale to en_US — deliberately NOT en_US_POSIX, which disables grouping entirely, leaving AmountFormatter's forced ',' separator nothing to apply and silently emitting '9000 RON'. en_US gives both the literal '.' here and '9,000 RON' in display. The harness has been tightened from /1182[.,]5/ to the literal."
+      },
+      { "input": "3547.5", "output": "3547.5", "status": "binding", "note": "The other editing value in the canonical flow; was emitting '3547,5' before the pin." }
+    ]
+  },
+
+  "accountTemplates": {
+    "main": { "id": "main", "name": "Main Account", "type": "primary", "currentBalance": "0" },
+    "emergency": { "id": "emergency", "name": "Emergency Fund", "type": "emergency", "emergencyMultiplier": 3, "currentBalance": "0" },
+    "savings": { "id": "savings", "name": "Savings", "type": "savings", "currentBalance": "0" }
+  },
+
+  "scenarios": [
+    {
+      "id": "S01-ground-truth-month-1",
+      "title": "The canonical GROUND-TRUTH scenario, month 1",
+      "discriminates": "Everything at once: half-even money (1182.5 -> 1,182; 3547.5 -> 3,548), truncated EF percent (4.379% -> 4%), 3x emergency target, and both expense totals agreeing when all expenses are monthly+enabled.",
+      "status": "binding",
+      "source": "observed on the live iOS app; reference-screens/08-dashboard.jpg",
+      "assertInUI": true,
+      "input": {
+        "phase": "onboarding",
+        "name": "Vlad",
+        "monthlyIncome": "9000",
+        "savings": { "strategy": "priority", "mode": "percentage", "percentage": 25, "boost": false },
+        "accounts": ["main", "emergency", "savings"],
+        "expenses": [
+          { "id": "food", "name": "Food", "amount": "1200", "frequency": "monthly", "isEnabled": true, "categoryId": "food-groceries", "linkedAccountId": "main" },
+          { "id": "rent", "name": "Rent", "amount": "2500", "frequency": "monthly", "isEnabled": true, "categoryId": "housing", "linkedAccountId": "main" },
+          { "id": "gas", "name": "Gas", "amount": "450", "frequency": "monthly", "isEnabled": true, "categoryId": "auto-transport", "linkedAccountId": "main" },
+          { "id": "streaming", "name": "Streaming", "amount": "120", "frequency": "monthly", "isEnabled": true, "categoryId": "subscriptions", "linkedAccountId": "main" }
+        ]
+      },
+      "expected": {
+        "raw": {
+          "monthlyIncome": "9000",
+          "dashboardTotalExpensesRaw": "4270",
+          "expensesTabTotalMonthlyNormalised": "4270",
+          "availableIncome": "4730",
+          "savingsAmount": "1182.5",
+          "personalSpending": "3547.5",
+          "emergencyTarget": "27000",
+          "emergencyAllocation": "1182.5",
+          "savingsAllocation": "0",
+          "staysInPrimary": "4270"
+        },
+        "display": {
+          "monthlyIncome": "9,000 RON",
+          "dashboardTotalExpensesRaw": "4,270 RON",
+          "dashboardTotalExpensesRawNegative": "-4,270 RON",
+          "expensesTabTotalMonthlyNormalised": "4,270 RON",
+          "availableIncome": "4,730 RON",
+          "savingsAmount": "1,182 RON",
+          "personalSpending": "3,548 RON",
+          "emergencyTarget": "27,000 RON",
+          "emergencyProgressAmounts": "1,182 RON / 27,000 RON"
+        },
+        "percent": {
+          "emergencyProgressBefore": 0,
+          "emergencyProgressAfter": 4,
+          "_comment_R20": "The truncated ints above are for LABELS. The geometry doubles are in expected.geometry.",
+          "breakdown": { "rent": 58, "food": 28, "gas": 10, "streaming": 2 }
+        },
+        "geometry": { "emergencyProgress": "0.0437962962962963", "why": "R20 — the ring arc must be drawn from this, not from 0.04" },
+        "flags": { "isBalanced": true }
+      }
+    },
+    {
+      "id": "S02-ground-truth-month-2",
+      "title": "The canonical scenario after one New Month cycle",
+      "discriminates": "The New Month write path (R1's computeUpdatedBalances): balances accumulate to EF 2365 / Savings 7095, and the EF ring truncates 8.759% to 8% (rounding would give 9%).",
+      "status": "binding",
+      "source": "observed on the live iOS app",
+      "assertInUI": true,
+      "input": {
+        "continuesFrom": "S01-ground-truth-month-1",
+        "newMonth": {
+          "income": "9000",
+          "accountBalancesEnteredByUser": { "emergency": "1182.5", "savings": "3547.5" },
+          "note": "Step 2 prefills the PERSISTED currentBalance (NewMonthSheet.swift:109), not a projection. The user accepts the prefill unchanged."
+        }
+      },
+      "expected": {
+        "raw": {
+          "emergencyBalance": "2365",
+          "savingsBalance": "7095",
+          "emergencyAllocation": "1182.5",
+          "savingsReceived": "3547.5"
+        },
+        "display": {
+          "emergencyProgressAmounts": "2,365 RON / 27,000 RON",
+          "savingsBalance": "7,095 RON",
+          "emergencyTransfer": "+1,182 RON",
+          "savingsTransfer": "+3,548 RON"
+        },
+        "percent": { "emergencyProgressBefore": 4, "emergencyProgressAfter": 8 },
+        "_naming": "Backend is right: this 3547.5 is remainingMoney ROUTED to savings by remainingDestination, not an allocation the plan made. The plan's own savingsAllocation is 0 here, identically to S01. Renamed to savingsReceived so the two concepts stop sharing a key — S01 and S02 have structurally identical plans and must not have contradictory expectations for the same field name.",
+        "geometry": { "emergencyProgress": "0.0875925925925926", "why": "R20 — THE case the ruling was written for: 8.759% drawn as 8% is a 2.69px bar error at the graded 402px column, which would have failed the single most-asserted scenario in the project for a reason nobody would have found in CSS." },
+        "flags": { "isBalanced": true }
+      }
+    },
+    {
+      "id": "S03-half-even-down-at-2.5",
+      "title": "Tiny amounts: savings of exactly 2.5 must display 2, not 3",
+      "discriminates": "Half-even vs half-up at the smallest interesting magnitude. Math.round(2.5) === 3 in JS; the iOS app shows 2.",
+      "status": "binding",
+      "source": "derived — mechanical consequence of the verified half-even rule (formatterVectors pins 2.5 -> '2 RON')",
+      "assertInUI": true,
+      "input": {
+        "phase": "onboarding",
+        "name": "Vlad",
+        "monthlyIncome": "20",
+        "savings": { "strategy": "priority", "mode": "percentage", "percentage": 25, "boost": false },
+        "accounts": ["main", "emergency", "savings"],
+        "expenses": [
+          { "id": "food", "name": "Food", "amount": "10", "frequency": "monthly", "isEnabled": true, "categoryId": "food-groceries", "linkedAccountId": "main" }
+        ]
+      },
+      "expected": {
+        "raw": { "availableIncome": "10", "savingsAmount": "2.5", "personalSpending": "7.5", "emergencyTarget": "60" },
+        "display": { "savingsAmount": "2 RON", "personalSpending": "8 RON", "emergencyTarget": "60 RON", "availableIncome": "10 RON" },
+        "percent": { "emergencyProgressAfter": 4, "breakdown": { "food": 100 } },
+        "flags": { "isBalanced": true }
+      }
+    },
+    {
+      "id": "S04-half-even-up-at-1183.5",
+      "title": "Savings of exactly 1183.5 must display 1,184; personal spending 3550.5 must display 3,550",
+      "discriminates": "Both directions of half-even in one scenario — 1183.5 goes UP (1184 even), 3550.5 goes DOWN (3550 even). A half-up implementation gets 3,551 wrong; a truncating implementation gets 1,183 wrong. Only half-even satisfies both.",
+      "status": "binding",
+      "source": "derived — mechanical consequence of the verified half-even rule",
+      "assertInUI": true,
+      "input": {
+        "phase": "onboarding",
+        "name": "Vlad",
+        "monthlyIncome": "9004",
+        "savings": { "strategy": "priority", "mode": "percentage", "percentage": 25, "boost": false },
+        "accounts": ["main", "emergency", "savings"],
+        "expenses": [
+          { "id": "rent", "name": "Rent", "amount": "4270", "frequency": "monthly", "isEnabled": true, "categoryId": "housing", "linkedAccountId": "main" }
+        ]
+      },
+      "expected": {
+        "raw": { "availableIncome": "4734", "savingsAmount": "1183.5", "personalSpending": "3550.5", "emergencyTarget": "27012" },
+        "display": {
+          "monthlyIncome": "9,004 RON",
+          "availableIncome": "4,734 RON",
+          "savingsAmount": "1,184 RON",
+          "personalSpending": "3,550 RON",
+          "emergencyTarget": "27,012 RON"
+        },
+        "percent": { "emergencyProgressAfter": 4 },
+        "flags": { "isBalanced": true }
+      }
+    },
+    {
+      "id": "S05-percent-truncation-just-under-100",
+      "title": "Emergency fund at 26,999 of 27,000 shows 99%, not 100%",
+      "discriminates": "Truncation at the far end of the range. 99.996% rounds to 100% and would falsely tell the user the fund is complete.",
+      "status": "binding",
+      "source": "derived — mechanical consequence of Int(progress * 100) in ProgressRing.swift:77",
+      "assertInUI": true,
+      "input": {
+        "phase": "established",
+        "name": "Vlad",
+        "monthlyIncome": "9000",
+        "savings": { "strategy": "priority", "mode": "percentage", "percentage": 25, "boost": false },
+        "accounts": ["main", { "from": "emergency", "currentBalance": "26999" }, "savings"],
+        "expenses": [
+          { "id": "rent", "name": "Rent", "amount": "4270", "frequency": "monthly", "isEnabled": true, "categoryId": "housing", "linkedAccountId": "main" }
+        ]
+      },
+      "expected": {
+        "raw": { "emergencyTarget": "27000" },
+        "display": { "emergencyProgressAmounts": "26,999 RON / 27,000 RON" },
+        "percent": { "emergencyProgressBefore": 99 },
+        "flags": {}
+      }
+    },
+    {
+      "id": "S06-zero-income",
+      "title": "Zero income",
+      "discriminates": "Division-by-zero handling in the percent and breakdown paths, and that a 0 target does not render NaN%, Infinity% or a crash.",
+      "status": "binding",
+      "source": "derived",
+      "assertInUI": true,
+      "input": {
+        "phase": "onboarding",
+        "name": "Vlad",
+        "monthlyIncome": "0",
+        "savings": { "strategy": "priority", "mode": "percentage", "percentage": 25, "boost": false },
+        "accounts": ["main", "emergency", "savings"],
+        "expenses": []
+      },
+      "expected": {
+        "raw": { "availableIncome": "0", "savingsAmount": "0", "personalSpending": "0", "emergencyTarget": "0", "dashboardTotalExpensesRaw": "0", "expensesTabTotalMonthlyNormalised": "0" },
+        "display": { "monthlyIncome": "0 RON", "availableIncome": "0 RON", "savingsAmount": "0 RON", "personalSpending": "0 RON" },
+        "percent": { "emergencyProgressAfter": 0 },
+        "flags": { "isBalanced": true }
+      }
+    },
+    {
+      "id": "S07-expenses-exceed-income",
+      "title": "Expenses larger than income — availableIncome clamps at 0",
+      "discriminates": "max(0, income - expenses). A naive subtraction yields -1270 and then a NEGATIVE savings figure, which the iOS app never shows.",
+      "status": "binding",
+      "source": "derived from the documented max(0, ...) clamp — Analyst to confirm what staysInPrimary and isBalanced do in this state (see openQuestions)",
+      "assertInUI": true,
+      "input": {
+        "phase": "onboarding",
+        "name": "Vlad",
+        "monthlyIncome": "3000",
+        "savings": { "strategy": "priority", "mode": "percentage", "percentage": 25, "boost": false },
+        "accounts": ["main", "emergency", "savings"],
+        "expenses": [
+          { "id": "rent", "name": "Rent", "amount": "4270", "frequency": "monthly", "isEnabled": true, "categoryId": "housing", "linkedAccountId": "main" }
+        ]
+      },
+      "expected": {
+        "raw": { "availableIncome": "0", "savingsAmount": "0", "personalSpending": "0", "dashboardTotalExpensesRaw": "4270" },
+        "display": { "availableIncome": "0 RON", "savingsAmount": "0 RON", "personalSpending": "0 RON", "dashboardTotalExpensesRawNegative": "-4,270 RON" },
+        "percent": { "emergencyProgressAfter": 0 },
+        "flags": {}
+      }
+    },
+    {
+      "id": "S08-emergency-at-target-priority",
+      "title": "Priority mode with the emergency fund already full",
+      "discriminates": "Allocation must STOP at the target — the emergency account gets 0 and the entire savings amount flows to the savings account. An implementation that keeps feeding the emergency fund overshoots 27,000.",
+      "status": "binding",
+      "source": "derived from the documented priority rule ('Emergency fund fills first, then savings')",
+      "assertInUI": true,
+      "input": {
+        "phase": "established",
+        "name": "Vlad",
+        "monthlyIncome": "9000",
+        "savings": { "strategy": "priority", "mode": "percentage", "percentage": 25, "boost": false },
+        "accounts": ["main", { "from": "emergency", "currentBalance": "27000" }, "savings"],
+        "expenses": [
+          { "id": "rent", "name": "Rent", "amount": "4270", "frequency": "monthly", "isEnabled": true, "categoryId": "housing", "linkedAccountId": "main" }
+        ]
+      },
+      "expected": {
+        "raw": { "availableIncome": "4730", "savingsAmount": "1182.5", "emergencyAllocation": "0", "savingsAllocation": "1182.5" },
+        "display": { "emergencyProgressAmounts": "27,000 RON / 27,000 RON" },
+        "percent": { "emergencyProgressBefore": 100, "emergencyProgressAfter": 100 },
+        "flags": { "isBalanced": true }
+      }
+    },
+    {
+      "id": "S09-emergency-partially-filled-priority",
+      "title": "Priority mode with the emergency fund 100 RON short of target",
+      "discriminates": "The single most error-prone branch: the allocation must be CAPPED at the remaining need (100), with the leftover 1082.5 spilling to savings. Implementations typically either overshoot to 28,082.5 or send the whole 1182.5 to savings.",
+      "status": "binding",
+      "source": "derived from the documented priority rule",
+      "assertInUI": true,
+      "input": {
+        "phase": "established",
+        "name": "Vlad",
+        "monthlyIncome": "9000",
+        "savings": { "strategy": "priority", "mode": "percentage", "percentage": 25, "boost": false },
+        "accounts": ["main", { "from": "emergency", "currentBalance": "26900" }, "savings"],
+        "expenses": [
+          { "id": "rent", "name": "Rent", "amount": "4270", "frequency": "monthly", "isEnabled": true, "categoryId": "housing", "linkedAccountId": "main" }
+        ]
+      },
+      "expected": {
+        "raw": { "emergencyAllocation": "100", "savingsAllocation": "1082.5", "emergencyBalanceAfter": "27000" },
+        "display": { "emergencyTransfer": "+100 RON", "savingsTransfer": "+1,082 RON" },
+        "percent": { "emergencyProgressBefore": 99, "emergencyProgressAfter": 100 },
+        "flags": { "isBalanced": true },
+        "note": "1082.5 -> '1,082 RON' by half-even (1082 is even); half-up would print 1,083. This scenario therefore tests the cap AND the rounding rule together."
+      }
+    },
+    {
+      "id": "S10-annual-expense-splits-the-two-totals",
+      "title": "One annual expense — both totals must normalise it to 100/month and AGREE",
+      "discriminates": "The frequency-normalisation invariant (OQ2). The annual 1,200 must count as 100/month in BOTH tabs: 2500 + 100 = 2600 everywhere. An implementation that lets the Dashboard sum raw amounts produces 3,700 on one tab and 2,600 on the other — the disagreement R3 originally predicted, which the pre-filter at MainTabView.swift:147 actually prevents.",
+      "status": "binding",
+      "source": "corrected 2026-08-06 from MainTabView.swift:147 — the Dashboard VM receives an already-filtered, already-normalised set",
+      "assertInUI": true,
+      "input": {
+        "phase": "onboarding",
+        "name": "Vlad",
+        "monthlyIncome": "9000",
+        "savings": { "strategy": "priority", "mode": "percentage", "percentage": 25, "boost": false },
+        "accounts": ["main", "emergency", "savings"],
+        "expenses": [
+          { "id": "rent", "name": "Rent", "amount": "2500", "frequency": "monthly", "isEnabled": true, "categoryId": "housing", "linkedAccountId": "main" },
+          { "id": "insurance", "name": "Insurance", "amount": "1200", "frequency": "annual", "isEnabled": true, "categoryId": "auto-transport", "linkedAccountId": "main" }
+        ]
+      },
+      "expected": {
+        "raw": {},
+        "rawMustNotEqual": {
+          "dashboardTotalExpensesRaw": "2600",
+          "expensesTabTotalMonthlyNormalised": "2600",
+          "availableIncome": "6400",
+          "savingsAmount": "1600",
+          "why": "RULED 2026-08-06. Frequency.annual.monthlyMultiplier is Decimal(1)/12, a 28-digit approximation, so an annual 1,200 normalises to 99.999... and every sum inherits the tail. iOS is IDENTICALLY imprecise — invisible only because every screen shows the formatted value. The exact '2600' here was invented by me, not observed, so it is withdrawn. The 33-digit tail is not pinned either: unreadable, and brittle to any Decimal precision change. Instead assert the value is NOT the naive one — the only way to GET exactly 2600 is to have recomputed outside Domain (TS reimplementation or server-side rounding), which is the divergence R2 forbids."
+        },
+        "display": {
+          "dashboardTotalExpensesRawNegative": "-2,600 RON",
+          "expensesTabTotalMonthlyNormalised": "2,600 RON",
+          "availableIncome": "6,400 RON",
+          "savingsAmount": "1,600 RON"
+        },
+        "percent": { "breakdown": { "rent": 96, "insurance": 3 } },
+        "invariant": { "equalFields": ["dashboardTotalExpensesRaw", "expensesTabTotalMonthlyNormalised"], "why": "OQ2 — the two totals are equal by construction; asserting the equality is stronger than asserting either value alone. Note this still holds with the Decimal tail: both carry the SAME tail, so equality is exact even though neither is 2600." },
+        "flags": {},
+        "note": "Breakdown over the normalised 2600: rent 2500/2600 = 96.15% -> 96; insurance 100/2600 = 3.84% -> 3. Both truncated."
+      }
+    },
+    {
+      "id": "S11-disabled-expense-splits-the-two-totals",
+      "title": "One disabled expense — both totals must exclude it and AGREE",
+      "discriminates": "The isEnabled-filter invariant (OQ2). The disabled 450 must be excluded from BOTH tabs: 2,500 everywhere, with the counter reading '1/2 enabled'. An implementation where the Dashboard ignores isEnabled shows 2,950 there and 2,500 on the Expenses tab.",
+      "status": "binding",
+      "source": "corrected 2026-08-06 from MainTabView.swift:147",
+      "assertInUI": true,
+      "input": {
+        "phase": "onboarding",
+        "name": "Vlad",
+        "monthlyIncome": "9000",
+        "savings": { "strategy": "priority", "mode": "percentage", "percentage": 25, "boost": false },
+        "accounts": ["main", "emergency", "savings"],
+        "expenses": [
+          { "id": "rent", "name": "Rent", "amount": "2500", "frequency": "monthly", "isEnabled": true, "categoryId": "housing", "linkedAccountId": "main" },
+          { "id": "second-home", "name": "Second Home", "amount": "450", "frequency": "monthly", "isEnabled": false, "categoryId": "housing", "linkedAccountId": "main" }
+        ]
+      },
+      "expected": {
+        "raw": { "dashboardTotalExpensesRaw": "2500", "expensesTabTotalMonthlyNormalised": "2500", "availableIncome": "6500" },
+        "display": {
+          "dashboardTotalExpensesRawNegative": "-2,500 RON",
+          "expensesTabTotalMonthlyNormalised": "2,500 RON",
+          "housingCategoryCounter": "1/2 enabled"
+        },
+        "percent": {},
+        "invariant": { "equalFields": ["dashboardTotalExpensesRaw", "expensesTabTotalMonthlyNormalised"], "why": "OQ2 — equal by construction." },
+        "flags": {}
+      }
+    },
+    {
+      "id": "S16-incomplete-reconciled-balances",
+      "title": "New Month with an incomplete reconciledBalances dict — untouched accounts must NOT be wiped",
+      "discriminates": "DECISIONS.md R10, the most dangerous defect found so far and one that NO existing iOS test catches. `computeUpdatedBalances` seeds from `balances[id, default: 0]`; in the app the dict is complete only because a *view* seeds it. A server that builds the dict from the editable accounts only silently resets every other account to 0 + expenseTransfers. Here the Joint account holds 5,000 and is never edited: it must still hold 5,000 afterwards, not 0.",
+      "status": "binding",
+      "source": "DECISIONS.md R10 binding requirement 1 — the guarded behaviour is mandated, not merely observed. If Domain currently zeroes it, that is the bug this vector exists to fail on.",
+      "assertInUI": false,
+      "input": {
+        "continuesFrom": "S01-ground-truth-month-1",
+        "extraAccounts": [
+          { "id": "joint", "name": "Joint Account", "type": "personal", "currentBalance": "5000" }
+        ],
+        "newMonth": {
+          "income": "9000",
+          "accountBalancesEnteredByUser": { "emergency": "1182.5", "savings": "3547.5" },
+          "note": "Deliberately omits `joint` — exactly the incomplete dict R10 warns about."
+        }
+      },
+      "expected": {
+        "raw": { "jointBalance": "5000", "emergencyBalance": "2365", "savingsBalance": "7095" },
+        "display": { "jointBalance": "5,000 RON" },
+        "percent": { "emergencyProgressAfter": 8 },
+        "flags": {},
+        "note": "A `0` or `4270` for jointBalance is the R10 failure mode. Both are wrong."
+      }
+    },
+    {
+      "id": "S17-primary-savings-destination-with-no-savings-account",
+      "title": "Remaining money destined for Primary Savings when no savings account exists",
+      "discriminates": "DECISIONS.md R10 requirement 3 — an `if let` with no `else`, so the remaining 3,547.5 silently vanishes. Money must be conserved: whatever the chosen resolution, income must still equal the sum of the parts.",
+      "status": "binding",
+      "source": "R10 binding requirement 3. The CONSERVATION invariant is binding; the exact destination is not yet decided (OQ8), so only conservation and isBalanced are asserted.",
+      "assertInUI": false,
+      "input": {
+        "phase": "onboarding",
+        "name": "Vlad",
+        "monthlyIncome": "9000",
+        "savings": { "strategy": "priority", "mode": "percentage", "percentage": 25, "boost": false },
+        "remainingDestination": "primarySavings",
+        "accounts": ["main", "emergency"],
+        "expenses": [
+          { "id": "rent", "name": "Rent", "amount": "4270", "frequency": "monthly", "isEnabled": true, "categoryId": "housing", "linkedAccountId": "main" }
+        ]
+      },
+      "expected": {
+        "raw": { "availableIncome": "4730", "savingsAmount": "1182.5", "emergencyAllocation": "1182.5" },
+        "display": {},
+        "percent": {},
+        "flags": { "isBalanced": true },
+        "conservationNote": "isBalanced is TRUE here even though 3,547.5 vanished — it is computed before the destination lookup. That is the defect, asserted deliberately.",
+        "conservation": {
+          "parts": ["emergencyAllocation", "savingsAllocation", "staysInPrimary", "unallocatedRemaining"],
+          "mustEqual": "monthlyIncome",
+          "expectedToFail": true,
+          "expectedSum": "5452.5",
+          "why": "OQ8 + R26 RULING — the money VANISHES in iOS and we reproduce that faithfully. `.primarySavings` with no such account is an `if let` with no `else`; the 3,547.5 goes nowhere and isBalanced was already computed true earlier, so nothing flags it. Do NOT invent a fallback destination or an unallocatedRemaining field. This vector pins the DEFECT: the parts must sum to exactly 5,452.5 (= 1182.5 + 0 + 4270), NOT 9,000. If a future implementation conserves the money, this test fails — and that failure is the signal that we have diverged from iOS, not that we fixed a bug."
+        },
+        "note": "Missing parts are treated as 0 by the harness. Logged in PARITY-GAPS.md as an upstream defect mirrored on purpose."
+      }
+    },
+    {
+      "id": "S18-split-defaults-both-fixed-zero",
+      "title": "First switch to Split — both sides default to Fixed Amount at 0",
+      "discriminates": "The Split empty state. Total Monthly must render '0 RON', not the Priority-mode 1,182 carried over, and not a percentage default.",
+      "status": "binding",
+      "source": "observed on the live iOS app 2026-08-06; reference-screens/18-settings-split-fixed.jpg",
+      "assertInUI": true,
+      "input": {
+        "phase": "onboarding",
+        "name": "Vlad",
+        "monthlyIncome": "9000",
+        "savings": {
+          "strategy": "split",
+          "emergency": { "mode": "fixed", "fixedAmount": "0" },
+          "savings": { "mode": "fixed", "fixedAmount": "0" },
+          "boost": false
+        },
+        "accounts": ["main", "emergency", "savings"],
+        "expenses": [
+          { "id": "rent", "name": "Rent", "amount": "4270", "frequency": "monthly", "isEnabled": true, "categoryId": "housing", "linkedAccountId": "main" }
+        ]
+      },
+      "expected": {
+        "raw": { "availableIncome": "4730", "emergencyAllocation": "0", "savingsAllocation": "0", "splitTotalMonthly": "0" },
+        "display": { "splitTotalMonthly": "0 RON" },
+        "percent": {},
+        "flags": {}
+      }
+    },
+    {
+      "id": "S19-split-emergency-percentage-only",
+      "title": "Split — Emergency 10% (Percentage), Savings 0 (Fixed)",
+      "discriminates": "PROVES split percentages resolve against availableIncome (4,730), not gross income. 0.10 × 4730 = 473 exactly; 0.10 × 9000 = 900. A wrong denominator is invisible in any total-only check.",
+      "status": "binding",
+      "source": "observed on the live iOS app 2026-08-06; reference-screens/19-settings-split-percentage.jpg",
+      "assertInUI": true,
+      "input": {
+        "phase": "onboarding",
+        "name": "Vlad",
+        "monthlyIncome": "9000",
+        "savings": {
+          "strategy": "split",
+          "emergency": { "mode": "percentage", "percentage": 10 },
+          "savings": { "mode": "fixed", "fixedAmount": "0" },
+          "boost": false
+        },
+        "accounts": ["main", "emergency", "savings"],
+        "expenses": [
+          { "id": "rent", "name": "Rent", "amount": "4270", "frequency": "monthly", "isEnabled": true, "categoryId": "housing", "linkedAccountId": "main" }
+        ]
+      },
+      "expected": {
+        "raw": { "availableIncome": "4730", "emergencyAllocation": "473", "savingsAllocation": "0", "splitTotalMonthly": "473" },
+        "display": { "splitTotalMonthly": "473 RON" },
+        "percent": {},
+        "flags": {},
+        "note": "473 is exact — no rounding involved — so this vector isolates the DENOMINATOR question cleanly from the half-even question."
+      }
+    },
+    {
+      "id": "S20-split-both-percentage-defaults",
+      "title": "Split — Emergency 10% + Savings 15%, the shipped defaults",
+      "discriminates": "The 10/15 defaults sum to 25%, so Total Monthly is 1,182 RON — THE SAME STRING Priority mode produces. A test that checks only the total cannot tell the two modes apart. This vector pins the PER-SIDE amounts (473 and 709.5) so a mode mix-up fails.",
+      "status": "binding",
+      "source": "observed on the live iOS app 2026-08-06; reference-screens/19-settings-split-percentage.jpg. NOTE: 10%/15% are the rates REVEALED when a side is toggled to Percentage — they are NOT allocation defaults. Both sides default to fixedAmount 0 (SavingsAllocationEntry.swift:58,61), which is S18.",
+      "assertInUI": true,
+      "input": {
+        "phase": "onboarding",
+        "name": "Vlad",
+        "monthlyIncome": "9000",
+        "savings": {
+          "strategy": "split",
+          "emergency": { "mode": "percentage", "percentage": 10 },
+          "savings": { "mode": "percentage", "percentage": 15 },
+          "boost": false
+        },
+        "accounts": ["main", "emergency", "savings"],
+        "expenses": [
+          { "id": "rent", "name": "Rent", "amount": "4270", "frequency": "monthly", "isEnabled": true, "categoryId": "housing", "linkedAccountId": "main" }
+        ]
+      },
+      "expected": {
+        "raw": {
+          "availableIncome": "4730",
+          "emergencyAllocation": "473",
+          "savingsAllocation": "709.5",
+          "splitTotalMonthly": "1182.5"
+        },
+        "display": { "splitTotalMonthly": "1,182 RON" },
+        "percent": {},
+        "flags": {},
+        "note": "The RAW per-side 473 / 709.5 is what makes this vector distinguishable from Priority mode, which renders the same 1,182 total. The per-side DISPLAY strings are split out into S24 because they have not been observed — see OQ13."
+      }
+    },
+    {
+      "id": "S21-primary-savings-preselected-but-savings-account-skipped",
+      "title": "Onboarding: .primarySavings is preselected, the savings account was skipped — remaining money vanishes at save",
+      "discriminates": "SECOND upstream vanishing-money defect, same family as S17 but on a different code path. remainingDestination defaults to .primarySavings (OnboardingViewModel.swift:29, inserted at index 0 so it is the first card and already highlighted). If the savings-account prompt was skipped, that destination stays selected while being ABSENT from availableDestinations: NO card renders selected, and at save (:215-230) no branch fires, so remainingMoney is credited to nothing.",
+      "status": "binding",
+      "source": "Analyst source read 2026-08-06 (OnboardingViewModel.swift:29 and :215-230). Mirrored deliberately, per the same ruling as OQ8 — do NOT invent a fallback.",
+      "assertInUI": true,
+      "input": {
+        "phase": "onboarding",
+        "name": "Vlad",
+        "monthlyIncome": "9000",
+        "savings": { "strategy": "priority", "mode": "percentage", "percentage": 25, "boost": false },
+        "remainingDestination": "primarySavings",
+        "accounts": ["main", "emergency"],
+        "skippedSavingsAccountPrompt": true,
+        "expenses": [
+          { "id": "rent", "name": "Rent", "amount": "4270", "frequency": "monthly", "isEnabled": true, "categoryId": "housing", "linkedAccountId": "main" }
+        ]
+      },
+      "expected": {
+        "raw": { "availableIncome": "4730", "emergencyAllocation": "1182.5", "staysInPrimary": "4270" },
+        "display": {},
+        "percent": {},
+        "flags": { "isBalanced": true },
+        "conservation": {
+          "parts": ["emergencyAllocation", "savingsAllocation", "staysInPrimary", "unallocatedRemaining"],
+          "mustEqual": "monthlyIncome",
+          "expectedToFail": true,
+          "expectedSum": "5452.5",
+          "why": "MIRRORED DEFECT. remainingMoney (3,547.5) is credited to nothing because the preselected .primarySavings destination is not in availableDestinations and no branch fires at save. If the parts ever reconcile to 9,000, we have DIVERGED from iOS — that is not a bug fix. Re-open with main before changing this vector."
+        },
+        "uiInvariant": { "noDestinationCardSelected": true, "why": "The preselected destination is absent from the rendered options, so NO card shows as selected — an implementation that helpfully falls back to 'Keep in Primary' diverges." }
+      }
+    },
+    {
+      "id": "S22-skip-expenses-step",
+      "title": "\u0022Skip for now\u0022 on the Expenses step — zeroes all four amounts, persists NO expense rows",
+      "discriminates": "The Expenses skip is 'discard my edits', not 'opt out of the step'. It advances exactly one step (never to the summary), zeroes all four seeded amounts, and persists ZERO Expense rows — so availableIncome equals gross income, 9,000, and savings is 25% of 9,000 = 2,250, not 1,182.50.",
+      "status": "binding",
+      "source": "Analyst source read 2026-08-06",
+      "assertInUI": true,
+      "input": {
+        "phase": "onboarding",
+        "name": "Vlad",
+        "monthlyIncome": "9000",
+        "savings": { "strategy": "priority", "mode": "percentage", "percentage": 25, "boost": false },
+        "accounts": ["main", "emergency", "savings"],
+        "skippedExpensesStep": true,
+        "expenses": []
+      },
+      "expected": {
+        "raw": {
+          "dashboardTotalExpensesRaw": "0",
+          "expensesTabTotalMonthlyNormalised": "0",
+          "availableIncome": "9000",
+          "savingsAmount": "2250",
+          "personalSpending": "6750"
+        },
+        "display": {
+          "availableIncome": "9,000 RON",
+          "savingsAmount": "2,250 RON",
+          "personalSpending": "6,750 RON"
+        },
+        "percent": {},
+        "invariant": { "equalFields": ["dashboardTotalExpensesRaw", "expensesTabTotalMonthlyNormalised"], "why": "OQ2 — equal by construction, trivially so at zero." },
+        "flags": {},
+        "note": "availableIncome == income is the whole point: no expenses persist, so nothing is subtracted."
+      }
+    },
+    {
+      "id": "S23-skip-savings-step",
+      "title": "\u0022Skip for now\u0022 on the Savings step — does NOT zero; resets to a fresh 25% priority/percentage entry that IS persisted",
+      "discriminates": "The asymmetry between the two skip buttons. Unlike the Expenses skip, this one does not zero anything — it resets to a fresh SavingsAllocationEntry (25%, priority, percentage) and a row IS persisted. Skipping savings still saves 25%. An implementation that treats 'skip' uniformly as 'set to zero' produces savingsAmount 0 here.",
+      "status": "binding",
+      "source": "Analyst source read 2026-08-06",
+      "assertInUI": true,
+      "input": {
+        "phase": "onboarding",
+        "name": "Vlad",
+        "monthlyIncome": "9000",
+        "savings": { "skipped": true },
+        "accounts": ["main", "emergency", "savings"],
+        "expenses": [
+          { "id": "food", "name": "Food", "amount": "1200", "frequency": "monthly", "isEnabled": true, "categoryId": "food-groceries", "linkedAccountId": "main" },
+          { "id": "rent", "name": "Rent", "amount": "2500", "frequency": "monthly", "isEnabled": true, "categoryId": "housing", "linkedAccountId": "main" },
+          { "id": "gas", "name": "Gas", "amount": "450", "frequency": "monthly", "isEnabled": true, "categoryId": "auto-transport", "linkedAccountId": "main" },
+          { "id": "streaming", "name": "Streaming", "amount": "120", "frequency": "monthly", "isEnabled": true, "categoryId": "subscriptions", "linkedAccountId": "main" }
+        ]
+      },
+      "expected": {
+        "raw": { "savingsPercentage": "25", "availableIncome": "4730", "savingsAmount": "1182.5" },
+        "state": { "savingsStrategy": "prioritized", "savingsMode": "percentage" },
+        "_enumNote": "The Domain enum is `prioritized`, not `priority`. My fixture had the UI label; the server is authoritative on enum spelling.",
+        "display": { "savingsAmount": "1,182 RON" },
+        "percent": {},
+        "flags": {},
+        "note": "Identical outcome to S01 — which is the point: skipping the savings step is indistinguishable from accepting its defaults. A savingsAmount of 0 here means 'skip' was implemented as 'zero'."
+      }
+    },
+    {
+      "id": "S24-split-per-side-independent-rounding",
+      "title": "Split per-side amounts each round independently, so 473 + 710 displays alongside a 1,182 total",
+      "discriminates": "Each side is formatted from its OWN full decimal (473, and 709.5 -> '710') while the total is formatted from the SUMMED decimal (1182.5 -> '1,182'). The rendered parts visibly sum to 1,183 against a 1,182 total. Reproduce that; do not reconcile it.",
+      "status": "binding",
+      "source": "CONFIRMED 2026-08-06 (OQ13) two ways: SavingsScreen.savingsPreview (:429-458) is not mode-gated and calculatePreviewSavings() (:460-469) returns splitTotal for .split; and executed against real Domain + AmountFormatter.",
+      "assertInUI": true,
+      "input": { "continuesFrom": "S20-split-both-percentage-defaults" },
+      "expected": {
+        "raw": { "emergencyAllocation": "473", "savingsAllocation": "709.5", "splitTotalMonthly": "1182.5" },
+        "display": { "emergencyAllocation": "473 RON", "savingsAllocation": "710 RON", "splitTotalMonthly": "1,182 RON" },
+        "percent": {},
+        "jointAssertion": {
+          "fields": ["emergencyAllocation", "savingsAllocation", "splitTotalMonthly"],
+          "why": "MUST be asserted together, not as three independent checks. A naive-rounding implementation produces 473 + 709 = 1,182, which matches the total AND plausibly matches one side — so any two of these three can pass while the implementation is wrong. Only all three at once catches it."
+        },
+        "flags": {},
+        "note": "The rendered parts sum to 1,183 against a 1,182 total. That looks like a bug and is not one — it is independent per-value formatting, and iOS does it."
+      }
+    },
+    {
+      "id": "S25-annual-expense-displayed-in-both-segments",
+      "title": "R25a — an annual expense, asserted as DISPLAYED in both the Monthly and Annual segments",
+      "discriminates": "The `amount` / `monthlyAmount` / `annualAmount` triple. All four ground-truth seed expenses are monthly, so `amount == monthlyAmount` for every one of them and a client that renders `expense.amount` passes the ENTIRE rest of this fixture while being 12x wrong on any annual expense. iOS never displays `amount` at all — ExpenseItemRow.swift:31 renders monthlyAmount or annualAmount per segment; `amount` exists only to seed the edit field. Insurance is annual 1,200, so it must render 100 RON under Monthly and 1,200 RON under Annual. Rendering 1,200 under Monthly is the 12x bug this vector exists to catch.",
+      "status": "binding",
+      "source": "DECISIONS.md R25 row 3 + ExpenseItemRow.swift:31. Values are mechanical (1200/12 = 100 exactly, no rounding involved, so the vector isolates the FIELD CHOICE from any formatting question).",
+      "assertInUI": true,
+      "input": {
+        "phase": "onboarding",
+        "name": "Vlad",
+        "monthlyIncome": "9000",
+        "savings": { "strategy": "priority", "mode": "percentage", "percentage": 25, "boost": false },
+        "accounts": ["main", "emergency", "savings"],
+        "expenses": [
+          { "id": "rent", "name": "Rent", "amount": "2500", "frequency": "monthly", "isEnabled": true, "categoryId": "housing", "linkedAccountId": "main" },
+          { "id": "insurance", "name": "Insurance", "amount": "1200", "frequency": "annual", "isEnabled": true, "categoryId": "auto-transport", "linkedAccountId": "main" }
+        ]
+      },
+      "expected": {
+        "raw": {},
+        "rawMustNotEqual": {
+          "dashboardTotalExpensesRaw": "2600",
+          "expensesTabTotalMonthlyNormalised": "2600",
+          "availableIncome": "6400",
+          "savingsAmount": "1600",
+          "why": "RULED 2026-08-06. Frequency.annual.monthlyMultiplier is Decimal(1)/12, a 28-digit approximation, so an annual 1,200 normalises to 99.999... and every sum inherits the tail. iOS is IDENTICALLY imprecise — invisible only because every screen shows the formatted value. My exact '2600' was invented, not observed, so it is withdrawn. But the exact tail is not pinned either: a 33-digit literal is unreadable and would break on any Decimal precision change. Instead this asserts the value is NOT the naive exact one — because the only way to GET exactly 2600 is to have recomputed it outside Domain (a TS reimplementation, or server-side rounding), which is precisely the divergence R2 forbids. Same inverse-assertion shape R26a requires for mirrored defects."
+        },
+        "display": {
+          "expensesTabTotalMonthlyNormalised": "2,600 RON",
+          "availableIncome": "6,400 RON",
+          "savingsAmount": "1,600 RON"
+        },
+        "segments": {
+          "monthly": {
+            "rows": { "rent": "2,500 RON", "insurance": "100 RON" },
+            "total": "2,600 RON",
+            "why": "Insurance MUST show its monthlyAmount (100), never its amount (1,200). A 1,200 here is the 12x defect."
+          },
+          "annual": {
+            "rows": { "rent": "30,000 RON", "insurance": "1,200 RON" },
+            "total": "31,200 RON",
+            "why": "Under Annual, Rent shows annualAmount (2500 x 12 = 30,000) and Insurance shows 1,200. A client that renders `amount` shows 2,500 for Rent here."
+          }
+        },
+        "forbiddenDisplay": {
+          "monthly": ["1,200 RON"],
+          "why": "R25a — under the Monthly segment the string 1,200 RON must not appear for Insurance at all. Asserting the right value is not enough if the wrong one is also rendered somewhere in the row."
+        },
+        "percent": {},
+        "invariant": { "equalFields": ["dashboardTotalExpensesRaw", "expensesTabTotalMonthlyNormalised"], "why": "OQ2 — equal by construction." },
+        "flags": {}
+      }
+    },
+    {
+      "id": "S26-hard-capped-emergency-fund",
+      "title": "R25a — emergency fund with a hard cap that BITES, and the struck-through uncapped target",
+      "discriminates": "The capped/uncapped target pair. Ground truth has no hard cap, so target == income x multiplier everywhere and a client that ignores the cap entirely passes the whole fixture. Here 3 x 9,000 = 27,000 uncapped but the cap is 20,000, so the EFFECTIVE target is 20,000 — and the picker renders the uncapped 27,000 STRUCK THROUGH beside it. Progress must be measured against the capped target: 1182.5 / 20000 = 5.91% -> 5%, not the 4% the uncapped target would give.",
+      "status": "binding",
+      "source": "DECISIONS.md R25 + CLAUDE.md emergencyTarget = min(income x multiplier, hardCap). The 4%-vs-5% divergence makes the cap observable in the ring label, not only in the picker.",
+      "assertInUI": true,
+      "input": {
+        "phase": "onboarding",
+        "name": "Vlad",
+        "monthlyIncome": "9000",
+        "savings": { "strategy": "priority", "mode": "percentage", "percentage": 25, "boost": false },
+        "accounts": [
+          "main",
+          { "from": "emergency", "emergencyMultiplier": 3, "emergencyHardCap": "20000" },
+          "savings"
+        ],
+        "expenses": [
+          { "id": "rent", "name": "Rent", "amount": "4270", "frequency": "monthly", "isEnabled": true, "categoryId": "housing", "linkedAccountId": "main" }
+        ]
+      },
+      "expected": {
+        "raw": {
+          "emergencyTarget": "20000",
+          "emergencyTargetUncapped": "27000",
+          "emergencyHardCap": "20000",
+          "availableIncome": "4730",
+          "savingsAmount": "1182.5"
+        },
+        "display": {
+          "emergencyTarget": "20,000 RON",
+          "emergencyTargetUncapped": "27,000 RON",
+          "emergencyProgressAmounts": "1,182 RON / 20,000 RON",
+          "emergencyTargetCaption": "Target: 3× monthly income (capped at 20,000 RON)"
+        },
+        "forbiddenAnywhere": {
+          "strings": ["Target"],
+          "exact": true,
+          "why": "EmergencyProgressCard.swift:73-82 builds TWO captions; the bare fallback 'Target' is a string iOS never renders, because the card is gated on a target existing. A phantom string in the codebase is a future bug report."
+        },
+        "percent": { "emergencyProgressAfter": 5 },
+        "geometry": { "emergencyProgress": "0.059125", "why": "R20 — 1182.5/20000 = 5.9125%; the arc uses the double, the label the truncated 5." },
+        "uiInvariant": {
+          "uncappedTargetStruckThrough": true,
+          "why": "R25a — when the cap bites, the picker shows the uncapped 27,000 with strike-through beside the effective 20,000. Rendering only one number loses the affordance that tells the user WHY their target is not 3x income."
+        },
+        "flags": {},
+        "_phaseNote": "phase is onboarding, not established: this vector asserts the POST-PLAN emergency balance (1,182 / 20,000). S05 is established because it asserts a BEFORE balance (26,999 / 27,000) that no plan has touched. Backend caught the inconsistency. The distinction is exactly why the flag is declarative — the data shape alone cannot tell them apart.", "note": "REGISTER ROW 4 — this vector exists because the caption defect SHIPPED. iOS renders 'Target: 3× monthly income (capped at 20,000 RON)'; StateAssembler.swift:361 emits only the uncapped variant, silently dropping '(capped at 20,000 RON)'. The register warned implementers and it shipped anyway: a pre-registered risk with no fixture is a risk nobody can fail. S01 asserts the no-cap variant ('Target: 3× monthly income') as the negative control, so the two forms cannot be collapsed into one. The 5%-vs-4% progress split is the second half: it makes an ignored cap fail a LABEL assertion, not only a picker one."
+      }
+    },
+    {
+      "id": "S27-split-at-target-transfer-plan-two-savings-rows",
+      "title": "Split at target — Emergency row ABSENT and TWO rows both named \u0022Savings\u0022",
+      "discriminates": "R25 row 8, and the sharpest structural trap found so far. With the emergency fund full, its 473 overflows entirely, so 473 + 709.5 = 1182.5 all lands on Savings — and the plan renders TWO rows both named \u0022Savings\u0022, distinguished only by the second\u0027s \u0022remaining money\u0022 subtitle. A client keying transfer rows by account id or name COLLAPSES them and silently loses 3,548 RON from the display. The plan must be an ORDERED LIST, never a map keyed by account. Note both wrong renderings look plausible: a single row of 1,182 (last-write-wins) or of 4,730 (summed).",
+      "status": "binding",
+      "source": "walked on the live iOS app 2026-08-06 (OQ12); reference-screens/24-split-at-target-transferplan.jpg",
+      "assertInUI": true,
+      "input": {
+        "phase": "established",
+        "name": "Vlad",
+        "monthlyIncome": "9000",
+        "savings": { "strategy": "split", "emergency": { "mode": "percentage", "percentage": 10 }, "savings": { "mode": "percentage", "percentage": 15 }, "boost": false },
+        "accounts": ["main", { "from": "emergency", "currentBalance": "27000" }, "savings"],
+        "expenses": [
+          { "id": "rent", "name": "Rent", "amount": "4270", "frequency": "monthly", "isEnabled": true, "categoryId": "housing", "linkedAccountId": "main" }
+        ]
+      },
+      "expected": {
+        "raw": { "availableIncome": "4730", "splitTotalMonthly": "1182.5" },
+        "display": {},
+        "transferPlanRows": [
+          { "name": "Savings", "amount": "+1,182 RON", "subtitle": "" },
+          { "name": "Savings", "amount": "+3,548 RON", "subtitle": "remaining money" }
+        ],
+        "transferPlanAbsentNames": ["Emergency Fund"],
+        "transferPlanWhy": "Assert the Emergency row\u0027s ABSENCE, not a zero row — it does not render at all. And assert BOTH Savings rows by ordinal position with their distinct amounts and subtitles; a by-name lookup cannot distinguish them, which is the whole point.",
+        "percent": { "emergencyProgressBefore": 100 },
+        "flags": { "isBalanced": true },
+        "note": "Primary row: 4,270 RON / \u0022stays for automatic payments\u0022. Banner: \u0022All amounts add up correctly\u0022."
+      }
+    },
+    {
+      "id": "S28-negative-zero-on-the-new-month-plan",
+      "title": "New Month transfer plan with a zero expense total must render 0 RON, never -0 RON",
+      "discriminates": "The SECOND -0 site. TransferPlanStep.swift:106 has the same `amount > 0` gate as the Dashboard, so the identical defect will ship on New Month unless caught at authoring time. Pinned BEFORE it is written rather than after. Note the guard must key off the AMOUNT, not off `display === \u00270\u0027` — keying off the string would also swallow R24\u0027s legitimate `-0` for a genuinely small negative value, which we DO reproduce.",
+      "status": "binding",
+      "source": "R28a/R30 pre-warning from main; same mechanism as the confirmed Dashboard defect (DashboardScreen.tsx:74 renders `-${expenses.display}` unconditionally).",
+      "assertInUI": true,
+      "input": {
+        "phase": "onboarding",
+        "name": "Vlad",
+        "monthlyIncome": "9000",
+        "savings": { "strategy": "priority", "mode": "percentage", "percentage": 25, "boost": false },
+        "accounts": ["main", "emergency", "savings"],
+        "expenses": []
+      },
+      "expected": {
+        "raw": { "dashboardTotalExpensesRaw": "0", "availableIncome": "9000" },
+        "display": { "dashboardTotalExpensesRawNegative": "0 RON" },
+        "forbiddenAnywhere": {
+          "strings": ["-0 RON"],
+          "exact": false,
+          "why": "iOS gates the minus prefix on amount > 0, so a zero total renders \u00270 RON\u0027. This state is reachable on the FIRST screen a new user sees via the Skip-for-now path. Do NOT implement the guard as `display === \u00270\u0027` — that would also suppress the legitimate `-0` that formatForDisplay(-0.4) produces and which we deliberately reproduce."
+        },
+        "percent": {},
+        "flags": {}
+      }
+    },
+    {
+      "id": "S12-split-strategy-with-emergency-full",
+      "title": "Split at target — Settings' Total Monthly is the REQUESTED split total, unchanged by the fund being full",
+      "discriminates": "Total Monthly is purely `splitTotal` and does NOT account for the emergency fund being full: at target it still renders 473 with only Emergency at 10%, and 1,182 with both sides — byte-identical to the not-at-target case. An implementation that helpfully shows the RESOLVED allocation here (0 for emergency) diverges. The redirect happens at transfer-plan time only (S27).",
+      "status": "binding",
+      "source": "walked on the live iOS app 2026-08-06 (OQ12); reference-screens/24-split-at-target-transferplan.jpg",
+      "assertInUI": true,
+      "input": {
+        "phase": "established",
+        "name": "Vlad",
+        "monthlyIncome": "9000",
+        "savings": { "strategy": "split", "emergency": { "mode": "percentage", "percentage": 10 }, "savings": { "mode": "percentage", "percentage": 15 }, "boost": false },
+        "accounts": ["main", { "from": "emergency", "currentBalance": "27000" }, "savings"],
+        "expenses": [
+          { "id": "rent", "name": "Rent", "amount": "4270", "frequency": "monthly", "isEnabled": true, "categoryId": "housing", "linkedAccountId": "main" }
+        ]
+      },
+      "expected": {
+        "raw": { "splitTotalMonthly": "1182.5" },
+        "display": { "splitTotalMonthly": "1,182 RON" },
+        "percent": { "emergencyProgressBefore": 100, "emergencyProgressAfter": 100 },
+        "flags": {},
+        "note": "The ring reads exactly 100% here — so 100 IS reachable, which complements S05 asserting 26,999/27,000 truncates to 99%. Together they pin both sides of the boundary."
+      }
+    },
+    {
+      "id": "S13-split-strategy-emergency-nearly-full",
+      "title": "Split near target (100 RON short) — THREE transfer rows, emergency capped at 100, and a completion callout",
+      "discriminates": "The richest single screen in the fixture. (a) The emergency side is CAPPED at the remaining need 100, not the requested 473 — confirming S09's priority-mode prediction carries to split. (b) The spill 1182.5-100 = 1082.5 renders '1,082 RON', half-even DOWN to an even integer, while '3,548 RON' on the same screen is half-even UP — so one screenshot brackets the rounding rule in both directions: half-up fails the first, truncation fails the second. (c) THREE rows, two of them named Savings alongside a distinct Emergency row, so the ordinal-id requirement (R25 row 8) is exercised with a genuine mix rather than only the two-row case. (d) A string that exists ONLY in this state.",
+      "status": "binding",
+      "source": "walked on the live iOS app 2026-08-06; reference-screens/25-split-near-target-transferplan.jpg",
+      "assertInUI": true,
+      "input": {
+        "phase": "established",
+        "name": "Vlad",
+        "monthlyIncome": "9000",
+        "savings": { "strategy": "split", "emergency": { "mode": "percentage", "percentage": 10 }, "savings": { "mode": "percentage", "percentage": 15 }, "boost": false },
+        "accounts": ["main", { "from": "emergency", "currentBalance": "26900" }, "savings"],
+        "expenses": [
+          { "id": "rent", "name": "Rent", "amount": "4270", "frequency": "monthly", "isEnabled": true, "categoryId": "housing", "linkedAccountId": "main" }
+        ]
+      },
+      "expected": {
+        "raw": { "emergencyAllocation": "100", "savingsAllocation": "1082.5", "savingsReceived": "4630" },
+        "_savingsReceivedNote": "BOTH keys, because they are different quantities: savingsAllocation 1082.5 is what the PLAN allocates (the spill past the 100 cap); savingsReceived 4630 = that spill PLUS the 3547.5 remaining money. savingsReceived is the TOTAL the savings account receives, consistent with S02 where it is 3547.5 with no spill. My first draft expected only the spill — the server was right. The two components stay separately visible in transferPlanRows (+1,082 and +3,548), which is where the two-rows-named-Savings distinction actually lives.",
+        "display": {},
+        "transferPlanRows": [
+          { "name": "Emergency Fund", "amount": "+100 RON", "subtitle": "Completes fund to 100%!" },
+          { "name": "Savings", "amount": "+1,082 RON", "subtitle": "" },
+          { "name": "Savings", "amount": "+3,548 RON", "subtitle": "remaining money" }
+        ],
+        "transferPlanWhy": "Three rows, TWO named Savings plus a distinct Emergency — an account-keyed lookup collapses the pair and loses 3,548 RON. Assert by ordinal position over the whole ordered list.",
+        "narrowWindowStrings": {
+          "strings": ["Completes fund to 100%!"],
+          "why": "This callout appears ONLY when an allocation FINISHES the fund. It is absent when the fund is already full (S27 — Emergency has no row at all) and absent when the allocation falls short (S09). It lives in a one-month window that any test covering only empty and full would miss entirely."
+        },
+        "percent": { "emergencyProgressBefore": 99, "emergencyProgressAfter": 100 },
+        "flags": { "isBalanced": true },
+        "note": "1082.5 -> '1,082 RON' (down, 1082 even) beside 3547.5 -> '3,548 RON' (up, 3548 even) on the same screen."
+      }
+    },
+    {
+      "id": "S14-fixed-amount-savings-mode",
+      "title": "Fixed-amount savings mode instead of percentage",
+      "discriminates": "The 'Fixed Amount' segment. Also the clamping question: what happens when the fixed amount exceeds availableIncome.",
+      "status": "needs-confirmation",
+      "source": "SHAPE ONLY — clamping behaviour undocumented.",
+      "assertInUI": false,
+      "input": {
+        "phase": "onboarding",
+        "name": "Vlad",
+        "monthlyIncome": "9000",
+        "savings": { "strategy": "priority", "mode": "fixed", "fixedAmount": "1500", "boost": false },
+        "accounts": ["main", "emergency", "savings"],
+        "expenses": [
+          { "id": "rent", "name": "Rent", "amount": "4270", "frequency": "monthly", "isEnabled": true, "categoryId": "housing", "linkedAccountId": "main" }
+        ]
+      },
+      "expected": {
+        "raw": { "availableIncome": "4730", "savingsAmount": "1500", "personalSpending": "3230" },
+        "display": { "savingsAmount": "1,500 RON", "personalSpending": "3,230 RON" },
+        "percent": {},
+        "flags": {},
+        "note": "Analyst: confirm savingsAmount is the fixed amount verbatim, and add a companion scenario where fixedAmount > availableIncome once the clamp is known."
+      }
+    },
+    {
+      "id": "S15-savings-boost",
+      "title": "Savings Boost enabled ('Triple your savings temporarily')",
+      "discriminates": "Whether boost multiplies the percentage, the resulting amount, or something else — and whether the result is clamped to availableIncome.",
+      "status": "needs-confirmation",
+      "source": "SHAPE ONLY. 'Triple' is the UI copy; the actual multiplier and clamp are unverified. 25% tripled is 75% of 4730 = 3547.5, which is suspiciously equal to personalSpending in S01 — a coincidence that would mask a bug, so this needs real verification, not inference.",
+      "assertInUI": false,
+      "input": {
+        "phase": "onboarding",
+        "name": "Vlad",
+        "monthlyIncome": "9000",
+        "savings": { "strategy": "priority", "mode": "percentage", "percentage": 25, "boost": true },
+        "accounts": ["main", "emergency", "savings"],
+        "expenses": [
+          { "id": "rent", "name": "Rent", "amount": "4270", "frequency": "monthly", "isEnabled": true, "categoryId": "housing", "linkedAccountId": "main" }
+        ]
+      },
+      "expected": { "raw": { "savingsAmount": null }, "display": {}, "percent": {}, "flags": {}, "note": "Analyst to fill." }
+    }
+  ],
+
+  "openQuestions": [
+    { "id": "OQ1", "question": "In S07 (expenses > income), what does 'Stays in Primary' show and is isBalanced still true when availableIncome is clamped to 0? The clamp breaks the income == sum-of-parts identity that isBalanced checks.", "blocks": ["S07-expenses-exceed-income.expected.flags"] },
+    { "id": "OQ2", "question": "RESOLVED 2026-08-06 — MOOT. MainTabView.swift:147 filters isEnabled and normalises frequency BEFORE the Dashboard VM sees the expenses, so both totals are equal by construction and availableIncome is computed over the normalised set. S10/S11 rewritten to assert the EQUALITY as an invariant. Knock-on: DECISIONS.md R3 instructs Backend to expose two differing fields and mirror a disagreement that is unreachable through the UI — R3 needs amending.", "blocks": [] },
+    { "id": "OQ3", "question": "ANSWERED 2026-08-06 by a live walkthrough: split has two INDEPENDENT per-side controls, each with its own Percentage|Fixed mode; defaults are Emergency 10% / Savings 15%, both resolving against availableIncome. Pinned by S18/S19/S20. Still open: the at-target and near-target behaviour of the emergency side (S12, S13).", "blocks": ["S12-split-strategy-with-emergency-full", "S13-split-strategy-emergency-nearly-full"] },
+    { "id": "OQ4", "question": "S09 assumes priority mode caps the emergency allocation at the remaining need (100) and spills the rest (1082.5) to savings. Confirm against TransferCalculator.swift — the alternative implementations (overshoot to 28,082.5, or send the whole 1182.5 to savings) are both plausible readings of 'emergency fund fills first'.", "blocks": ["S09-emergency-partially-filled-priority.expected.raw"] },
+    { "id": "OQ5", "question": "Savings Boost multiplier and clamp.", "blocks": ["S15-savings-boost"] },
+    { "id": "OQ6", "question": "Fixed-amount clamp when the fixed amount exceeds availableIncome.", "blocks": ["S14-fixed-amount-savings-mode"] },
+    { "id": "OQ7", "question": "GROUND-TRUTH.md line 125 still reads 'Streaming 120 ~3%' in the Dashboard section, contradicting the corrected §2 which proves 2%. One of the two must be edited.", "blocks": [] },
+    { "id": "OQ8", "question": "R10.3 — when remainingDestination is .primarySavings and no primary-savings account exists, WHERE does the remaining money go? Options: fall back to Primary, surface a validation error, or expose an `unallocatedRemaining` field. S17 asserts only that it does not vanish; the chosen resolution must be filled in.", "blocks": ["S17-primary-savings-destination-with-no-savings-account.expected.raw"] },
+    { "id": "OQ9", "question": "RESOLVED — the parity column is 402×874 (iPhone 17 Pro), not 390×844. Confirmed from the reference aspect ratio: references are 368×800, and 402/874 -> 367.96 -> 368 while 390/844 -> 370. Grading at 390 with a ±2px tolerance would have mis-graded every screen by 12px. The harness now captures and grades 402×874. R8's '1280×900 primary' bullet still needs amending so the contract stops contradicting R9.", "blocks": [] },
+    { "id": "OQ13", "question": "RESOLVED 2026-08-06 — CONFIRMED two ways: SavingsScreen.savingsPreview (:429-458) is not mode-gated and calculatePreviewSavings() (:460-469) returns splitTotal for .split, so the total renders alongside the per-side rows; and executed against real Domain + AmountFormatter. Values 473 / 710 / 1,182. S24 is now binding, asserted JOINTLY — see its note for why three independent assertions would be defeatable.", "blocks": [] },
+    { "id": "OQ10", "question": "RESOLVED 2026-08-06 — formatForDisplay(-0.6) = '-1', from the Critic's real-Swift formatter probe on macOS (VERIFICATION-LOG.md). Sign boundary fully covered. Note for future formatter questions: a direct Swift probe is a better instrument than the simulator UI, so ask the Critic rather than queueing behind simulator access.", "blocks": [] },
+    { "id": "OQ11", "question": "RESOLVED 2026-08-06 — locale pinned to en_US (NOT en_US_POSIX: that disables grouping, so the forced ',' separator had nothing to apply and every amount lost its thousands separator). en_US yields both '1182.5' for editing and '9,000 RON' for display. Harness tightened to literals. Worth remembering as a case where the obvious choice of locale was the wrong one.", "blocks": [] },
+    { "id": "OQ12", "question": "RESOLVED 2026-08-06 — walked at target (S27) and 100 short (S13). At target the emergency row is absent entirely and its share redirects to savings; 100 short it is capped at the remaining need with the spill going to savings, and a \"Completes fund to 100%!\" callout appears. ORIGINAL: Split mode is now measured for rates (S18/S19/S20) but NOT for the at-target or near-target emergency behaviour (S12/S13). GROUND-TRUTH warns that Priority and Split agreeing at 25% is a coincidence, so priority-mode capping must not be assumed to carry over. Needs a second live walkthrough with the emergency balance at 26,900 and at 27,000.", "blocks": ["S12-split-strategy-with-emergency-full", "S13-split-strategy-emergency-nearly-full"] }
+  ]
+}

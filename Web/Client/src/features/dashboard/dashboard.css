@@ -1,0 +1,225 @@
+/* Dashboard tab — PARITY-SPEC §4. Tokens only, no magic numbers. */
+
+.dash {
+  display: grid;
+  gap: var(--space-md); /* VStack(spacing: 16) */
+  padding-block: var(--space-sm); /* padding(.vertical, 12) */
+}
+
+.dash-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--accent-primary);
+}
+.dash-card__header--secondary {
+  color: var(--accent-secondary);
+}
+.dash-card__title {
+  font-size: var(--font-headline-size);
+  line-height: var(--font-headline-line);
+  font-weight: var(--font-headline-weight);
+  color: var(--label-primary);
+}
+
+/* --- §4.1 Summary ------------------------------------------------- */
+
+.dash-summary {
+  display: grid;
+  gap: var(--space-sm); /* VStack(spacing: 12) */
+  margin-top: var(--space-md);
+}
+.dash-card__header + hr {
+  margin-block: var(--space-md);
+}
+
+.dash-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  font-size: var(--font-subheadline-size);
+  line-height: var(--font-subheadline-line);
+}
+.dash-row__label {
+  color: var(--label-secondary);
+}
+.dash-row__value {
+  font-variant-numeric: tabular-nums;
+}
+.dash-row__value--negative {
+  color: var(--color-negative);
+}
+.dash-row__value--positive {
+  color: var(--color-positive);
+}
+
+.dash-row--total {
+  font-size: var(--font-headline-size);
+  line-height: var(--font-headline-line);
+  font-weight: 700;
+}
+.dash-row--total .dash-row__label {
+  color: var(--label-primary);
+}
+
+/* --- §4.2 Emergency fund ------------------------------------------ */
+
+.dash-emergency {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md); /* HStack(spacing: 16) */
+}
+.dash-emergency__info {
+  display: grid;
+  gap: var(--space-xs); /* VStack(spacing: 8) */
+  min-width: 0;
+}
+.dash-emergency__balance {
+  font-size: var(--font-subheadline-size);
+  line-height: var(--font-subheadline-line);
+  color: var(--label-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.dash-emergency__target {
+  font-size: var(--font-caption-size);
+  line-height: var(--font-caption-line);
+  color: var(--label-tertiary);
+}
+
+/* --- §4.3 Account balances ---------------------------------------- */
+
+.dash-balances {
+  display: grid;
+  gap: var(--space-sm); /* GlassEffectContainer(spacing: 12) */
+}
+.dash-balances__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* LazyVGrid, 2 flexible columns */
+  gap: var(--space-sm);
+}
+
+.dash-primary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.dash-primary__text {
+  display: grid;
+  gap: var(--space-xxs); /* VStack(spacing: 4) */
+  flex: 1;
+  min-width: 0;
+}
+.dash-primary__name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  font-size: var(--font-subheadline-size);
+  line-height: var(--font-subheadline-line);
+  color: var(--label-secondary);
+}
+.dash-primary__name svg {
+  color: var(--accent-primary);
+}
+.dash-primary__balance {
+  font-size: var(--font-title2-size);
+  line-height: var(--font-title2-line);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-secondary {
+  display: grid;
+  gap: var(--space-xs);
+}
+.dash-secondary__name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  font-size: var(--font-caption-size);
+  line-height: var(--font-caption-line);
+  color: var(--label-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dash-secondary__name svg {
+  color: var(--accent-primary);
+  flex: none;
+}
+.dash-secondary__balance {
+  font-size: var(--font-subheadline-size);
+  line-height: var(--font-subheadline-line);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* --- §4.4 Expense breakdown --------------------------------------- */
+
+.dash-breakdown {
+  display: grid;
+  gap: var(--space-xs); /* VStack(spacing: 8) */
+  margin-top: var(--space-md);
+}
+.dash-breakdown__empty {
+  margin-top: var(--space-md);
+  font-size: var(--font-subheadline-size);
+  color: var(--label-secondary);
+}
+.dash-breakdown__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm); /* HStack(spacing: 12) */
+}
+.dash-breakdown__icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--size-icon-container); /* 32pt frame */
+  color: var(--label-secondary);
+}
+.dash-breakdown__name {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-subheadline-size);
+  line-height: var(--font-subheadline-line);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dash-breakdown__amount {
+  font-size: var(--font-subheadline-size);
+  color: var(--label-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.dash-breakdown__percent {
+  flex: none;
+  padding: var(--space-xxs) var(--space-xs);
+  border-radius: var(--radius-full);
+  background: var(--fill-tertiary);
+  font-size: var(--font-caption-size);
+  line-height: var(--font-caption-line);
+  color: var(--label-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Empty state -------------------------------------------------- */
+
+.dash-empty {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-xs);
+  padding-block: var(--space-xxl);
+  text-align: center;
+  color: var(--label-secondary);
+}
+.dash-empty__title {
+  font-size: var(--font-title2-size);
+  font-weight: 700;
+  color: var(--label-primary);
+}
+.dash-empty__body {
+  font-size: var(--font-subheadline-size);
+}

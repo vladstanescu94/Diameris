@@ -332,42 +332,14 @@ extension DashboardViewModel {
     /// 3. Add expense-linked transfers (e.g., Food → Joint)
     /// 4. Add remaining money to the designated account
     /// 5. Set primary account to remainsInPrimary
+    /// Delegates to `Domain.BalanceReconciler` — the calculation itself lives in Domain so the
+    /// New Month flow and the web server share one implementation.
     public func computeUpdatedBalances(from data: NewMonthCompletionData) -> [UUID: Decimal] {
-        var balances = data.reconciledBalances
-        let plan = data.transferPlan
-
-        // Add savings allocations (emergency, savings accounts)
-        for allocation in plan.accountAllocations {
-            balances[allocation.accountId, default: 0] += allocation.amount
-        }
-
-        // Add expense-linked transfers (e.g., Food → Joint)
-        for expenseTransfer in plan.accountExpenseTransfers {
-            balances[expenseTransfer.accountId, default: 0] += expenseTransfer.amount
-        }
-
-        // Add remaining money to the designated account
-        if plan.remainingMoney > 0 {
-            switch plan.remainingDestination {
-            case .primarySavings:
-                if let savingsAccount = accounts.first(where: { $0.isPrimarySavings }) {
-                    balances[savingsAccount.id, default: 0] += plan.remainingMoney
-                }
-            case .personal:
-                if let personalAccount = accounts.first(where: { $0.accountType == .personal }) {
-                    balances[personalAccount.id, default: 0] += plan.remainingMoney
-                }
-            case .primary:
-                break
-            }
-        }
-
-        // Set primary account to what stays for expenses
-        if let primaryAccount = accounts.first(where: { $0.isPrimary }) {
-            balances[primaryAccount.id] = plan.remainsInPrimary
-        }
-
-        return balances
+        BalanceReconciler.updatedBalances(
+            plan: data.transferPlan,
+            accounts: makeAccountEntries(),
+            reconciledBalances: data.reconciledBalances
+        )
     }
 }
 

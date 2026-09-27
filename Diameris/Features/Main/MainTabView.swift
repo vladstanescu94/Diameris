@@ -34,7 +34,8 @@ struct MainTabView: View {
                 DashboardView(
                     viewModel: dashboardViewModel,
                     onSettingsTapped: { showSettings = true },
-                    onDevToolsTapped: devToolsTappedHandler
+                    onDevToolsTapped: devToolsTappedHandler,
+                    onTurnOffSavingsBoost: turnOffSavingsBoost
                 )
             }
 
@@ -203,6 +204,17 @@ struct MainTabView: View {
         }
     }
 
+    // MARK: - Savings Boost
+
+    private func turnOffSavingsBoost() {
+        do {
+            try modelContext.setSavingsBoostEnabled(false)
+        } catch {
+            Logger.persistence.error("Turning off savings boost failed: \(error)")
+            refreshAllData()
+        }
+    }
+
     // MARK: - New Month Flow Completion
 
     private func handleNewMonthCompletion(_ data: NewMonthCompletionData) {
@@ -210,7 +222,8 @@ struct MainTabView: View {
             // DataObserver refreshes the dashboard after the save.
             try modelContext.applyNewMonth(
                 income: data.income,
-                balances: dashboardViewModel.computeUpdatedBalances(from: data)
+                balances: dashboardViewModel.computeUpdatedBalances(from: data),
+                savingsBoostEnabled: data.savingsBoostEnabled
             )
             HapticManager.success()
         } catch {

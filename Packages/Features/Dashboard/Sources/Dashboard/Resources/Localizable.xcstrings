@@ -534,6 +534,32 @@
         }
       }
     },
+    "Saving %@ of available income" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Se economisește %@ din venitul disponibil"
+          }
+        }
+      }
+    },
+    "Saving %@ of available income instead of %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Saving %1$@ of available income instead of %2$@"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Se economisește %1$@ din venitul disponibil în loc de %2$@"
+          }
+        }
+      }
+    },
     "Savings" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -547,6 +573,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Economii"
+          }
+        }
+      }
+    },
+    "Savings Boost" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Boost economii"
+          }
+        }
+      }
+    },
+    "Savings Boost is on" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Boost economii este activ"
           }
         }
       }
@@ -695,6 +741,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Transferuri de făcut"
+          }
+        }
+      }
+    },
+    "Turn Off" : {
+      "comment" : "Switches off Savings Boost",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Dezactivați"
           }
         }
       }

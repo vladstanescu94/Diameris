@@ -318,6 +318,49 @@ struct ModelContextWritesTests {
         #expect(try all(SavingsAllocation.self).first?.boostEnabled == false)
     }
 
+    // MARK: - Savings Boost
+
+    @Test func savingsBoostCanBeTurnedOffOnItsOwn() throws {
+        try onboardWithEveryRole()
+        try context.saveSettings(
+            name: "Ana", currencyCode: "RON", remainingMoneyDestination: .primarySavings,
+            savingsAllocation: SavingsAllocationEntry(percentage: 0.1, boostEnabled: true, boostMultiplier: 3)
+        )
+
+        try context.setSavingsBoostEnabled(false)
+
+        let allocation = try #require(try all(SavingsAllocation.self).first)
+        #expect(!allocation.boostEnabled)
+        #expect(allocation.percentage == 0.1)
+        #expect(allocation.boostMultiplier == 3)
+    }
+
+    @Test func savingsBoostIsNotTurnedOnAboveAvailableIncome() throws {
+        try onboardWithEveryRole()
+        try context.saveSettings(
+            name: "Ana", currencyCode: "RON", remainingMoneyDestination: .primarySavings,
+            savingsAllocation: SavingsAllocationEntry(percentage: 0.5, boostMultiplier: 3)
+        )
+
+        try context.setSavingsBoostEnabled(true)
+
+        #expect(try all(SavingsAllocation.self).first?.boostEnabled == false)
+    }
+
+    @Test func newMonthSavesTheBoostChoiceOnlyWhenGiven() throws {
+        try onboardWithEveryRole()
+        try context.saveSettings(
+            name: "Ana", currencyCode: "RON", remainingMoneyDestination: .primarySavings,
+            savingsAllocation: SavingsAllocationEntry(percentage: 0.1, boostEnabled: true, boostMultiplier: 3)
+        )
+
+        try context.applyNewMonth(income: 8500, balances: [:])
+        #expect(try all(SavingsAllocation.self).first?.boostEnabled == true)
+
+        try context.applyNewMonth(income: 8500, balances: [:], savingsBoostEnabled: false)
+        #expect(try all(SavingsAllocation.self).first?.boostEnabled == false)
+    }
+
     @Test func saveSettingsKeepsRemainingMoneyInPrimaryWhenTheDestinationHasNoAccount() throws {
         try onboardWithEveryRole()
 

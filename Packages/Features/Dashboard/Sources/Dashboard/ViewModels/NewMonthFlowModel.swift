@@ -28,12 +28,19 @@ final class NewMonthFlowModel {
     /// Balances entered in step 2, keyed by account ID. Seeded with current balances.
     var balances: [UUID: Decimal]
 
+    /// Only when boost was on at the start, so a forgotten boost gets noticed each month.
+    let offersSavingsBoost: Bool
+
+    var savingsBoostEnabled: Bool
+
     @ObservationIgnored private let dashboard: DashboardViewModel
 
     init(dashboard: DashboardViewModel) {
         self.dashboard = dashboard
         self.lastMonthIncome = dashboard.monthlyIncome
         self.income = dashboard.monthlyIncome
+        self.offersSavingsBoost = dashboard.savingsAllocation.isBoostActive
+        self.savingsBoostEnabled = dashboard.savingsAllocation.isBoostActive
         self.balances = Dictionary(
             dashboard.accounts.map { ($0.id, $0.currentBalance) },
             uniquingKeysWith: { first, _ in first }
@@ -59,7 +66,19 @@ final class NewMonthFlowModel {
     }
 
     var plan: TransferPlan {
-        dashboard.calculateTransferPlan(withIncome: income, reconciledBalances: balances)
+        dashboard.calculateTransferPlan(
+            withIncome: income,
+            reconciledBalances: balances,
+            boostEnabled: offersSavingsBoost ? savingsBoostEnabled : nil
+        )
+    }
+
+    var savingsAllocation: SavingsAllocationEntry {
+        var allocation = dashboard.savingsAllocation
+        if offersSavingsBoost {
+            allocation.boostEnabled = savingsBoostEnabled
+        }
+        return allocation
     }
 
     var canContinue: Bool {
@@ -83,6 +102,11 @@ final class NewMonthFlowModel {
 
     /// Data handed back to the app when the user confirms the transfers.
     var completionData: NewMonthCompletionData {
-        NewMonthCompletionData(income: income, transferPlan: plan, reconciledBalances: balances)
+        NewMonthCompletionData(
+            income: income,
+            transferPlan: plan,
+            reconciledBalances: balances,
+            savingsBoostEnabled: offersSavingsBoost ? savingsBoostEnabled : nil
+        )
     }
 }

@@ -126,4 +126,33 @@ struct NewMonthFlowModelTests {
         #expect(balances[personalId] == 6875, "500 reconciled + 6375 remaining")
         #expect(balances[primaryId] == 2000, "Set to what stays for rent, not accumulated")
     }
+
+    // MARK: - Savings Boost
+
+    @Test func `Boost is not offered when it is off`() {
+        let flow = NewMonthFlowModel(dashboard: makeDashboard())
+
+        #expect(!flow.offersSavingsBoost)
+        #expect(flow.completionData.savingsBoostEnabled == nil)
+    }
+
+    @Test func `Switching an active boost off lowers this month's savings and is handed back`() {
+        let dashboard = makeDashboard()
+        dashboard.savingsPercentage = 0.10
+        dashboard.savingsBoostEnabled = true
+        dashboard.savingsBoostMultiplier = 3
+        let flow = NewMonthFlowModel(dashboard: dashboard)
+
+        // Available = 10000 - 3500 = 6500.
+        #expect(flow.offersSavingsBoost)
+        #expect(flow.plan.totalSavings == 1950, "30% boosted")
+
+        flow.savingsBoostEnabled = false
+
+        #expect(flow.offersSavingsBoost, "Stays offered so it can be switched back on")
+        #expect(flow.plan.totalSavings == 650, "Back to the 10% base rate")
+        #expect(!flow.savingsAllocation.isBoostActive)
+        #expect(flow.completionData.savingsBoostEnabled == false)
+        #expect(dashboard.savingsBoostEnabled, "The dashboard only changes once the choice is saved")
+    }
 }

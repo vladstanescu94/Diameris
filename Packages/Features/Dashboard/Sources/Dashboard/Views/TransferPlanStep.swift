@@ -6,6 +6,8 @@ import Utilities
 
 struct TransferPlanStep: View {
     let transferPlan: TransferPlan
+    var savingsBoost: Binding<Bool>?
+    var savingsAllocation = SavingsAllocationEntry()
     let currency: Currency
     let onComplete: () -> Void
 
@@ -23,6 +25,10 @@ struct TransferPlanStep: View {
                         availableIncome: transferPlan.availableIncome,
                         currency: currency
                     )
+
+                    if let savingsBoost {
+                        SavingsBoostToggle(isOn: savingsBoost, allocation: savingsAllocation)
+                    }
 
                     TransferPlanTransfers(
                         transferPlan: transferPlan,

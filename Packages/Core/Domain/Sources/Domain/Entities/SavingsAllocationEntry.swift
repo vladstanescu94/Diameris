@@ -78,7 +78,7 @@ public struct SavingsAllocationEntry: Identifiable, Sendable {
     /// Capped at 1.0 (100%) to prevent invalid savings rates.
     /// Only meaningful in percentage + prioritized mode.
     public var effectivePercentage: Double {
-        guard isBoostApplicable && boostEnabled else { return percentage }
+        guard isBoostActive else { return percentage }
         return min(1.0, percentage * boostMultiplier)
     }
 
@@ -138,6 +138,10 @@ public struct SavingsAllocationEntry: Identifiable, Sendable {
     /// Whether boost is applicable (only in percentage + prioritized mode)
     public var isBoostApplicable: Bool {
         savingsInputMode == .percentage && allocationMode == .prioritized
+    }
+
+    public var isBoostActive: Bool {
+        isBoostApplicable && boostEnabled
     }
 
     /// Format percentage for display (e.g., "25%")

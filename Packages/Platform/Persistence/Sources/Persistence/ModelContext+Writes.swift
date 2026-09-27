@@ -107,7 +107,7 @@ public extension ModelContext {
     // MARK: New Month
 
     /// Accounts not in `balances` keep their balance; ids with no stored account are ignored.
-    func applyNewMonth(income: Decimal, balances: [UUID: Decimal]) throws {
+    func applyNewMonth(income: Decimal, balances: [UUID: Decimal], savingsBoostEnabled: Bool? = nil) throws {
         if let storedIncome = try first(Income.self) {
             storedIncome.amount = income
         }
@@ -116,6 +116,17 @@ public extension ModelContext {
                 account.currentBalance = balance
             }
         }
+        if let savingsBoostEnabled {
+            try applySavingsBoost(savingsBoostEnabled)
+        }
+        try commit()
+    }
+
+    // MARK: Savings Boost
+
+    /// Turning boost on is ignored when the boosted rate would exceed available income.
+    func setSavingsBoostEnabled(_ enabled: Bool) throws {
+        try applySavingsBoost(enabled)
         try commit()
     }
 
@@ -183,6 +194,13 @@ public extension ModelContext {
 // MARK: - Helpers
 
 extension ModelContext {
+    fileprivate func applySavingsBoost(_ enabled: Bool) throws {
+        guard let allocation = try first(SavingsAllocation.self) else { return }
+        var entry = allocation.toEntry()
+        entry.boostEnabled = enabled
+        allocation.update(from: entry.withSafeBoost)
+    }
+
     func commit() throws {
         do {
             try save()

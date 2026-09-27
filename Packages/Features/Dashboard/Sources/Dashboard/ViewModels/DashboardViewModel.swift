@@ -179,6 +179,10 @@ public final class DashboardViewModel {
         emergencyAccount?.emergencyTarget(monthlyIncome: monthlyIncome)
     }
 
+    public var savingsAllocation: SavingsAllocationEntry {
+        makeSavingsAllocation()
+    }
+
     public var currentMonthDisplay: String {
         DateFormatters.monthYear.string(from: .now)
     }
@@ -205,14 +209,20 @@ public final class DashboardViewModel {
 
     /// Optionally overrides each account's current balance with reconciled balances
     /// from the New Month flow's account-reconciliation step.
+    /// `boostEnabled` overrides the stored boost choice for this plan only.
     public func calculateTransferPlan(
         withIncome income: Decimal,
-        reconciledBalances: [UUID: Decimal] = [:]
+        reconciledBalances: [UUID: Decimal] = [:],
+        boostEnabled: Bool? = nil
     ) -> TransferPlan {
-        TransferCalculator.calculate(
+        var allocation = makeSavingsAllocation()
+        if let boostEnabled {
+            allocation.boostEnabled = boostEnabled
+        }
+        return TransferCalculator.calculate(
             income: income,
             expenses: makeExpenseEntries(),
-            allocation: makeSavingsAllocation(),
+            allocation: allocation,
             accounts: makeAccountEntries(reconciledBalances: reconciledBalances),
             remainingDestination: remainingMoneyDestination
         )
@@ -271,10 +281,18 @@ public struct NewMonthCompletionData: Sendable {
     public let income: Decimal
     public let transferPlan: TransferPlan
     public let reconciledBalances: [UUID: Decimal]
+    /// The boost choice made in the flow; nil when the flow didn't offer one.
+    public let savingsBoostEnabled: Bool?
 
-    public init(income: Decimal, transferPlan: TransferPlan, reconciledBalances: [UUID: Decimal]) {
+    public init(
+        income: Decimal,
+        transferPlan: TransferPlan,
+        reconciledBalances: [UUID: Decimal],
+        savingsBoostEnabled: Bool? = nil
+    ) {
         self.income = income
         self.transferPlan = transferPlan
         self.reconciledBalances = reconciledBalances
+        self.savingsBoostEnabled = savingsBoostEnabled
     }
 }

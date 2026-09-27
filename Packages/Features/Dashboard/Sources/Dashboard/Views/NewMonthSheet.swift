@@ -70,6 +70,8 @@ private extension NewMonthSheet {
         case .transferPlan:
             TransferPlanStep(
                 transferPlan: flow.plan,
+                savingsBoost: flow.offersSavingsBoost ? $flow.savingsBoostEnabled : nil,
+                savingsAllocation: flow.savingsAllocation,
                 currency: currency,
                 onComplete: completeFlow
             )

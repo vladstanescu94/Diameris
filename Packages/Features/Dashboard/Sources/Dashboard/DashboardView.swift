@@ -6,15 +6,20 @@ public struct DashboardView: View {
     @Bindable var viewModel: DashboardViewModel
     var onSettingsTapped: (() -> Void)?
     var onDevToolsTapped: (() -> Void)?
+    var onTurnOffSavingsBoost: (() -> Void)?
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init(
         viewModel: DashboardViewModel,
         onSettingsTapped: (() -> Void)? = nil,
-        onDevToolsTapped: (() -> Void)? = nil
+        onDevToolsTapped: (() -> Void)? = nil,
+        onTurnOffSavingsBoost: (() -> Void)? = nil
     ) {
         self.viewModel = viewModel
         self.onSettingsTapped = onSettingsTapped
         self.onDevToolsTapped = onDevToolsTapped
+        self.onTurnOffSavingsBoost = onTurnOffSavingsBoost
     }
 
     public var body: some View {
@@ -78,6 +83,17 @@ private extension DashboardView {
                 shortfall: plan.shortfall,
                 currency: viewModel.currency
             )
+
+            if let onTurnOffSavingsBoost, viewModel.savingsAllocation.isBoostActive {
+                SavingsBoostCard(allocation: viewModel.savingsAllocation) {
+                    // Optimistic; the store refresh that follows the save confirms it.
+                    withAnimation(reduceMotion ? nil : SpringPreset.responsive) {
+                        viewModel.savingsBoostEnabled = false
+                    }
+                    onTurnOffSavingsBoost()
+                }
+                .transition(.opacity.combined(with: .scale))
+            }
 
             if let emergencyAccount = viewModel.emergencyAccount,
                let progress = viewModel.emergencyProgress,

@@ -3,7 +3,6 @@ import DesignSystem
 import Utilities
 import Domain
 
-/// Screen for entering main expenses with impact display.
 struct ExpensesScreen: View {
     @Bindable var viewModel: OnboardingViewModel
     @State private var contentAppeared = false
@@ -29,12 +28,9 @@ struct ExpensesScreen: View {
 // MARK: - Computed Properties
 
 private extension ExpensesScreen {
-    var totalExpenses: Decimal {
-        viewModel.expenses.reduce(0) { $0 + $1.amount }
-    }
-
+    /// Income left after expenses (Domain calculation via the transfer plan).
     var availableForGoals: Decimal {
-        max(0, viewModel.monthlyIncome - totalExpenses)
+        viewModel.availableIncome
     }
 }
 
@@ -53,7 +49,7 @@ private extension ExpensesScreen {
     var expensesList: some View {
         GlassEffectContainer {
             VStack(spacing: Spacing.sm) {
-                ForEach(Array(viewModel.expenses.enumerated()), id: \.element.id) { index, expense in
+                ForEach(viewModel.expenses.enumerated(), id: \.element.id) { index, expense in
                     ExpenseRow(
                         icon: expense.icon,
                         name: expense.name,
@@ -62,8 +58,7 @@ private extension ExpensesScreen {
                         linkedAccountId: $viewModel.expenses[index].linkedAccountId,
                         accounts: viewModel.accounts
                     )
-                    .opacity(index < rowsAppeared.count && rowsAppeared[index] ? 1 : 0)
-                    .offset(x: index < rowsAppeared.count && rowsAppeared[index] ? 0 : SlideOffset.large)
+                    .entrance(index < rowsAppeared.count && rowsAppeared[index], x: SlideOffset.large)
                 }
             }
         }
@@ -80,10 +75,10 @@ private extension ExpensesScreen {
             }
             .frame(maxWidth: .infinity)
             .padding(Spacing.md)
-            .background(availableForGoals > 0 ? DiamerisColors.accentSecondary.opacity(0.1) : Color.orange.opacity(0.1))
-            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.medium))
-            .opacity(impactAppeared ? 1 : 0)
-            .scaleEffect(impactAppeared ? 1 : 0.95)
+            .background(availableForGoals > 0 ? DiamerisColors.accentSecondary.opacity(Opacity.faint) : Color.orange.opacity(Opacity.faint))
+            .clipShape(.rect(cornerRadius: CornerRadius.medium))
+            .accessibilityElement(children: .combine)
+            .entrance(impactAppeared, scale: ScaleEffect.pressed)
             .animation(.smooth, value: availableForGoals)
         }
     }
@@ -92,6 +87,7 @@ private extension ExpensesScreen {
         HStack(spacing: Spacing.xs) {
             Image(systemName: availableForGoals > 0 ? "arrow.right.circle.fill" : "exclamationmark.triangle.fill")
                 .foregroundStyle(availableForGoals > 0 ? DiamerisColors.accentSecondary : .orange)
+                .accessibilityHidden(true)
 
             Text("After expenses".localized)
                 .font(.subheadline)
@@ -100,17 +96,22 @@ private extension ExpensesScreen {
     }
 
     var impactAmount: some View {
-        HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
-            Text(AmountFormatter.formatForDisplay(availableForGoals, currency: viewModel.currency.rawValue))
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundStyle(availableForGoals > 0 ? DiamerisColors.accentSecondary : .orange)
-                .contentTransition(.numericText())
-
-            Text("available for your goals".localized)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) { impactAmountContent }
+            VStack(spacing: Spacing.xxs) { impactAmountContent }
         }
+    }
+
+    @ViewBuilder
+    var impactAmountContent: some View {
+        Text(AmountFormatter.formatForDisplay(availableForGoals, currency: viewModel.currency.rawValue))
+            .font(.title2)
+            .fontWeight(.bold)
+            .contentTransition(.numericText())
+
+        Text("available for your goals".localized)
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
     }
 
     var helperText: some View {
@@ -118,6 +119,7 @@ private extension ExpensesScreen {
             Image(systemName: "info.circle")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
 
             Text("By default, expenses are paid from your main account".localized)
                 .font(.caption)
@@ -131,11 +133,12 @@ private extension ExpensesScreen {
             OnboardingButton("Continue".localized, isEnabled: true) {
                 viewModel.advance()
             }
-            .accessibilityHint("Continues to the accounts step".localized)
+            .accessibilityHint("Continues to the savings step".localized)
 
             OnboardingSecondaryButton("Skip for now".localized) {
                 for index in viewModel.expenses.indices {
                     viewModel.expenses[index].amount = 0
+                    viewModel.expenses[index].linkedAccountId = nil
                 }
                 viewModel.advance()
             }

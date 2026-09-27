@@ -2,7 +2,6 @@ import SwiftUI
 import DesignSystem
 import Utilities
 
-/// Primary onboarding button with haptic feedback
 struct OnboardingButton: View {
     let title: String
     let isEnabled: Bool
@@ -28,18 +27,16 @@ struct OnboardingButton: View {
                 .frame(maxWidth: .infinity, minHeight: ComponentSize.buttonHeight)
         }
         .buttonStyle(.glassProminent)
-        .opacity(isEnabled ? 1.0 : Opacity.dimmed)
-        .disabled(!isEnabled)
+        .tint(DiamerisColors.accentPrimaryFill)
+        .disabled(!isEnabled) // The glass style dims itself; no extra opacity on glass.
         .onChange(of: isEnabled) { oldValue, newValue in
             if !oldValue && newValue {
-                // Just became enabled - haptic pulse
                 HapticManager.lightTap()
             }
         }
     }
 }
 
-/// Secondary onboarding button (skip, etc.)
 struct OnboardingSecondaryButton: View {
     let title: String
     let action: () -> Void
@@ -63,7 +60,7 @@ struct OnboardingSecondaryButton: View {
 }
 
 #Preview {
-    VStack(spacing: 20) {
+    VStack(spacing: Spacing.lg) {
         OnboardingButton("Continue", isEnabled: true) {}
         OnboardingButton("Continue", isEnabled: false) {}
         OnboardingSecondaryButton("Skip for now") {}

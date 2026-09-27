@@ -3,7 +3,6 @@ import Domain
 import DesignSystem
 import Utilities
 
-/// View for managing expense categories
 public struct CategoryManagementView: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var viewModel: ExpensesViewModel
@@ -17,7 +16,6 @@ public struct CategoryManagementView: View {
     public var body: some View {
         NavigationStack {
             List {
-                // Default categories section
                 Section {
                     ForEach(ExpenseCategory.defaults) { category in
                         CategoryRow(category: category, isDefault: true)
@@ -28,7 +26,6 @@ public struct CategoryManagementView: View {
                     Text("Default categories cannot be deleted.".localized)
                 }
 
-                // Custom categories section
                 if !viewModel.customCategories.isEmpty {
                     Section {
                         ForEach(viewModel.customCategories) { category in
@@ -37,7 +34,7 @@ public struct CategoryManagementView: View {
                                     Button(role: .destructive) {
                                         HapticManager.warning()
                                         Task {
-                                            await viewModel.onDeleteCategory?(category.id)
+                                            await viewModel.deleteCategory(category.id)
                                         }
                                     } label: {
                                         Label("Delete".localized, systemImage: "trash")
@@ -60,11 +57,9 @@ public struct CategoryManagementView: View {
                 }
 
                 ToolbarItem(placement: .primaryAction) {
-                    Button {
+                    Button("New Category".localized, systemImage: "plus") {
                         HapticManager.lightTap()
                         showAddCategory = true
-                    } label: {
-                        Image(systemName: "plus")
                     }
                 }
             }
@@ -75,17 +70,19 @@ public struct CategoryManagementView: View {
     }
 }
 
-/// Row displaying a category in the list
 struct CategoryRow: View {
     let category: ExpenseCategory
     let isDefault: Bool
+
+    @ScaledMetric(relativeTo: .title2) private var iconSize = IconSize.lg
 
     var body: some View {
         HStack(spacing: Spacing.md) {
             Image(systemName: category.icon)
                 .font(.title2)
                 .foregroundStyle(Color(hex: category.colorHex) ?? .gray)
-                .frame(width: IconSize.lg, height: IconSize.lg)
+                .frame(width: iconSize, height: iconSize)
+                .accessibilityHidden(true)
 
             Text(category.name)
                 .font(.body)
@@ -98,16 +95,15 @@ struct CategoryRow: View {
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, Spacing.sm)
                     .padding(.vertical, Spacing.xxs)
-                    .background(.secondary.opacity(0.2))
-                    .clipShape(Capsule())
+                    .background(.secondary.opacity(Opacity.light), in: .capsule)
             }
         }
         .padding(.vertical, Spacing.xs)
-        .contentShape(Rectangle())
+        .contentShape(.rect)
+        .accessibilityElement(children: .combine)
     }
 }
 
-/// Sheet for adding a new category
 struct AddCategorySheet: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var viewModel: ExpensesViewModel
@@ -116,18 +112,21 @@ struct AddCategorySheet: View {
     @State private var name = ""
     @State private var selectedIcon = "star.fill"
     @State private var selectedColor = "#3B82F6"
+    @State private var isSaving = false
+    @ScaledMetric(relativeTo: .title2) private var iconSize = IconSize.lg
 
-    private let colors = [
-        "#3B82F6", // Blue
-        "#8B5CF6", // Purple
-        "#F59E0B", // Amber
-        "#10B981", // Emerald
-        "#EC4899", // Pink
-        "#EF4444", // Red
-        "#22C55E", // Green
-        "#06B6D4", // Cyan
-        "#F97316", // Orange
-        "#6366F1"  // Indigo
+    /// Palette of (hex, spoken name) pairs; the name is what VoiceOver reads for each swatch.
+    private let colors: [(hex: String, name: String)] = [
+        ("#3B82F6", "Blue".localized),
+        ("#8B5CF6", "Purple".localized),
+        ("#F59E0B", "Amber".localized),
+        ("#10B981", "Emerald".localized),
+        ("#EC4899", "Pink".localized),
+        ("#EF4444", "Red".localized),
+        ("#22C55E", "Green".localized),
+        ("#06B6D4", "Cyan".localized),
+        ("#F97316", "Orange".localized),
+        ("#6366F1", "Indigo".localized)
     ]
 
     private let icons = [
@@ -150,7 +149,7 @@ struct AddCategorySheet: View {
                 }
 
                 Section {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 44))], spacing: Spacing.sm) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: ComponentSize.minTouchTarget))], spacing: Spacing.sm) {
                         ForEach(icons, id: \.self) { icon in
                             Button {
                                 HapticManager.lightTap()
@@ -158,11 +157,13 @@ struct AddCategorySheet: View {
                             } label: {
                                 Image(systemName: icon)
                                     .font(.title2)
-                                    .frame(width: 44, height: 44)
-                                    .background(selectedIcon == icon ? Color.accentColor.opacity(0.2) : Color.clear)
-                                    .clipShape(RoundedRectangle(cornerRadius: CornerRadius.small))
+                                    .frame(width: ComponentSize.minTouchTarget, height: ComponentSize.minTouchTarget)
+                                    .foregroundStyle(selectedIcon == icon ? Color.accentColor : Color.primary)
+                                    .background(selectedIcon == icon ? Color.accentColor.opacity(Opacity.light) : Color.clear)
+                                    .clipShape(.rect(cornerRadius: CornerRadius.small))
                             }
                             .buttonStyle(.plain)
+                            .accessibilityAddTraits(selectedIcon == icon ? .isSelected : [])
                         }
                     }
                 } header: {
@@ -170,37 +171,40 @@ struct AddCategorySheet: View {
                 }
 
                 Section {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 44))], spacing: Spacing.sm) {
-                        ForEach(colors, id: \.self) { color in
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: ComponentSize.minTouchTarget))], spacing: Spacing.sm) {
+                        ForEach(colors, id: \.hex) { color in
                             Button {
                                 HapticManager.lightTap()
-                                selectedColor = color
+                                selectedColor = color.hex
                             } label: {
                                 Circle()
-                                    .fill(Color(hex: color) ?? .gray)
-                                    .frame(width: 36, height: 36)
+                                    .fill(Color(hex: color.hex) ?? .gray)
+                                    .frame(width: ComponentSize.buttonHeightSmall, height: ComponentSize.buttonHeightSmall)
                                     .overlay {
-                                        if selectedColor == color {
+                                        if selectedColor == color.hex {
                                             Image(systemName: "checkmark")
                                                 .font(.caption.bold())
                                                 .foregroundStyle(.white)
                                         }
                                     }
+                                    .frame(width: ComponentSize.minTouchTarget, height: ComponentSize.minTouchTarget)
+                                    .contentShape(.circle)
                             }
                             .buttonStyle(.plain)
+                            .accessibilityLabel(color.name)
+                            .accessibilityAddTraits(selectedColor == color.hex ? .isSelected : [])
                         }
                     }
                 } header: {
                     Text("Color".localized)
                 }
 
-                // Preview
                 Section {
                     HStack(spacing: Spacing.md) {
                         Image(systemName: selectedIcon)
                             .font(.title2)
                             .foregroundStyle(Color(hex: selectedColor) ?? .gray)
-                            .frame(width: IconSize.lg, height: IconSize.lg)
+                            .frame(width: iconSize, height: iconSize)
 
                         Text(name.isEmpty ? "Category Name".localized : name)
                             .font(.body)
@@ -221,28 +225,23 @@ struct AddCategorySheet: View {
 
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Add".localized) {
+                        guard !isSaving else { return }
+                        isSaving = true
                         HapticManager.success()
                         let categoryId = UUID()
                         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
                         Task {
-                            // Persist first, wait for completion
-                            await viewModel.onAddCategory?(categoryId, trimmedName, selectedIcon, selectedColor)
-                            // Then update local state and callback on main thread
-                            await MainActor.run {
-                                let newCategory = ExpenseCategory.custom(
-                                    id: categoryId,
-                                    name: trimmedName,
-                                    icon: selectedIcon,
-                                    colorHex: selectedColor,
-                                    sortOrder: 100
-                                )
-                                viewModel.customCategories = viewModel.customCategories + [newCategory]
-                                onCategoryCreated?(categoryId)
-                                dismiss()
-                            }
+                            await viewModel.addCategory(
+                                id: categoryId,
+                                name: trimmedName,
+                                icon: selectedIcon,
+                                colorHex: selectedColor
+                            )
+                            onCategoryCreated?(categoryId)
+                            dismiss()
                         }
                     }
-                    .disabled(!isValid)
+                    .disabled(!isValid || isSaving)
                 }
             }
         }

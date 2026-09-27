@@ -2,7 +2,6 @@
 
 import UIKit
 
-/// Centralized keyboard management utilities.
 public enum KeyboardHelper {
     /// Dismisses the keyboard by resigning the first responder.
     @MainActor

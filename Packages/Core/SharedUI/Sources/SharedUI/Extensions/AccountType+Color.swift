@@ -2,10 +2,8 @@ import SwiftUI
 import Domain
 import DesignSystem
 
-/// Centralized color mapping for AccountType.
-/// All features should use this extension for consistent account type colors.
+/// The one place account types get their colors — features should not define their own.
 public extension AccountType {
-    /// The color associated with this account type for UI display.
     var color: Color {
         switch self {
         case .primary:

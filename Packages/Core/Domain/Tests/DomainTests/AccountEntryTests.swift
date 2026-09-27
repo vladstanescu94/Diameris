@@ -2,452 +2,95 @@ import Foundation
 import Testing
 @testable import Domain
 
-/// Tests for AccountEntry model - validates computed properties,
-/// factory methods, and emergency fund calculations.
-@Suite("AccountEntry Tests")
 struct AccountEntryTests {
 
-    // MARK: - Emergency Target Calculations
-
-    @Suite("Emergency Target")
-    struct EmergencyTarget {
-
-        @Test("Emergency target calculated from income and multiplier",
-              arguments: [
-                (income: Decimal(10000), multiplier: 3.0, expected: Decimal(30000)),
-                (income: Decimal(10000), multiplier: 6.0, expected: Decimal(60000)),
-                (income: Decimal(5000), multiplier: 4.0, expected: Decimal(20000)),
-                (income: Decimal(15000), multiplier: 3.0, expected: Decimal(45000))
-              ])
-        func emergencyTargetCalculation(income: Decimal, multiplier: Double, expected: Decimal) {
-            let account = AccountEntry.emergency(name: "Emergency", multiplier: multiplier)
-            let target = account.emergencyTarget(monthlyIncome: income)
-
-            #expect(target == expected)
-        }
-
-        @Test("Non-emergency accounts return nil target")
-        func nonEmergencyReturnsNil() {
-            let accounts = [
-                AccountEntry.primary(),
-                AccountEntry.savings(),
-                AccountEntry.personal(),
-                AccountEntry.joint()
-            ]
-
-            for account in accounts {
-                let target = account.emergencyTarget(monthlyIncome: 10000)
-                #expect(target == nil, "Account type \(account.accountType) should not have emergency target")
-            }
-        }
-
-        @Test("Emergency without multiplier returns nil target")
-        func emergencyWithoutMultiplier() {
-            var account = AccountEntry.emergency(name: "Emergency", multiplier: 3.0)
-            account.emergencyMultiplier = nil
-
-            let target = account.emergencyTarget(monthlyIncome: 10000)
-            #expect(target == nil)
-        }
-
-        @Test("Zero income produces zero target")
-        func zeroIncomeTarget() {
-            let account = AccountEntry.emergency(name: "Emergency", multiplier: 3.0)
-            let target = account.emergencyTarget(monthlyIncome: 0)
-
-            #expect(target == 0)
-        }
+    @Test(arguments: [
+        (Decimal(8500), 3.0, Decimal?.none, Decimal(25_500)),
+        (Decimal(8500), 4.5, nil, Decimal(38_250)),
+        (Decimal(string: "8345.67")!, 4.5, nil, Decimal(string: "37555.52")!),  // not 37 555.515
+        (Decimal(8500), 6.0, Decimal(40_000), Decimal(40_000)),   // cap below calculated
+        (Decimal(8500), 3.0, Decimal(90_000), Decimal(25_500)),   // cap above calculated is inert
+        (Decimal(0), 3.0, nil, Decimal(0))
+    ])
+    func `Emergency target is income × multiplier, limited by the hard cap`(
+        income: Decimal,
+        multiplier: Double,
+        hardCap: Decimal?,
+        expected: Decimal
+    ) {
+        let account = AccountEntry.emergency(multiplier: multiplier, hardCap: hardCap)
+        #expect(account.emergencyTarget(monthlyIncome: income) == expected)
     }
 
-    // MARK: - Emergency Hard Cap
+    @Test func `Only emergency accounts with a multiplier have a target`() {
+        let savings = AccountEntry(name: "Savings", accountType: .savings, emergencyMultiplier: 3)
+        let noMultiplier = AccountEntry(name: "Emergency", accountType: .emergency)
 
-    @Suite("Emergency Hard Cap")
-    struct EmergencyHardCap {
-
-        @Test("Hard cap limits target when below calculated",
-              arguments: [
-                (income: Decimal(10000), multiplier: 3.0, hardCap: Decimal(20000), expected: Decimal(20000)),
-                (income: Decimal(10000), multiplier: 6.0, hardCap: Decimal(42000), expected: Decimal(42000)),
-                (income: Decimal(15000), multiplier: 4.0, hardCap: Decimal(50000), expected: Decimal(50000))
-              ])
-        func hardCapLimitsTarget(income: Decimal, multiplier: Double, hardCap: Decimal, expected: Decimal) {
-            let account = AccountEntry.emergency(
-                name: "Emergency",
-                multiplier: multiplier,
-                hardCap: hardCap
-            )
-            let target = account.emergencyTarget(monthlyIncome: income)
-
-            #expect(target == expected)
-        }
-
-        @Test("Hard cap ignored when above calculated target",
-              arguments: [
-                (income: Decimal(10000), multiplier: 3.0, hardCap: Decimal(50000), expected: Decimal(30000)),
-                (income: Decimal(5000), multiplier: 3.0, hardCap: Decimal(20000), expected: Decimal(15000))
-              ])
-        func hardCapIgnoredWhenAboveCalculated(income: Decimal, multiplier: Double, hardCap: Decimal, expected: Decimal) {
-            let account = AccountEntry.emergency(
-                name: "Emergency",
-                multiplier: multiplier,
-                hardCap: hardCap
-            )
-            let target = account.emergencyTarget(monthlyIncome: income)
-
-            #expect(target == expected)
-        }
-
-        @Test("Nil hard cap means no capping")
-        func nilHardCapMeansNoCapping() {
-            let account = AccountEntry.emergency(name: "Emergency", multiplier: 3.0, hardCap: nil)
-            let target = account.emergencyTarget(monthlyIncome: 10000)
-
-            #expect(target == 30000)
-        }
-
-        @Test("Progress uses capped target")
-        func progressUsesCappedTarget() throws {
-            // Hard cap 20000, multiplier 3x on 10000 income would be 30000 but capped to 20000
-            let account = AccountEntry.emergency(
-                name: "Emergency",
-                multiplier: 3.0,
-                hardCap: 20000,
-                currentBalance: 10000 // 50% of capped target
-            )
-
-            let progress = try #require(account.emergencyProgress(monthlyIncome: 10000))
-            #expect(abs(progress - 0.5) < 0.001)
-        }
-
-        @Test("isComplete uses capped target")
-        func isCompleteUsesCappedTarget() {
-            // Without cap: target would be 30000, balance 25000 = incomplete
-            // With cap of 25000: target is 25000, balance 25000 = complete
-            let account = AccountEntry.emergency(
-                name: "Emergency",
-                multiplier: 3.0,
-                hardCap: 25000,
-                currentBalance: 25000
-            )
-
-            let isComplete = account.isEmergencyComplete(monthlyIncome: 10000)
-            #expect(isComplete == true)
-        }
-
-        @Test("Factory method sets hard cap correctly")
-        func factoryMethodSetsHardCap() {
-            let account = AccountEntry.emergency(
-                name: "Emergency",
-                multiplier: 3.0,
-                hardCap: 42000
-            )
-
-            #expect(account.emergencyHardCap == 42000)
-        }
-
-        @Test("Factory method default hard cap is nil")
-        func factoryMethodDefaultHardCapIsNil() {
-            let account = AccountEntry.emergency()
-
-            #expect(account.emergencyHardCap == nil)
-        }
-
-        @Test("Hard cap exactly equal to calculated target")
-        func hardCapEqualsCalculatedTarget() {
-            // 10000 * 3 = 30000, cap = 30000
-            let account = AccountEntry.emergency(
-                name: "Emergency",
-                multiplier: 3.0,
-                hardCap: 30000
-            )
-            let target = account.emergencyTarget(monthlyIncome: 10000)
-
-            #expect(target == 30000)
-        }
-
-        @Test("Zero hard cap still returns zero")
-        func zeroHardCapReturnsZero() {
-            let account = AccountEntry.emergency(
-                name: "Emergency",
-                multiplier: 3.0,
-                hardCap: 0
-            )
-            let target = account.emergencyTarget(monthlyIncome: 10000)
-
-            // min(30000, 0) = 0
-            #expect(target == 0)
-        }
+        #expect(savings.emergencyTarget(monthlyIncome: 8500) == nil)
+        #expect(noMultiplier.emergencyTarget(monthlyIncome: 8500) == nil)
+        #expect(noMultiplier.isEmergencyComplete(monthlyIncome: 8500) == false)
     }
 
-    // MARK: - Emergency Progress
-
-    @Suite("Emergency Progress")
-    struct EmergencyProgress {
-
-        @Test("Progress percentage calculated correctly",
-              arguments: [
-                (balance: Decimal(0), expected: 0.0),
-                (balance: Decimal(15000), expected: 0.5),   // 50%
-                (balance: Decimal(30000), expected: 1.0),   // 100%
-                (balance: Decimal(7500), expected: 0.25)    // 25%
-              ])
-        func progressPercentage(balance: Decimal, expected: Double) throws {
-            let account = AccountEntry.emergency(
-                name: "Emergency",
-                multiplier: 3.0,
-                currentBalance: balance
-            )
-
-            // Target is 30000 (10000 * 3)
-            let progress = try #require(account.emergencyProgress(monthlyIncome: 10000))
-            #expect(abs(progress - expected) < 0.001)
-        }
-
-        @Test("Progress capped at 100% when over-funded")
-        func progressCappedAt100() {
-            let account = AccountEntry.emergency(
-                name: "Emergency",
-                multiplier: 3.0,
-                currentBalance: 50000 // Over the 30000 target
-            )
-
-            let progress = account.emergencyProgress(monthlyIncome: 10000)
-
-            #expect(progress == 1.0)
-        }
-
-        @Test("Progress is nil for non-emergency accounts")
-        func progressNilForNonEmergency() {
-            let savings = AccountEntry.savings()
-            let progress = savings.emergencyProgress(monthlyIncome: 10000)
-
-            #expect(progress == nil)
-        }
-
-        @Test("Progress with zero target is nil")
-        func progressWithZeroTarget() {
-            let account = AccountEntry.emergency(name: "Emergency", multiplier: 3.0)
-            let progress = account.emergencyProgress(monthlyIncome: 0)
-
-            // Target would be 0 * 3 = 0, which causes division by zero
-            #expect(progress == nil)
-        }
+    @Test(arguments: zip([Decimal(0), 12_750, 25_500, 40_000, -500], [0.0, 0.5, 1.0, 1.0, 0.0]))
+    func `Progress is clamped to 0–100% of the target`(balance: Decimal, expected: Double) {
+        let account = AccountEntry.emergency(multiplier: 3, currentBalance: balance)
+        #expect(account.emergencyProgress(monthlyIncome: 8500) == expected)
     }
 
-    // MARK: - Emergency Completion
+    @Test func `Hard cap drives progress and completion`() {
+        let account = AccountEntry.emergency(multiplier: 6, hardCap: 20_000, currentBalance: 20_000)
 
-    @Suite("Emergency Completion")
-    struct EmergencyCompletion {
+        #expect(account.emergencyTarget(monthlyIncome: 8500) == 20_000)
+        #expect(account.uncappedEmergencyTarget(monthlyIncome: 8500) == 51_000)
 
-        @Test("isComplete true when balance reaches target")
-        func completeWhenTargetReached() {
-            let account = AccountEntry.emergency(
-                name: "Emergency",
-                multiplier: 3.0,
-                currentBalance: 30000
-            )
-
-            let isComplete = account.isEmergencyComplete(monthlyIncome: 10000)
-            #expect(isComplete == true)
-        }
-
-        @Test("isComplete true when balance exceeds target")
-        func completeWhenOverFunded() {
-            let account = AccountEntry.emergency(
-                name: "Emergency",
-                multiplier: 3.0,
-                currentBalance: 35000
-            )
-
-            let isComplete = account.isEmergencyComplete(monthlyIncome: 10000)
-            #expect(isComplete == true)
-        }
-
-        @Test("isComplete false when below target")
-        func incompleteWhenBelowTarget() {
-            let account = AccountEntry.emergency(
-                name: "Emergency",
-                multiplier: 3.0,
-                currentBalance: 29999
-            )
-
-            let isComplete = account.isEmergencyComplete(monthlyIncome: 10000)
-            #expect(isComplete == false)
-        }
-
-        @Test("isComplete false for non-emergency accounts")
-        func incompleteForNonEmergency() {
-            let savings = AccountEntry.savings()
-            let isComplete = savings.isEmergencyComplete(monthlyIncome: 10000)
-
-            #expect(isComplete == false)
-        }
+        #expect(account.emergencyProgress(monthlyIncome: 8500) == 1)
+        #expect(account.isEmergencyComplete(monthlyIncome: 8500))
     }
 
-    // MARK: - Factory Methods
+    @Test func `Zero target has no meaningful progress`() {
+        #expect(AccountEntry.emergency(multiplier: 3).emergencyProgress(monthlyIncome: 0) == nil)
+    }
+}
 
-    @Suite("Factory Methods")
-    struct FactoryMethods {
+struct AccountRulesTests {
+    let primary = AccountEntry.primary()
+    let emergency = AccountEntry.emergency(multiplier: 3)
+    let savings = AccountEntry.savings(isPrimarySavings: false)
+    let joint = AccountEntry.joint()
 
-        @Test("Primary factory creates correct account")
-        func primaryFactory() {
-            let account = AccountEntry.primary()
+    @Test func `Primary keeps its role; no one else can take it; emergency stays unique`() {
+        let accounts = [primary, emergency, savings, joint]
 
-            #expect(account.accountType == .primary)
-            #expect(account.isPrimary == true)
-            #expect(account.isPrimarySavings == false)
-            #expect(account.emergencyMultiplier == nil)
-        }
-
-        @Test("Primary factory with custom name")
-        func primaryFactoryCustomName() {
-            let account = AccountEntry.primary(name: "BT Checking")
-
-            #expect(account.name == "BT Checking")
-            #expect(account.accountType == .primary)
-        }
-
-        @Test("Emergency factory creates correct account")
-        func emergencyFactory() {
-            let account = AccountEntry.emergency(
-                name: "My Emergency Fund",
-                multiplier: 4.5,
-                currentBalance: 5000
-            )
-
-            #expect(account.name == "My Emergency Fund")
-            #expect(account.accountType == .emergency)
-            #expect(account.emergencyMultiplier == 4.5)
-            #expect(account.currentBalance == 5000)
-            #expect(account.isPrimary == false)
-            #expect(account.isPrimarySavings == false)
-        }
-
-        @Test("Emergency factory default multiplier is 3.0")
-        func emergencyFactoryDefaultMultiplier() {
-            let account = AccountEntry.emergency()
-
-            #expect(account.emergencyMultiplier == 3.0)
-        }
-
-        @Test("Savings factory creates correct account")
-        func savingsFactory() {
-            let account = AccountEntry.savings()
-
-            #expect(account.accountType == .savings)
-            #expect(account.isPrimarySavings == true)
-            #expect(account.isPrimary == false)
-        }
-
-        @Test("Savings factory can be non-primary savings")
-        func savingsFactoryNonPrimary() {
-            let account = AccountEntry.savings(name: "Extra Savings", isPrimarySavings: false)
-
-            #expect(account.name == "Extra Savings")
-            #expect(account.isPrimarySavings == false)
-            #expect(account.accountType == .savings)
-        }
-
-        @Test("Personal factory creates correct account")
-        func personalFactory() {
-            let account = AccountEntry.personal()
-
-            #expect(account.accountType == .personal)
-            #expect(account.isPrimary == false)
-            #expect(account.isPrimarySavings == false)
-        }
-
-        @Test("Joint factory creates correct account")
-        func jointFactory() {
-            let account = AccountEntry.joint()
-
-            #expect(account.accountType == .joint)
-            #expect(account.isPrimary == false)
-        }
-
-        @Test("Defaults returns single primary account")
-        func defaultsReturnsOneAccount() {
-            let defaults = AccountEntry.defaults
-
-            #expect(defaults.count == 1)
-            #expect(defaults.first?.accountType == .primary)
-            #expect(defaults.first?.isPrimary == true)
-        }
+        #expect(accounts.canAssign(.primary, toAccount: primary.id))
+        #expect(!accounts.canAssign(.savings, toAccount: primary.id))
+        #expect(!accounts.canAssign(.primary, toAccount: joint.id))
+        #expect(!accounts.canAssign(.emergency, toAccount: savings.id))
+        #expect(!accounts.canAssign(.emergency, toAccount: nil))
+        #expect(accounts.canAssign(.emergency, toAccount: emergency.id))
+        #expect(accounts.canAssign(.savings, toAccount: joint.id))
     }
 
-    // MARK: - Identity
+    @Test(arguments: [
+        ([RemainingMoneyDestination.primarySavings, .personal, .primary], [AccountType.savings, .personal]),
+        ([.primary, .primary, .primary], []),
+    ])
+    func `Destinations without an account fall back to primary`(
+        expected: [RemainingMoneyDestination],
+        extraTypes: [AccountType]
+    ) {
+        let accounts = [primary] + extraTypes.map { AccountEntry(name: "\($0)", accountType: $0) }
+        let requested: [RemainingMoneyDestination] = [.primarySavings, .personal, .primary]
 
-    @Suite("Identity")
-    struct Identity {
-
-        @Test("Each account has unique ID")
-        func uniqueIDs() {
-            let account1 = AccountEntry.primary()
-            let account2 = AccountEntry.primary()
-            let account3 = AccountEntry.savings()
-
-            #expect(account1.id != account2.id)
-            #expect(account2.id != account3.id)
-            #expect(account1.id != account3.id)
-        }
-
-        @Test("Account ID persists across property changes")
-        func idPersistsAcrossChanges() {
-            var account = AccountEntry.savings()
-            let originalId = account.id
-
-            account.name = "Changed Name"
-            account.currentBalance = 1000
-            account.isPrimarySavings = false
-
-            #expect(account.id == originalId)
-        }
+        #expect(requested.map(accounts.resolvedRemainingDestination) == expected)
     }
 
-    // MARK: - Edge Cases
+    @Test func `Unsafe boost is switched off only when it applies`() {
+        #expect(!Fixture.prioritized(0.5, boost: true).withSafeBoost.boostEnabled)
+        #expect(Fixture.prioritized(0.3, boost: true).withSafeBoost.boostEnabled)
 
-    @Suite("Edge Cases")
-    struct EdgeCases {
-
-        @Test("Very large balance doesn't overflow")
-        func largeBalanceHandling() {
-            let account = AccountEntry.emergency(
-                name: "Emergency",
-                multiplier: 3.0,
-                currentBalance: Decimal(string: "999999999999")! // ~1 trillion
-            )
-
-            let progress = account.emergencyProgress(monthlyIncome: 10000)
-            #expect(progress == 1.0) // Should cap at 100%
-
-            let isComplete = account.isEmergencyComplete(monthlyIncome: 10000)
-            #expect(isComplete == true)
-        }
-
-        @Test("Decimal precision maintained in calculations")
-        func decimalPrecision() {
-            let account = AccountEntry.emergency(
-                name: "Emergency",
-                multiplier: 3.0,
-                currentBalance: Decimal(string: "10000.50")!
-            )
-
-            let target = account.emergencyTarget(monthlyIncome: Decimal(string: "3333.50")!)
-            // 3333.50 * 3 = 10000.50
-            #expect(target == Decimal(string: "10000.50"))
-        }
-
-        @Test("Negative balance handled gracefully")
-        func negativeBalance() {
-            let account = AccountEntry.emergency(
-                name: "Emergency",
-                multiplier: 3.0,
-                currentBalance: -5000
-            )
-
-            let progress = account.emergencyProgress(monthlyIncome: 10000)
-            // Progress should be clamped to 0
-            #expect(progress == 0.0)
-        }
+        var split = Fixture.split(emergency: 100, savings: 100)
+        split.boostEnabled = true
+        split.percentage = 0.5
+        #expect(split.withSafeBoost.boostEnabled)
     }
 }

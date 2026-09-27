@@ -1,17 +1,16 @@
 import SwiftUI
 import DesignSystem
 
-/// Animated glass progress indicator that morphs between steps
+/// Progress bar for the steps between Welcome and the transfer plan.
 struct OnboardingProgressIndicator: View {
     let currentStep: OnboardingViewModel.OnboardingStep
     let totalSteps: Int
 
     @Namespace private var progressNamespace
 
-    /// Adjusted step index (0-based for the visible progress steps)
-    /// Excludes welcome (step 0) from progress visualization
+    /// Welcome isn't a progress step, so step indices start after it.
     private var adjustedStepIndex: Int {
-        max(0, currentStep.rawValue - 1) // Offset by 1 to skip welcome
+        max(0, currentStep.rawValue - 1)
     }
 
     private var progress: CGFloat {
@@ -21,12 +20,10 @@ struct OnboardingProgressIndicator: View {
 
     var body: some View {
         ZStack(alignment: .leading) {
-            // Background track
             Capsule()
                 .fill(Color.secondary.opacity(Opacity.subtle))
                 .frame(width: ComponentSize.progressBarMaxWidth, height: ComponentSize.progressTrackHeight)
 
-            // Animated fill
             Capsule()
                 .fill(
                     LinearGradient(
@@ -39,11 +36,10 @@ struct OnboardingProgressIndicator: View {
                     )
                 )
                 .frame(
-                    width: ComponentSize.progressBarMaxWidth * (progress + ComponentSize.progressMinFillScale),
+                    width: ComponentSize.progressBarMaxWidth * min(1, progress + ComponentSize.progressMinFillScale),
                     height: ComponentSize.progressTrackHeight
                 )
 
-            // Dots
             HStack(spacing: 0) {
                 ForEach(0..<totalSteps, id: \.self) { index in
                     let isCompleted = index <= adjustedStepIndex
@@ -78,11 +74,14 @@ struct OnboardingProgressIndicator: View {
         }
         .frame(width: ComponentSize.progressBarMaxWidth, height: ComponentSize.progressIndicatorHeight)
         .animation(SpringPreset.responsive, value: currentStep)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Onboarding progress".localized)
+        .accessibilityValue(String(localized: "Step \(adjustedStepIndex + 1) of \(totalSteps)", bundle: .module))
     }
 }
 
 #Preview {
-    VStack(spacing: 40) {
+    VStack(spacing: Spacing.xl) {
         OnboardingProgressIndicator(
             currentStep: .name,
             totalSteps: 5

@@ -3,7 +3,6 @@ import Domain
 import DesignSystem
 import SharedUI
 import Utilities
-/// Sheet for adding or editing an expense
 public struct AddExpenseSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var viewModel: ExpensesViewModel
@@ -12,6 +11,7 @@ public struct AddExpenseSheet: View {
     @State private var notesText: String = ""
     @State private var showDeleteConfirmation = false
     @State private var showAddCategory = false
+    @State private var isSaving = false
 
     private let isEditing: Bool
     private let editingExpenseId: UUID?
@@ -25,46 +25,55 @@ public struct AddExpenseSheet: View {
         self._notesText = State(initialValue: editingExpense?.notes ?? "")
     }
 
-    private var title: String {
-        isEditing ? "Edit Expense".localized : "Add Expense".localized
+    /// An empty name on a fresh form isn't flagged; the disabled Save button already says enough.
+    private var visibleValidationMessage: String? {
+        guard let error = input.validationError else { return nil }
+        if error == .nameMissing && input.name.isEmpty { return nil }
+        return error.message
     }
 
-    private var monthlyEquivalent: Decimal {
-        guard input.frequency == .annual else { return input.amount }
-        return input.amount * Frequency.annual.monthlyMultiplier
+    private var title: String {
+        isEditing ? "Edit Expense".localized : "Add Expense".localized
     }
 
     public var body: some View {
         NavigationStack {
             Form {
-                // Basic info
                 Section {
                     TextField("Name".localized, text: $input.name)
+                } header: {
+                    Text("Details".localized)
+                }
 
+                // The field draws its own glass card, so it replaces the row rather than sitting in one.
+                Section {
                     CurrencyAmountField(
                         amount: $input.amount,
                         currency: $viewModel.currency,
                         showCurrencyPicker: false
                     )
-
-                    FrequencyPicker(selection: $input.frequency)
-                } header: {
-                    Text("Details".localized)
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
                 }
 
-                // Monthly equivalent for annual expenses
-                if input.frequency == .annual && input.amount > 0 {
-                    Section {
-                        HStack {
-                            Text("Monthly Equivalent".localized)
-                            Spacer()
-                            Text(AmountFormatter.formatForDisplay(monthlyEquivalent, currency: viewModel.currency.rawValue))
-                                .foregroundStyle(.secondary)
-                        }
+                Section {
+                    FrequencyPicker(selection: $input.frequency)
+                } footer: {
+                    if let message = visibleValidationMessage {
+                        Text(message)
+                            .foregroundStyle(DiamerisColors.negative)
                     }
                 }
 
-                // Category
+                if input.frequency == .annual && input.amount > 0 {
+                    Section {
+                        LabeledContent(
+                            "Monthly Equivalent".localized,
+                            value: AmountFormatter.formatForDisplay(input.monthlyAmount, currency: viewModel.currency.rawValue)
+                        )
+                    }
+                }
+
                 Section {
                     CategoryPicker(
                         selection: $input.categoryId,
@@ -81,7 +90,6 @@ public struct AddExpenseSheet: View {
                     Text("Category".localized)
                 }
 
-                // Account linking
                 if !viewModel.accounts.isEmpty {
                     Section {
                         Picker("Pay From".localized, selection: $input.linkedAccountId) {
@@ -98,14 +106,12 @@ public struct AddExpenseSheet: View {
                     }
                 }
 
-                // Icon picker
                 Section {
                     IconPicker(selection: $input.icon)
                 } header: {
                     Text("Icon".localized)
                 }
 
-                // Notes
                 Section {
                     TextField("Notes".localized, text: $notesText, axis: .vertical)
                         .lineLimit(3...6)
@@ -116,49 +122,44 @@ public struct AddExpenseSheet: View {
                     Text("Notes".localized)
                 }
 
-                // Enable/disable toggle
                 Section {
                     Toggle("Enabled".localized, isOn: $input.isEnabled)
                 } footer: {
                     Text("Disabled expenses won't be included in your budget calculations.".localized)
                 }
 
-                // Delete button (only when editing)
                 if isEditing {
                     Section {
                         Button(role: .destructive) {
                             HapticManager.warning()
                             showDeleteConfirmation = true
                         } label: {
-                            HStack {
-                                Spacer()
-                                Text("Delete Expense".localized)
-                                Spacer()
+                            Text("Delete Expense".localized)
+                                .frame(maxWidth: .infinity)
+                        }
+                        .confirmationDialog(
+                            "Delete Expense".localized,
+                            isPresented: $showDeleteConfirmation,
+                            titleVisibility: .visible
+                        ) {
+                            Button("Delete".localized, role: .destructive) {
+                                HapticManager.warning()
+                                if let id = editingExpenseId {
+                                    Task {
+                                        await viewModel.deleteExpense(id)
+                                    }
+                                }
+                                dismiss()
                             }
+                            Button("Cancel".localized, role: .cancel) {}
+                        } message: {
+                            Text("Are you sure you want to delete this expense? This action cannot be undone.".localized)
                         }
                     }
                 }
             }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
-            .confirmationDialog(
-                "Delete Expense".localized,
-                isPresented: $showDeleteConfirmation,
-                titleVisibility: .visible
-            ) {
-                Button("Delete".localized, role: .destructive) {
-                    HapticManager.warning()
-                    if let id = editingExpenseId {
-                        Task {
-                            await viewModel.deleteExpense(id)
-                        }
-                    }
-                    dismiss()
-                }
-                Button("Cancel".localized, role: .cancel) {}
-            } message: {
-                Text("Are you sure you want to delete this expense? This action cannot be undone.".localized)
-            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel".localized) {
@@ -169,12 +170,15 @@ public struct AddExpenseSheet: View {
 
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save".localized) {
+                        // Guard against a double tap saving the same new expense twice.
+                        guard !isSaving else { return }
+                        isSaving = true
                         HapticManager.success()
                         Task {
                             await viewModel.saveExpense(input)
                         }
                     }
-                    .disabled(!input.isValid)
+                    .disabled(!input.isValid || isSaving)
                 }
             }
             .sheet(isPresented: $showAddCategory) {
@@ -186,7 +190,6 @@ public struct AddExpenseSheet: View {
     }
 }
 
-/// Simple icon picker for expenses
 struct IconPicker: View {
     @Binding var selection: String
 
@@ -231,7 +234,7 @@ struct IconPicker: View {
     ]
 
     var body: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 44))], spacing: Spacing.sm) {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: ComponentSize.minTouchTarget))], spacing: Spacing.sm) {
             ForEach(icons, id: \.self) { icon in
                 Button {
                     HapticManager.lightTap()
@@ -239,12 +242,15 @@ struct IconPicker: View {
                 } label: {
                     Image(systemName: icon)
                         .font(.title2)
-                        .frame(width: 44, height: 44)
-                        .background(selection == icon ? Color.accentColor.opacity(0.2) : Color.clear)
-                        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.small))
+                        .frame(width: ComponentSize.minTouchTarget, height: ComponentSize.minTouchTarget)
+                        .foregroundStyle(selection == icon ? Color.accentColor : Color.primary)
+                        .background(selection == icon ? Color.accentColor.opacity(Opacity.light) : Color.clear)
+                        .clipShape(.rect(cornerRadius: CornerRadius.small))
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(icon)
+                // No explicit label: SF Symbols supply readable names ("Cart", "House"),
+                // unlike the raw symbol identifier.
+                .accessibilityAddTraits(selection == icon ? .isSelected : [])
             }
         }
     }

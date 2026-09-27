@@ -3,6 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "SharedUI",
+    defaultLocalization: "en",
     platforms: [.iOS(.v26)],
     products: [
         .library(name: "SharedUI", targets: ["SharedUI"])
@@ -16,6 +17,9 @@ let package = Package(
         .target(
             name: "SharedUI",
             dependencies: ["DesignSystem", "Utilities", "Domain"],
+            resources: [
+                .process("Resources")
+            ],
             swiftSettings: [
                 .swiftLanguageMode(.v6)
             ]

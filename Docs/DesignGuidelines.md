@@ -210,21 +210,28 @@ Only create custom symbols when SF Symbols lacks an appropriate option. Export s
 
 **Primary Accent - Magenta/Fuchsia**
 ```swift
-// Light mode
-Color(hex: "#D946EF") // Fuchsia-500
+// Light mode (darkened for text contrast: 6.3:1 on white)
+Color(hex: "#A21CAF") // Fuchsia-700
 
-// Dark mode (slightly brighter)
+// Dark mode (brighter, 8.5:1 on black)
 Color(hex: "#E879F9") // Fuchsia-400
 ```
 
 **Secondary Accent - Teal/Cyan**
 ```swift
-// Light mode
-Color(hex: "#06B6D4") // Cyan-500
+// Light mode (darkened for text contrast: 5.4:1 on white)
+Color(hex: "#0E7490") // Cyan-700
 
-// Dark mode (slightly brighter)
+// Dark mode (brighter)
 Color(hex: "#22D3EE") // Cyan-400
 ```
+
+**Filled buttons** (`.glassProminent`) tint with `DiamerisColors.accentPrimaryFill` (`#A21CAF` in
+both appearances, 6.3:1 under a white label). Never tint a filled control with the dark-mode
+accent: white on `#E879F9` is only 2.5:1.
+
+All accent pairs must meet WCAG AA (≥ 4.5:1 for normal text). `ColorTests` in DesignSystem
+enforces this for both appearances; update the test's expectations, not the rule, when adding a color.
 
 ### Semantic Colors
 
@@ -241,11 +248,11 @@ Define colors in Asset Catalog with both appearances:
 
 ```
 AccentPrimary
-├── Any Appearance: #D946EF
+├── Any Appearance: #A21CAF
 └── Dark: #E879F9
 
 AccentSecondary
-├── Any Appearance: #06B6D4
+├── Any Appearance: #0E7490
 └── Dark: #22D3EE
 ```
 

@@ -1,6 +1,5 @@
 import Foundation
 import SwiftData
-import Utilities
 
 /// Snapshot of an account at the time of a monthly record.
 public struct AccountSnapshot: Codable, Sendable {
@@ -28,8 +27,8 @@ public struct AccountSnapshot: Codable, Sendable {
     }
 }
 
-/// A record of a single month's financial activity.
-/// Tracks income, expenses, savings, and transfers for historical review.
+/// A month's income, expenses, savings and transfers, for the planned history view.
+/// Not written yet, but part of the stored schema: keep the class name and stored properties.
 @Model
 public final class MonthlyRecord {
     @Attribute(.unique) public var id: UUID
@@ -43,7 +42,7 @@ public final class MonthlyRecord {
     public var transfersExecuted: Bool
     public var createdAt: Date
 
-    /// Serialized account snapshots.
+    /// JSON-encoded `[AccountSnapshot]`.
     private var accountSnapshotsData: Data?
 
     public var accountSnapshots: [AccountSnapshot] {
@@ -74,10 +73,5 @@ public final class MonthlyRecord {
         self.transfersExecuted = transfersExecuted
         self.createdAt = Date()
         self.accountSnapshotsData = try? JSONEncoder().encode(accountSnapshots)
-    }
-
-    /// The month and year formatted for display.
-    public var monthDisplay: String {
-        DateFormatters.monthYear.string(from: month)
     }
 }

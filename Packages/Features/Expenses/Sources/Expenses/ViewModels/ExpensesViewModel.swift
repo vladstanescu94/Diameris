@@ -3,8 +3,7 @@ import SwiftUI
 import Domain
 import Utilities
 
-/// Simplified account representation for expense linking
-public struct ExpenseAccount: Identifiable, Sendable {
+public struct ExpenseAccount: Identifiable, Equatable, Sendable {
     public let id: UUID
     public let name: String
     public let accountType: AccountType
@@ -18,8 +17,7 @@ public struct ExpenseAccount: Identifiable, Sendable {
     }
 }
 
-/// Display item for expenses in the list view
-public struct ExpenseDisplayItem: Identifiable, Sendable {
+public struct ExpenseDisplayItem: Identifiable, Equatable, Sendable {
     public let id: UUID
     public var name: String
     public var amount: Decimal
@@ -52,7 +50,20 @@ public struct ExpenseDisplayItem: Identifiable, Sendable {
         self.notes = notes
     }
 
-    /// Create from ExpenseEntry
+    public init(id: UUID, input: ExpenseInput) {
+        self.init(
+            id: id,
+            name: input.name,
+            amount: input.amount,
+            frequency: input.frequency,
+            icon: input.icon,
+            categoryId: input.categoryId,
+            linkedAccountId: input.linkedAccountId,
+            isEnabled: input.isEnabled,
+            notes: input.notes
+        )
+    }
+
     public init(from entry: ExpenseEntry) {
         self.id = entry.id
         self.name = entry.name
@@ -65,8 +76,6 @@ public struct ExpenseDisplayItem: Identifiable, Sendable {
         self.notes = entry.notes
     }
 
-    /// Convert to Domain ExpenseEntry for business logic calculations.
-    /// This ensures all calculations use the single source of truth in Domain.
     public func toExpenseEntry() -> ExpenseEntry {
         ExpenseEntry(
             id: id,
@@ -81,26 +90,19 @@ public struct ExpenseDisplayItem: Identifiable, Sendable {
         )
     }
 
-    /// Monthly equivalent amount.
-    /// Delegates to Domain's ExpenseEntry for the actual calculation.
     public var monthlyAmount: Decimal {
         toExpenseEntry().monthlyAmount
     }
 
-    /// Annual equivalent amount.
-    /// Delegates to Domain's ExpenseEntry for the actual calculation.
     public var annualAmount: Decimal {
         toExpenseEntry().annualAmount
     }
 
-    /// Get the category for this expense
-    public var category: ExpenseCategory? {
-        guard let categoryId else { return nil }
-        return ExpenseCategory.defaultCategory(for: categoryId)
+    public func displayAmount(for viewFrequency: Frequency) -> Decimal {
+        toExpenseEntry().displayAmount(for: viewFrequency)
     }
 }
 
-/// Input for creating/updating expenses
 public struct ExpenseInput: Sendable {
     public var id: UUID?
     public var name: String
@@ -134,7 +136,6 @@ public struct ExpenseInput: Sendable {
         self.notes = notes
     }
 
-    /// Create from existing display item for editing
     public init(from item: ExpenseDisplayItem) {
         self.id = item.id
         self.name = item.name
@@ -147,94 +148,86 @@ public struct ExpenseInput: Sendable {
         self.notes = item.notes
     }
 
-    /// Check if input is valid for saving
+    public var validationError: ExpenseEntry.ValidationError? {
+        ExpenseEntry.validationError(name: name, amount: amount)
+    }
+
     public var isValid: Bool {
-        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && amount > 0
+        validationError == nil
+    }
+
+    public var monthlyAmount: Decimal {
+        ExpenseEntry(
+            name: name,
+            amount: amount,
+            frequency: frequency,
+            icon: icon
+        ).monthlyAmount
     }
 }
 
-/// Grouped expenses by category for display
-public struct ExpenseGroup: Identifiable, Sendable {
-    /// Stable UUID for truly uncategorized expenses (where categoryId is nil)
+public struct ExpenseGroup: Identifiable, Equatable, Sendable {
+    /// Group ID for expenses without a (known) category.
     public static let uncategorizedId = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
 
     public let id: UUID
     public let category: ExpenseCategory?
     public var expenses: [ExpenseDisplayItem]
 
-    /// Initialize with explicit id (for unknown categories that have a categoryId but no matching category)
-    public init(id: UUID, category: ExpenseCategory?, expenses: [ExpenseDisplayItem]) {
-        self.id = id
-        self.category = category
-        self.expenses = expenses
-    }
-
-    /// Initialize using category's id or uncategorizedId sentinel
     public init(category: ExpenseCategory?, expenses: [ExpenseDisplayItem]) {
         self.id = category?.id ?? Self.uncategorizedId
         self.category = category
         self.expenses = expenses
     }
 
-    /// Total monthly amount for this group (enabled expenses only)
+    /// Enabled expenses only.
     public var totalMonthly: Decimal {
-        expenses
-            .filter { $0.isEnabled }
-            .reduce(Decimal.zero) { $0 + $1.monthlyAmount }
+        expenses.map { $0.toExpenseEntry() }.totalMonthly
     }
 
-    /// Total annual amount for this group (enabled expenses only)
+    /// Enabled expenses only.
     public var totalAnnual: Decimal {
-        expenses
-            .filter { $0.isEnabled }
-            .reduce(Decimal.zero) { $0 + $1.annualAmount }
+        expenses.map { $0.toExpenseEntry() }.totalAnnual
     }
 
-    /// Count of enabled expenses
     public var enabledCount: Int {
         expenses.count(where: \.isEnabled)
     }
+
+    public func total(for viewFrequency: Frequency) -> Decimal {
+        viewFrequency == .monthly ? totalMonthly : totalAnnual
+    }
 }
 
-/// ViewModel for the Expenses feature
 @MainActor
 @Observable
 public final class ExpensesViewModel {
     // MARK: - Data
 
-    /// All expenses (loaded from main app)
     public var expenses: [ExpenseDisplayItem] = []
 
-    /// All available categories (defaults + custom)
-    public var categories: [ExpenseCategory] = ExpenseCategory.defaults
-
-    /// Custom categories (user-created)
     public var customCategories: [ExpenseCategory] = []
 
-    /// User's selected currency
+    /// Local additions the store hasn't reported yet; a refresh keeps only these.
+    @ObservationIgnored private var pendingCategoryIds: Set<UUID> = []
+
     public var currency: Currency = .usd
 
-    /// Available accounts for linking expenses
     public var accounts: [ExpenseAccount] = []
 
     // MARK: - UI State
 
-    /// Selected view frequency (monthly/annual)
     public var selectedFrequencyView: Frequency = .monthly
 
-    /// Expanded category IDs
     public var expandedCategories: Set<UUID> = []
 
-    /// Show add expense sheet
     public var showAddExpense = false
 
     /// Currently editing expense (nil = adding new)
     public var editingExpense: ExpenseDisplayItem?
 
-    /// Show category management
     public var showCategoryManagement = false
 
-    /// Search text
     public var searchText = ""
 
     // MARK: - Callbacks (injected by main app)
@@ -252,106 +245,109 @@ public final class ExpensesViewModel {
 
     // MARK: - Category Management
 
-    /// Add a custom category (optimistic local update + persistence)
+    /// Idempotent: a refresh from persistence may already have delivered the category.
     public func addCategory(id: UUID, name: String, icon: String, colorHex: String) async {
-        // Add to local state immediately for instant UI feedback
-        let newCategory = ExpenseCategory.custom(id: id, name: name, icon: icon, colorHex: colorHex, sortOrder: 100)
-        customCategories.append(newCategory)
-        // Persist
+        if !customCategories.contains(where: { $0.id == id }) {
+            customCategories.append(.custom(id: id, name: name, icon: icon, colorHex: colorHex))
+            pendingCategoryIds.insert(id)
+        }
         await onAddCategory?(id, name, icon, colorHex)
+    }
+
+    /// Replaces custom categories with the stored ones, keeping local additions the store
+    /// hasn't reported yet.
+    public func applyStoredCategories(_ stored: [ExpenseCategory]) {
+        let storedIds = Set(stored.map(\.id))
+        pendingCategoryIds.subtract(storedIds)
+        customCategories = stored + customCategories.filter { pendingCategoryIds.contains($0.id) }
+    }
+
+    /// Drops an addition the app couldn't persist, so it doesn't linger for the session.
+    public func categorySaveFailed(_ id: UUID) {
+        pendingCategoryIds.remove(id)
+        customCategories.removeAll { $0.id == id }
+    }
+
+    /// Removes locally first so the list updates at once; its expenses fall back to Uncategorized.
+    public func deleteCategory(_ id: UUID) async {
+        pendingCategoryIds.remove(id)
+        customCategories.removeAll { $0.id == id }
+        await onDeleteCategory?(id)
     }
 
     // MARK: - Computed Properties
 
-    /// All categories including custom ones
     public var allCategories: [ExpenseCategory] {
         (ExpenseCategory.defaults + customCategories).sorted { $0.sortOrder < $1.sortOrder }
     }
 
-    /// Total monthly expenses (enabled only)
+    /// Enabled expenses only.
     public var totalMonthlyExpenses: Decimal {
-        expenses
-            .filter { $0.isEnabled }
-            .reduce(Decimal.zero) { $0 + $1.monthlyAmount }
+        expenses.map { $0.toExpenseEntry() }.totalMonthly
     }
 
-    /// Total annual expenses (enabled only)
+    /// Enabled expenses only.
     public var totalAnnualExpenses: Decimal {
-        expenses
-            .filter { $0.isEnabled }
-            .reduce(Decimal.zero) { $0 + $1.annualAmount }
+        expenses.map { $0.toExpenseEntry() }.totalAnnual
     }
 
-    /// Display total based on selected frequency
     public var displayTotal: Decimal {
         selectedFrequencyView == .monthly ? totalMonthlyExpenses : totalAnnualExpenses
     }
 
-    /// Expenses grouped by category
+    /// Uncategorized comes last and also holds expenses whose category no longer exists.
     public var expenseGroups: [ExpenseGroup] {
-        let filtered = filteredExpenses
-        var groups: [UUID: [ExpenseDisplayItem]] = [:]
-        var uncategorized: [ExpenseDisplayItem] = []
-
-        for expense in filtered {
-            if let categoryId = expense.categoryId {
-                groups[categoryId, default: []].append(expense)
-            } else {
-                uncategorized.append(expense)
-            }
+        let categories = allCategories
+        let knownIds = Set(categories.map(\.id))
+        let grouped = Dictionary(grouping: filteredExpenses) { expense in
+            expense.categoryId.flatMap { knownIds.contains($0) ? $0 : nil }
         }
 
-        var result: [ExpenseGroup] = []
-        var handledCategoryIds: Set<UUID> = []
-
-        // Add groups for each known category that has expenses
-        for category in allCategories {
-            if let expenses = groups[category.id], !expenses.isEmpty {
-                result.append(ExpenseGroup(category: category, expenses: expenses))
-                handledCategoryIds.insert(category.id)
-            }
+        var result = categories.compactMap { category in
+            grouped[category.id].map { ExpenseGroup(category: category, expenses: $0) }
         }
-
-        // Add groups for expenses with unknown category IDs (category was deleted or not loaded)
-        // Use the original categoryId as the group id for stable expand/collapse
-        for (categoryId, expenses) in groups where !handledCategoryIds.contains(categoryId) {
-            result.append(ExpenseGroup(id: categoryId, category: nil, expenses: expenses))
-        }
-
-        // Add uncategorized group if any
-        if !uncategorized.isEmpty {
+        if let uncategorized = grouped[nil] {
             result.append(ExpenseGroup(category: nil, expenses: uncategorized))
         }
-
         return result
     }
 
-    /// Filtered expenses based on search
+    /// Matching is case- and diacritic-insensitive, so "sosea" finds "Șosea".
     public var filteredExpenses: [ExpenseDisplayItem] {
-        guard !searchText.isEmpty else { return expenses }
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return expenses }
+        let categoryNames = Dictionary(
+            allCategories.map { ($0.id, $0.name) },
+            uniquingKeysWith: { first, _ in first }
+        )
         return expenses.filter { expense in
-            // Search by name
-            if expense.name.localizedStandardContains(searchText) { return true }
-            // Search by category name (including custom categories)
+            if expense.name.localizedStandardContains(query) { return true }
             if let categoryId = expense.categoryId,
-               let category = allCategories.first(where: { $0.id == categoryId }),
-               category.name.localizedStandardContains(searchText) {
+               let categoryName = categoryNames[categoryId],
+               categoryName.localizedStandardContains(query) {
                 return true
             }
-            // Search by notes
-            if let notes = expense.notes, notes.localizedStandardContains(searchText) { return true }
+            if let notes = expense.notes, notes.localizedStandardContains(query) { return true }
             return false
+        }
+    }
+
+    /// Expanded state for a category group, bindable as `$viewModel[isExpanded: id]`.
+    public subscript(isExpanded categoryId: UUID) -> Bool {
+        get { expandedCategories.contains(categoryId) }
+        set {
+            if newValue {
+                expandedCategories.insert(categoryId)
+            } else {
+                expandedCategories.remove(categoryId)
+            }
         }
     }
 
     // MARK: - Actions
 
     public func toggleCategory(_ categoryId: UUID) {
-        if expandedCategories.contains(categoryId) {
-            expandedCategories.remove(categoryId)
-        } else {
-            expandedCategories.insert(categoryId)
-        }
+        self[isExpanded: categoryId].toggle()
     }
 
     public func expandAll() {
@@ -376,61 +372,30 @@ public final class ExpensesViewModel {
 
     public func saveExpense(_ input: ExpenseInput) async {
         if let existingId = input.id {
-            // Update existing expense - update local state immediately for instant UI feedback
             if let index = expenses.firstIndex(where: { $0.id == existingId }) {
-                expenses[index] = ExpenseDisplayItem(
-                    id: existingId,
-                    name: input.name,
-                    amount: input.amount,
-                    frequency: input.frequency,
-                    icon: input.icon,
-                    categoryId: input.categoryId,
-                    linkedAccountId: input.linkedAccountId,
-                    isEnabled: input.isEnabled,
-                    notes: input.notes
-                )
+                expenses[index] = ExpenseDisplayItem(id: existingId, input: input)
             }
             await onUpdateExpense?(input)
         } else {
-            // Add new expense - create local item immediately
-            let newExpense = ExpenseDisplayItem(
-                id: UUID(),
-                name: input.name,
-                amount: input.amount,
-                frequency: input.frequency,
-                icon: input.icon,
-                categoryId: input.categoryId,
-                linkedAccountId: input.linkedAccountId,
-                isEnabled: input.isEnabled,
-                notes: input.notes
-            )
-            expenses.append(newExpense)
-            await onAddExpense?(input)
+            // The generated ID goes to persistence so the optimistic row and the stored expense match.
+            var newInput = input
+            let newId = UUID()
+            newInput.id = newId
+            expenses.append(ExpenseDisplayItem(id: newId, input: newInput))
+            await onAddExpense?(newInput)
         }
         showAddExpense = false
         editingExpense = nil
     }
 
     public func deleteExpense(_ id: UUID) async {
-        // Remove from local state immediately for instant UI feedback
         expenses.removeAll { $0.id == id }
         await onDeleteExpense?(id)
     }
 
     public func toggleExpenseEnabled(_ expense: ExpenseDisplayItem) async {
-        // Update local state immediately for instant UI feedback
         if let index = expenses.firstIndex(where: { $0.id == expense.id }) {
-            expenses[index] = ExpenseDisplayItem(
-                id: expense.id,
-                name: expense.name,
-                amount: expense.amount,
-                frequency: expense.frequency,
-                icon: expense.icon,
-                categoryId: expense.categoryId,
-                linkedAccountId: expense.linkedAccountId,
-                isEnabled: !expense.isEnabled,
-                notes: expense.notes
-            )
+            expenses[index].isEnabled = !expense.isEnabled
         }
         await onToggleExpense?(expense.id, !expense.isEnabled)
     }

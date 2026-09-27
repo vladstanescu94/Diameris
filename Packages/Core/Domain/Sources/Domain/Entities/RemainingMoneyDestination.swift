@@ -2,9 +2,9 @@ import Foundation
 
 /// Where remaining money after expenses and savings should go.
 public enum RemainingMoneyDestination: String, CaseIterable, Identifiable, Codable, Sendable {
-    case primarySavings  // Add to the primary savings account
-    case personal        // Transfer to first personal account
-    case primary         // Keep in primary account
+    case primarySavings
+    case personal        // the first personal account
+    case primary
 
     public var id: String { rawValue }
 

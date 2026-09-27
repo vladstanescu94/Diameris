@@ -8,15 +8,18 @@ struct NameScreen: View {
     @State private var contentAppeared = false
 
     var body: some View {
-        VStack(spacing: Spacing.xl) {
+        OnboardingScrollContainer {
             Spacer()
             header
             nameTextField
             Spacer()
             continueButton
         }
-        .padding(Spacing.lg)
         .onAppear { triggerAnimations() }
+        .task {
+            try? await Task.sleep(for: .seconds(AnimationDuration.slow))
+            HapticManager.softTap()
+        }
     }
 }
 
@@ -39,22 +42,25 @@ private extension NameScreen {
             prompt: "Your name".localized
         )
         .focused($isNameFocused)
+        .textContentType(.givenName)
         .submitLabel(.continue)
         .onSubmit {
-            if viewModel.canAdvance {
-                viewModel.advance()
+            viewModel.advance()
+        }
+        .onChange(of: viewModel.name) { _, newValue in
+            // Enforce the length limit while typing rather than silently disabling Continue.
+            if newValue.count > OnboardingViewModel.maximumNameLength {
+                viewModel.name = String(newValue.prefix(OnboardingViewModel.maximumNameLength))
             }
         }
-        .opacity(contentAppeared ? 1 : 0)
-        .offset(y: contentAppeared ? 0 : SlideOffset.standard)
+        .entrance(contentAppeared, y: SlideOffset.standard)
     }
 
     var continueButton: some View {
         OnboardingButton("Continue".localized, isEnabled: viewModel.canAdvance) {
             viewModel.advance()
         }
-        .opacity(contentAppeared ? 1 : 0)
-        .offset(y: contentAppeared ? 0 : SlideOffset.standard)
+        .entrance(contentAppeared, y: SlideOffset.standard)
         .accessibilityHint("Continues to the next step".localized)
     }
 }
@@ -65,9 +71,6 @@ private extension NameScreen {
     func triggerAnimations() {
         withAnimation(SpringPreset.smooth.delay(StaggerDelay.initial)) {
             contentAppeared = true
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + AnimationDuration.slow) {
-            HapticManager.softTap()
         }
     }
 }

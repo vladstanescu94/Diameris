@@ -2,16 +2,16 @@ import SwiftUI
 import DesignSystem
 import Utilities
 
-/// Welcome screen - warm introduction to Diameris.
 struct WelcomeScreen: View {
     @Bindable var viewModel: OnboardingViewModel
 
     @State private var iconAppeared = false
     @State private var contentAppeared = false
     @State private var buttonAppeared = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        VStack(spacing: Spacing.xl) {
+        OnboardingScrollContainer {
             Spacer()
             heroIcon
             contentSection
@@ -19,7 +19,6 @@ struct WelcomeScreen: View {
             Spacer()
             ctaButton
         }
-        .padding(Spacing.lg)
         .onAppear {
             triggerAnimations()
         }
@@ -39,26 +38,30 @@ private extension WelcomeScreen {
 
     var glowEffect: some View {
         Circle()
-            .fill(DiamerisColors.accentPrimary.opacity(0.2))
-            .frame(width: 140, height: 140)
-            .blur(radius: 20)
-            .scaleEffect(iconAppeared ? 1 : 0.5)
-            .opacity(iconAppeared ? 1 : 0)
+            .fill(DiamerisColors.accentPrimary.opacity(Opacity.light))
+            .frame(width: Hero.glowSize, height: Hero.glowSize)
+            .blur(radius: Hero.glowBlur)
+            .entrance(iconAppeared, scale: Opacity.half)
     }
 
     var iconContainer: some View {
         ZStack {
             Circle()
-                .fill(DiamerisColors.accentPrimary.opacity(0.15))
-                .frame(width: 120, height: 120)
+                .fill(DiamerisColors.accentPrimary.opacity(Opacity.light))
+                .frame(width: Hero.circleSize, height: Hero.circleSize)
 
             Image(systemName: "sparkles")
                 .font(.system(size: IconSize.hero))
                 .foregroundStyle(DiamerisColors.accentPrimary)
-                .symbolEffect(.pulse, options: .repeating)
+                .symbolEffect(.pulse, options: .repeating, isActive: !reduceMotion)
         }
-        .scaleEffect(iconAppeared ? 1 : 0.3)
-        .opacity(iconAppeared ? 1 : 0)
+        .entrance(iconAppeared, scale: Opacity.subtle)
+    }
+
+    enum Hero {
+        static let circleSize: CGFloat = 120
+        static let glowSize: CGFloat = 140
+        static let glowBlur: CGFloat = 20
     }
 }
 
@@ -78,8 +81,8 @@ private extension WelcomeScreen {
             .font(.largeTitle)
             .fontWeight(.bold)
             .multilineTextAlignment(.center)
-            .opacity(contentAppeared ? 1 : 0)
-            .offset(y: contentAppeared ? 0 : SlideOffset.standard)
+            .accessibilityAddTraits(.isHeader)
+            .entrance(contentAppeared, y: SlideOffset.standard)
     }
 
     var subtitleText: some View {
@@ -88,8 +91,7 @@ private extension WelcomeScreen {
             .foregroundStyle(.secondary)
             .multilineTextAlignment(.center)
             .fixedSize(horizontal: false, vertical: true)
-            .opacity(contentAppeared ? 1 : 0)
-            .offset(y: contentAppeared ? 0 : SlideOffset.small)
+            .entrance(contentAppeared, y: SlideOffset.small)
     }
 }
 
@@ -103,7 +105,7 @@ private extension WelcomeScreen {
                 text: "Set savings goals that fill automatically".localized,
                 color: DiamerisColors.accentSecondary,
                 appeared: contentAppeared,
-                delay: 0.1
+                delay: StaggerDelay.standard
             )
 
             ValueBullet(
@@ -111,7 +113,7 @@ private extension WelcomeScreen {
                 text: "Know exactly where to transfer your money".localized,
                 color: DiamerisColors.accentPrimary,
                 appeared: contentAppeared,
-                delay: 0.2
+                delay: StaggerDelay.standard * 2
             )
 
             ValueBullet(
@@ -119,7 +121,7 @@ private extension WelcomeScreen {
                 text: "Watch your progress grow".localized,
                 color: DiamerisColors.accentSecondary,
                 appeared: contentAppeared,
-                delay: 0.3
+                delay: StaggerDelay.standard * 3
             )
         }
         .padding(.horizontal, Spacing.lg)
@@ -134,8 +136,7 @@ private extension WelcomeScreen {
         OnboardingButton("Let's Go".localized, isEnabled: true) {
             viewModel.advance()
         }
-        .opacity(buttonAppeared ? 1 : 0)
-        .offset(y: buttonAppeared ? 0 : SlideOffset.standard)
+        .entrance(buttonAppeared, y: SlideOffset.standard)
     }
 }
 
@@ -161,7 +162,6 @@ private extension WelcomeScreen {
 
 // MARK: - Value Bullet
 
-/// A single value proposition bullet point.
 private struct ValueBullet: View {
     let icon: String
     let text: String
@@ -176,15 +176,14 @@ private struct ValueBullet: View {
             Image(systemName: icon)
                 .font(.body)
                 .foregroundStyle(color)
-                .frame(width: 24)
+                .frame(width: IconSize.md)
                 .accessibilityHidden(true)
 
             Text(text)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
-        .opacity(itemAppeared ? 1 : 0)
-        .offset(x: itemAppeared ? 0 : -SlideOffset.small)
+        .entrance(itemAppeared, x: -SlideOffset.small)
         .onChange(of: appeared) { _, newValue in
             if newValue {
                 withAnimation(SpringPreset.responsive.delay(delay)) {

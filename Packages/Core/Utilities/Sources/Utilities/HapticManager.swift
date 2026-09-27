@@ -2,7 +2,8 @@
 
 import UIKit
 
-/// Centralized haptic feedback manager for consistent tactile feedback.
+/// UIKit feedback generators are main-actor-only, so every call must come from the UI.
+@MainActor
 public enum HapticManager {
     // MARK: - Impact Feedback
 

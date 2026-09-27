@@ -1,18 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "%lld%%" : {
-
-    },
-    "0" : {
-
-    },
-    "2×" : {
-
-    },
-    "3×" : {
-
-    },
     "Account Name" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -116,7 +104,14 @@
       }
     },
     "Cancel" : {
-
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Anulează"
+          }
+        }
+      }
     },
     "Caps the emergency fund target at a fixed amount" : {
       "extractionState" : "manual",
@@ -148,6 +143,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "În curând"
+          }
+        }
+      }
+    },
+    "Couldn't Save" : {
+      "comment" : "Alert title when saving data fails",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Salvarea nu a reușit"
           }
         }
       }
@@ -407,6 +413,17 @@
         }
       }
     },
+    "Monthly Amount" : {
+      "comment" : "Label for a fixed monthly contribution amount in split savings mode",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Sumă lunară"
+          }
+        }
+      }
+    },
     "monthly income" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -607,6 +624,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Profil"
+          }
+        }
+      }
+    },
+    "Rate" : {
+      "comment" : "Label for a savings contribution percentage slider",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Rată"
           }
         }
       }
@@ -917,6 +945,17 @@
         }
       }
     },
+    "Your changes couldn't be saved. Please try again." : {
+      "comment" : "Alert message when saving data fails",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Modificările nu au putut fi salvate. Încearcă din nou."
+          }
+        }
+      }
+    },
     "Your name" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -935,5 +974,5 @@
       }
     }
   },
-  "version" : "1.0"
+  "version" : "1.3"
 }

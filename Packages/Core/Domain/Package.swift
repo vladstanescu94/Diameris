@@ -3,6 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "Domain",
+    defaultLocalization: "en",
     platforms: [.iOS(.v26), .macOS(.v26)],
     products: [
         .library(name: "Domain", targets: ["Domain"])

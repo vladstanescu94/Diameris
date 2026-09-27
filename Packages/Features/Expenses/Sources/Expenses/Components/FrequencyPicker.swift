@@ -3,7 +3,6 @@ import Domain
 import DesignSystem
 import Utilities
 
-/// Picker for selecting expense frequency (monthly/annual)
 public struct FrequencyPicker: View {
     @Binding var selection: Frequency
 

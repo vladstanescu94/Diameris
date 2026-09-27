@@ -1,8 +1,6 @@
 import Foundation
-import SwiftData
 import Utilities
 import Domain
-import Persistence
 
 @MainActor
 @Observable
@@ -22,51 +20,77 @@ public final class OnboardingViewModel {
 
     public var accounts: [AccountEntry] = AccountEntry.defaults
 
-    /// Savings allocation (percentage + boost)
     public var savingsAllocation = SavingsAllocationEntry()
 
-    /// Where remaining money should go after expenses and savings
     public var remainingMoneyDestination: RemainingMoneyDestination = .primarySavings
 
     // MARK: - Flow State
 
     public var currentStep: OnboardingStep = .welcome
 
+    /// True while a step change is pending, so rapid taps can't skip a step.
+    private(set) var isAdvancing = false
+
+    /// True once the result was handed off, so a second tap before the screen changes can't save it twice.
+    public private(set) var hasCompleted = false
+
     public enum OnboardingStep: Int, CaseIterable, Sendable {
         case welcome
         case name
         case income
-        case accounts      // Create accounts (with prompts for emergency + savings)
-        case expenses      // Enter expenses first (needed to calculate available income)
-        case savings       // Set savings percentage (from income after expenses)
-        case transferPlan  // Review and set remaining money destination
+        case accounts
+        case expenses      // Before savings: savings are a share of income after expenses
+        case savings
+        case transferPlan
+
+        var next: OnboardingStep? {
+            OnboardingStep(rawValue: rawValue + 1)
+        }
     }
+
+    // MARK: - Validation Limits
+
+    static let maximumNameLength = 50
 
     // MARK: - Initialization
 
-    public init() {}
+    private let keyboardDismissDelay: Duration
+    private let keyboardDismisser: @MainActor () -> Void
+
+    /// - Parameters:
+    ///   - keyboardDismissDelay: Pause between dismissing the keyboard and changing step,
+    ///     so the keyboard is gone before the screen transition starts.
+    ///   - keyboardDismisser: Resigns the first responder; injectable for tests.
+    public init(
+        keyboardDismissDelay: Duration = .milliseconds(150),
+        keyboardDismisser: @escaping @MainActor () -> Void = { KeyboardHelper.dismiss() }
+    ) {
+        self.keyboardDismissDelay = keyboardDismissDelay
+        self.keyboardDismisser = keyboardDismisser
+    }
 
     // MARK: - Navigation
 
-    public func advance() {
+    /// Moves to the next step when the current one is valid.
+    /// Ignored while a previous advance is still pending (double taps, submit + button).
+    /// - Returns: The pending transition, so callers can await it.
+    @discardableResult
+    public func advance() -> Task<Void, Never>? {
+        guard canAdvance, !isAdvancing, let next = currentStep.next else { return nil }
+        isAdvancing = true
         dismissKeyboard()
-        // Delay to allow keyboard to dismiss before transition
-        Task {
-            try? await Task.sleep(for: .milliseconds(150))
-            performAdvance()
+        return Task {
+            try? await Task.sleep(for: keyboardDismissDelay)
+            if next == .transferPlan {
+                resolveRemainingMoneyDestination()
+            }
+            currentStep = next
+            isAdvancing = false
         }
-    }
-
-    private func performAdvance() {
-        guard let currentIndex = OnboardingStep.allCases.firstIndex(of: currentStep),
-              currentIndex < OnboardingStep.allCases.count - 1 else {
-            return
-        }
-        currentStep = OnboardingStep.allCases[currentIndex + 1]
     }
 
     public func dismissKeyboard() {
-        KeyboardHelper.dismiss()
+        keyboardDismisser()
     }
 
     public var canAdvance: Bool {
@@ -74,15 +98,15 @@ public final class OnboardingViewModel {
         case .welcome:
             return true
         case .name:
-            return trimmedName.count >= 1 && trimmedName.count <= 50
+            return (1...Self.maximumNameLength).contains(trimmedName.count)
         case .income:
             return monthlyIncome > 0
         case .accounts:
             return accounts.contains { $0.isPrimary }
         case .savings:
-            return true // Savings percentage is optional
+            return true
         case .expenses:
-            return true // Expenses are optional
+            return true
         case .transferPlan:
             return true
         }
@@ -94,42 +118,30 @@ public final class OnboardingViewModel {
 
     // MARK: - Computed Properties
 
-    /// All accounts including primary and additional
-    public var allAccounts: [AccountEntry] {
-        accounts
-    }
-
-    /// The primary account where salary lands
     public var primaryAccount: AccountEntry? {
         accounts.first { $0.isPrimary }
     }
 
-    /// The emergency account (only one allowed)
     public var emergencyAccount: AccountEntry? {
         accounts.first { $0.accountType == .emergency }
     }
 
-    /// The primary savings account that receives auto-allocation
     public var primarySavingsAccount: AccountEntry? {
         accounts.first { $0.isPrimarySavings }
     }
 
-    /// The first personal account for flexible spending
     public var personalAccount: AccountEntry? {
         accounts.first { $0.accountType == .personal }
     }
 
-    /// Whether an emergency account exists
     public var hasEmergencyAccount: Bool {
         emergencyAccount != nil
     }
 
-    /// Whether a primary savings account exists
     public var hasPrimarySavingsAccount: Bool {
         primarySavingsAccount != nil
     }
 
-    /// Calculated transfer plan based on current inputs
     public var transferPlan: TransferPlan {
         TransferCalculator.calculate(
             income: monthlyIncome,
@@ -140,112 +152,192 @@ public final class OnboardingViewModel {
         )
     }
 
-    // MARK: - Progress Tracking
-
-    public var totalSteps: Int {
-        OnboardingStep.allCases.count
+    /// Income left after expenses — the base savings are calculated from.
+    public var availableIncome: Decimal {
+        transferPlan.availableIncome
     }
 
-    public var currentStepIndex: Int {
-        currentStep.rawValue
+    // MARK: - Savings
+
+    /// Whether boosting the current rate stays within available income (e.g. 3× only up to 33%).
+    public var canEnableBoost: Bool {
+        savingsAllocation.canEnableBoost
     }
 
-    public var progress: Double {
-        guard totalSteps > 1 else { return 0 }
-        return Double(currentStepIndex) / Double(totalSteps - 1)
+    /// Boost toggle state. Turning it on is ignored when it would exceed available income.
+    public var isBoostEnabled: Bool {
+        get { savingsAllocation.boostEnabled }
+        set {
+            guard !newValue || canEnableBoost else { return }
+            savingsAllocation.boostEnabled = newValue
+        }
     }
 
-    // MARK: - Persistence
+    /// Turns boost off if the savings rate was raised past the safe threshold.
+    public func disableBoostIfUnsafe() {
+        if savingsAllocation.boostEnabled && !canEnableBoost {
+            savingsAllocation.boostEnabled = false
+        }
+    }
 
-    public func save(context: ModelContext) {
-        // Save user profile with remaining money destination
-        let userProfile = UserProfile(
+    // MARK: - Remaining Money
+
+    /// Destinations that name an account the user actually has.
+    public var availableRemainingDestinations: [RemainingMoneyDestination] {
+        accounts.availableRemainingDestinations
+    }
+
+    func resolveRemainingMoneyDestination() {
+        remainingMoneyDestination = accounts.resolvedRemainingDestination(remainingMoneyDestination)
+    }
+
+    // MARK: - Account Rules
+
+    /// Types a non-primary account may switch to. The primary role is fixed to the first account.
+    public static let assignableAccountTypes = AccountType.allCases.filter { $0 != .primary }
+
+    /// Whether `type` can be given to the account with `id` without breaking uniqueness rules.
+    public func canAssign(_ type: AccountType, toAccount id: UUID?) -> Bool {
+        accounts.canAssign(type, toAccount: id)
+    }
+
+    /// Adds an account from the Add Account sheet. Returns false when the type isn't allowed.
+    @discardableResult
+    public func addAccount(name: String, type: AccountType) -> Bool {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, canAssign(type, toAccount: nil) else { return false }
+
+        var account = AccountEntry(name: trimmed, accountType: type)
+        applyTypeDefaults(to: &account)
+        accounts.append(account)
+        return true
+    }
+
+    public func addEmergencyAccount() {
+        guard canAssign(.emergency, toAccount: nil) else { return }
+        accounts.append(.emergency())
+    }
+
+    public func addSavingsAccount() {
+        guard !hasPrimarySavingsAccount else { return }
+        accounts.append(.savings(isPrimarySavings: true))
+    }
+
+    /// Removes a non-primary account, unlinking its expenses and handing the
+    /// auto-save role to another savings account if it held it.
+    public func deleteAccount(id: UUID) {
+        guard let index = accounts.firstIndex(where: { $0.id == id }),
+              !accounts[index].isPrimary else { return }
+        let removed = accounts.remove(at: index)
+
+        for expenseIndex in expenses.indices where expenses[expenseIndex].linkedAccountId == id {
+            expenses[expenseIndex].linkedAccountId = nil
+        }
+        if removed.isPrimarySavings {
+            promoteFallbackPrimarySavings()
+        }
+    }
+
+    public func changeAccountType(id: UUID, to type: AccountType) {
+        guard let index = accounts.firstIndex(where: { $0.id == id }),
+              !accounts[index].isPrimary,
+              accounts[index].accountType != type,
+              canAssign(type, toAccount: id) else { return }
+
+        // Edited as a copy: applyTypeDefaults reads `accounts`, which an in-place
+        // `&accounts[index]` access would still be modifying (a runtime exclusivity trap).
+        var account = accounts[index]
+        let wasPrimarySavings = account.isPrimarySavings
+        account.accountType = type
+        account.isPrimarySavings = false
+        account.emergencyMultiplier = nil
+        account.emergencyHardCap = nil
+        applyTypeDefaults(to: &account)
+        accounts[index] = account
+
+        if wasPrimarySavings && !account.isPrimarySavings {
+            promoteFallbackPrimarySavings()
+        }
+    }
+
+    /// Makes a savings account the one that receives automatic savings.
+    public func setPrimarySavings(id: UUID) {
+        guard accounts.contains(where: { $0.id == id && $0.accountType == .savings }) else { return }
+        for index in accounts.indices {
+            accounts[index].isPrimarySavings = accounts[index].id == id
+        }
+    }
+
+    /// Renames an account; blank names are ignored.
+    public func renameAccount(id: UUID, to name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        updateAccount(id: id) { $0.name = trimmed }
+    }
+
+    /// Edits free-form account fields (balance, emergency multiplier, hard cap).
+    public func updateAccount(id: UUID, _ update: (inout AccountEntry) -> Void) {
+        guard let index = accounts.firstIndex(where: { $0.id == id }) else { return }
+        // Via a copy, so an `update` closure that reads the view model can't trap (see changeAccountType).
+        var account = accounts[index]
+        update(&account)
+        accounts[index] = account
+    }
+
+    private func applyTypeDefaults(to account: inout AccountEntry) {
+        switch account.accountType {
+        case .emergency:
+            account.emergencyMultiplier = AccountEntry.emergency().emergencyMultiplier
+        case .savings:
+            account.isPrimarySavings = !hasPrimarySavingsAccount
+        default:
+            break
+        }
+    }
+
+    private func promoteFallbackPrimarySavings() {
+        guard !hasPrimarySavingsAccount,
+              let index = accounts.firstIndex(where: { $0.accountType == .savings }) else { return }
+        accounts[index].isPrimarySavings = true
+    }
+
+    // MARK: - Result
+
+    /// The result to save, or nil when it was already handed off.
+    public func complete() -> OnboardingResult? {
+        guard !hasCompleted else { return nil }
+        hasCompleted = true
+        return makeResult()
+    }
+
+    /// Re-arms Start after the app couldn't save the result, so the user can retry.
+    public func completionFailed() {
+        hasCompleted = false
+    }
+
+    /// Balances assume the user made this month's transfers, computed by the same
+    /// `BalanceReconciler` New Month uses.
+    public func makeResult() -> OnboardingResult {
+        let balances = BalanceReconciler.updatedBalances(
+            plan: transferPlan,
+            accounts: accounts,
+            reconciledBalances: [:]
+        )
+        let finalAccounts = accounts.map { account in
+            var account = account
+            account.currentBalance = balances[account.id] ?? account.currentBalance
+            return account
+        }
+
+        return OnboardingResult(
             name: trimmedName,
             currencyCode: currency.rawValue,
+            incomeName: "Salary".localized,
+            monthlyIncome: monthlyIncome,
+            expenses: expenses.filter { $0.amount > 0 },
+            accounts: finalAccounts,
+            savingsAllocation: savingsAllocation,
             remainingMoneyDestination: remainingMoneyDestination
         )
-        context.insert(userProfile)
-
-        // Save income
-        let income = Income(
-            name: "Salary".localized,
-            amount: monthlyIncome,
-            frequency: .monthly
-        )
-        context.insert(income)
-
-        // Save expenses
-        for expense in expenses where expense.amount > 0 {
-            let expenseModel = Expense(
-                name: expense.name,
-                amount: expense.amount,
-                icon: expense.icon,
-                frequency: expense.frequency,
-                linkedAccountId: expense.linkedAccountId,
-                categoryId: expense.categoryId,
-                notes: expense.notes
-            )
-            context.insert(expenseModel)
-        }
-
-        // Calculate final balances assuming user made the transfers
-        let plan = transferPlan
-        var updatedAccounts = accounts
-
-        // Update balances based on transfer plan allocations
-        for allocation in plan.accountAllocations {
-            if let index = updatedAccounts.firstIndex(where: { $0.id == allocation.accountId }) {
-                updatedAccounts[index].currentBalance += allocation.amount
-            }
-        }
-
-        // Update balances for expense-linked accounts (e.g., Joint)
-        for expenseTransfer in plan.accountExpenseTransfers {
-            if let index = updatedAccounts.firstIndex(where: { $0.id == expenseTransfer.accountId }) {
-                updatedAccounts[index].currentBalance += expenseTransfer.amount
-            }
-        }
-
-        // Update primary account with what remains
-        if let index = updatedAccounts.firstIndex(where: { $0.isPrimary }) {
-            updatedAccounts[index].currentBalance = plan.remainsInPrimary
-        }
-
-        // Update remaining money destination account
-        if plan.remainingMoney > 0 {
-            switch remainingMoneyDestination {
-            case .primarySavings:
-                if let index = updatedAccounts.firstIndex(where: { $0.isPrimarySavings }) {
-                    updatedAccounts[index].currentBalance += plan.remainingMoney
-                }
-            case .personal:
-                if let index = updatedAccounts.firstIndex(where: { $0.accountType == .personal }) {
-                    updatedAccounts[index].currentBalance += plan.remainingMoney
-                }
-            case .primary:
-                if let index = updatedAccounts.firstIndex(where: { $0.isPrimary }) {
-                    updatedAccounts[index].currentBalance += plan.remainingMoney
-                }
-            }
-        }
-
-        // Save accounts with updated balances
-        for (index, accountEntry) in updatedAccounts.enumerated() {
-            let account = Account(from: accountEntry, sortOrder: index)
-            context.insert(account)
-        }
-
-        // Save savings allocation (includes all fields: mode, strategy, fixed amounts)
-        let allocation = SavingsAllocation(from: savingsAllocation)
-        context.insert(allocation)
-
-        try? context.save()
     }
 }
-
-// Supporting types are defined in Domain package:
-// - Domain/Entities/ExpenseEntry.swift
-// - Domain/Entities/AccountEntry.swift
-// - Domain/Entities/SavingsAllocationEntry.swift
-// - Domain/Entities/TransferPlan.swift
-// - Domain/UseCases/TransferCalculator.swift

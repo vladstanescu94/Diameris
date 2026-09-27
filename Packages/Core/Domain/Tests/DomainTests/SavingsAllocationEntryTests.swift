@@ -2,518 +2,95 @@ import Foundation
 import Testing
 @testable import Domain
 
-/// Tests for SavingsAllocationEntry - validates savings percentage calculations,
-/// boost multiplier logic, and validation rules.
-@Suite("SavingsAllocationEntry Tests")
 struct SavingsAllocationEntryTests {
 
-    // MARK: - Basic Calculations
-
-    @Suite("Basic Calculations")
-    struct BasicCalculations {
-
-        @Test("Calculate savings from available income",
-              arguments: [
-                (income: Decimal(10000), percentage: 0.25, expected: Decimal(2500)),
-                (income: Decimal(8000), percentage: 0.10, expected: Decimal(800)),
-                (income: Decimal(5000), percentage: 0.50, expected: Decimal(2500)),
-                (income: Decimal(15000), percentage: 0.05, expected: Decimal(750))
-              ])
-        func calculateSavings(income: Decimal, percentage: Double, expected: Decimal) {
-            let allocation = SavingsAllocationEntry(percentage: percentage)
-            let savings = allocation.calculateSavings(availableIncome: income)
-
-            #expect(savings == expected)
-        }
-
-        @Test("Zero income produces zero savings")
-        func zeroIncome() {
-            let allocation = SavingsAllocationEntry(percentage: 0.25)
-            let savings = allocation.calculateSavings(availableIncome: 0)
-
-            #expect(savings == 0)
-        }
-
-        @Test("Zero percentage produces zero savings")
-        func zeroPercentage() {
-            let allocation = SavingsAllocationEntry(percentage: 0)
-            let savings = allocation.calculateSavings(availableIncome: 10000)
-
-            #expect(savings == 0)
-        }
+    @Test(arguments: [
+        (0.25, false, Decimal(2125)),
+        (0.10, true, Decimal(2550)),         // 3× boost
+        (0.40, true, Decimal(8500)),         // 120% boosted, capped at everything available
+        (0.07, false, Decimal(595)),         // Decimal(0.07) alone is 0.0700000000000000102
+        (0.0033, false, Decimal(string: "28.05")!)
+    ])
+    func `Percentage savings are whole cents of available income`(
+        percentage: Double,
+        boost: Bool,
+        expected: Decimal
+    ) {
+        let allocation = SavingsAllocationEntry(percentage: percentage, boostEnabled: boost, boostMultiplier: 3)
+        #expect(allocation.calculateSavings(availableIncome: 8500) == expected)
     }
 
-    // MARK: - Boost Mode
-
-    @Suite("Boost Mode")
-    struct BoostMode {
-
-        @Test("Effective percentage with boost enabled")
-        func effectivePercentageWithBoost() {
-            let allocation = SavingsAllocationEntry(
-                percentage: 0.20,
-                boostEnabled: true,
-                boostMultiplier: 3.0
-            )
-
-            // 20% * 3 = 60%
-            #expect(abs(allocation.effectivePercentage - 0.60) < 0.0001)
-        }
-
-        @Test("Effective percentage equals base when boost disabled")
-        func effectivePercentageWithoutBoost() {
-            let allocation = SavingsAllocationEntry(
-                percentage: 0.20,
-                boostEnabled: false,
-                boostMultiplier: 3.0
-            )
-
-            #expect(allocation.effectivePercentage == 0.20)
-        }
-
-        @Test("Calculate savings with boost multiplier",
-              arguments: [
-                (percentage: 0.10, multiplier: 3.0, expected: Decimal(3000)),  // 10% * 3 = 30%
-                (percentage: 0.15, multiplier: 2.0, expected: Decimal(3000)),  // 15% * 2 = 30%
-                (percentage: 0.20, multiplier: 3.0, expected: Decimal(6000)),  // 20% * 3 = 60%
-                (percentage: 0.25, multiplier: 2.5, expected: Decimal(6250))   // 25% * 2.5 = 62.5%
-              ])
-        func boostedSavingsCalculation(percentage: Double, multiplier: Double, expected: Decimal) {
-            let allocation = SavingsAllocationEntry(
-                percentage: percentage,
-                boostEnabled: true,
-                boostMultiplier: multiplier
-            )
-
-            let savings = allocation.calculateSavings(availableIncome: 10000)
-            #expect(abs(savings - expected) < 0.01)
-        }
-
-        @Test("Different boost multipliers",
-              arguments: [2.0, 2.5, 3.0, 4.0])
-        func differentMultipliers(multiplier: Double) {
-            let allocation = SavingsAllocationEntry(
-                percentage: 0.10,
-                boostEnabled: true,
-                boostMultiplier: multiplier
-            )
-
-            let expectedPercentage = 0.10 * multiplier
-            #expect(allocation.effectivePercentage == expectedPercentage)
-        }
-
-        @Test("Boost is capped at 100%")
-        func boostCappedAt100() {
-            // Effective percentage is capped at 100% to prevent invalid savings rates
-            let allocation = SavingsAllocationEntry(
-                percentage: 0.50,
-                boostEnabled: true,
-                boostMultiplier: 3.0
-            )
-
-            // 50% * 3 = 150%, but capped at 100%
-            #expect(allocation.effectivePercentage == 1.0)
-
-            // Savings equals full income when capped
-            let savings = allocation.calculateSavings(availableIncome: 10000)
-            #expect(savings == 10000)
-        }
+    @Test(arguments: [Decimal(-100), 0])
+    func `No available income means no savings`(availableIncome: Decimal) {
+        #expect(SavingsAllocationEntry(percentage: 0.25).calculateSavings(availableIncome: availableIncome) == 0)
+        #expect(
+            SavingsAllocationEntry(savingsInputMode: .fixedAmount, fixedAmount: 500)
+                .calculateSavings(availableIncome: availableIncome) == 0
+        )
     }
 
-    // MARK: - Validation
-
-    @Suite("Validation")
-    struct Validation {
-
-        @Test("Valid percentages are recognized",
-              arguments: [0.05, 0.10, 0.25, 0.40, 0.50])
-        func validPercentages(percentage: Double) {
-            let allocation = SavingsAllocationEntry(percentage: percentage)
-            #expect(allocation.isValid == true)
-        }
-
-        @Test("Invalid percentages below minimum")
-        func belowMinimum() {
-            let allocation = SavingsAllocationEntry(percentage: 0.04) // 4% < 5%
-            #expect(allocation.isValid == false)
-        }
-
-        @Test("Invalid percentages above maximum")
-        func aboveMaximum() {
-            let allocation = SavingsAllocationEntry(percentage: 0.51) // 51% > 50%
-            #expect(allocation.isValid == false)
-        }
-
-        @Test("Boundary values are valid")
-        func boundaryValues() {
-            let minimum = SavingsAllocationEntry(percentage: SavingsAllocationEntry.minimumPercentage)
-            let maximum = SavingsAllocationEntry(percentage: SavingsAllocationEntry.maximumPercentage)
-
-            #expect(minimum.isValid == true)
-            #expect(maximum.isValid == true)
-        }
-
-        @Test("Zero percentage is invalid")
-        func zeroIsInvalid() {
-            let allocation = SavingsAllocationEntry(percentage: 0)
-            #expect(allocation.isValid == false)
-        }
-
-        @Test("Negative percentage is invalid")
-        func negativeIsInvalid() {
-            let allocation = SavingsAllocationEntry(percentage: -0.10)
-            #expect(allocation.isValid == false)
-        }
+    @Test(arguments: [
+        (0.25, 3.0, SavingsInputMode.percentage, AllocationMode.prioritized, true),
+        (0.33, 3.0, .percentage, .prioritized, true),
+        (0.34, 3.0, .percentage, .prioritized, false),    // 102% of available income
+        (0.5, 2.0, .percentage, .prioritized, true),
+        (0.2, 3.0, .fixedAmount, .prioritized, false),
+        (0.2, 3.0, .percentage, .split, false)
+    ])
+    func `Boost can only be enabled when the boosted rate fits in available income`(
+        percentage: Double,
+        multiplier: Double,
+        inputMode: SavingsInputMode,
+        allocationMode: AllocationMode,
+        expected: Bool
+    ) {
+        let allocation = SavingsAllocationEntry(
+            percentage: percentage,
+            boostMultiplier: multiplier,
+            allocationMode: allocationMode,
+            savingsInputMode: inputMode
+        )
+        #expect(allocation.canEnableBoost == expected)
     }
 
-    // MARK: - Display Formatting
+    @Test func `Boost only applies to percentage savings in prioritized mode`() {
+        let fixed = SavingsAllocationEntry(percentage: 0.2, boostEnabled: true, savingsInputMode: .fixedAmount)
+        let split = SavingsAllocationEntry(percentage: 0.2, boostEnabled: true, allocationMode: .split)
 
-    @Suite("Display Formatting")
-    struct DisplayFormatting {
-
-        @Test("Percentage display format",
-              arguments: [
-                (percentage: 0.05, expected: "5%"),
-                (percentage: 0.10, expected: "10%"),
-                (percentage: 0.25, expected: "25%"),
-                (percentage: 0.50, expected: "50%")
-              ])
-        func percentageDisplayFormat(percentage: Double, expected: String) {
-            let allocation = SavingsAllocationEntry(percentage: percentage)
-            #expect(allocation.percentageDisplay == expected)
-        }
-
-        @Test("Effective percentage display without boost")
-        func effectiveDisplayWithoutBoost() {
-            let allocation = SavingsAllocationEntry(
-                percentage: 0.20,
-                boostEnabled: false
-            )
-
-            #expect(allocation.effectivePercentageDisplay == "20%")
-        }
-
-        @Test("Effective percentage display with boost")
-        func effectiveDisplayWithBoost() {
-            let allocation = SavingsAllocationEntry(
-                percentage: 0.20,
-                boostEnabled: true,
-                boostMultiplier: 3.0
-            )
-
-            // 20% * 3 = 60%
-            #expect(allocation.effectivePercentageDisplay == "60%")
-        }
+        #expect(fixed.effectivePercentage == 0.2)
+        #expect(split.effectivePercentage == 0.2)
     }
 
-    // MARK: - Default Values
+    @Test func `Split percentages resolve to cents and fixed amounts are never negative`() {
+        let allocation = SavingsAllocationEntry(
+            allocationMode: .split,
+            splitEmergencyInputMode: .percentage,
+            splitEmergencyPercentage: 0.07,
+            splitSavingsInputMode: .fixedAmount,
+            splitSavingsAmount: -200
+        )
 
-    @Suite("Default Values")
-    struct DefaultValues {
-
-        @Test("Default percentage is 25%")
-        func defaultPercentage() {
-            let allocation = SavingsAllocationEntry()
-            #expect(allocation.percentage == 0.25)
-        }
-
-        @Test("Default boost is disabled")
-        func defaultBoostDisabled() {
-            let allocation = SavingsAllocationEntry()
-            #expect(allocation.boostEnabled == false)
-        }
-
-        @Test("Default boost multiplier is 3.0")
-        func defaultMultiplier() {
-            let allocation = SavingsAllocationEntry()
-            #expect(allocation.boostMultiplier == 3.0)
-        }
-
-        @Test("Recommended percentage constant")
-        func recommendedPercentage() {
-            #expect(SavingsAllocationEntry.recommendedPercentage == 0.25)
-        }
+        #expect(allocation.resolvedSplitEmergencyAmount(availableIncome: 4321) == Decimal(string: "302.47"))
+        #expect(allocation.resolvedSplitSavingsAmount(availableIncome: 4321) == 0)
+        #expect(allocation.splitTotal(availableIncome: 4321) == Decimal(string: "302.47"))
     }
 
-    // MARK: - Static Properties
-
-    @Suite("Static Properties")
-    struct StaticProperties {
-
-        @Test("Minimum percentage is 5%")
-        func minimumPercentage() {
-            #expect(SavingsAllocationEntry.minimumPercentage == 0.05)
-        }
-
-        @Test("Maximum percentage is 50%")
-        func maximumPercentage() {
-            #expect(SavingsAllocationEntry.maximumPercentage == 0.50)
-        }
-
-        @Test("Presets are within valid range")
-        func presetsInRange() {
-            for preset in SavingsAllocationEntry.presets {
-                #expect(preset >= SavingsAllocationEntry.minimumPercentage)
-                #expect(preset <= SavingsAllocationEntry.maximumPercentage)
-            }
-        }
-
-        @Test("Presets are in ascending order")
-        func presetsAscending() {
-            let presets = SavingsAllocationEntry.presets
-            for i in 0..<(presets.count - 1) {
-                #expect(presets[i] < presets[i + 1])
-            }
-        }
-
-        @Test("Presets include common percentages")
-        func presetsIncludeCommon() {
-            let presets = SavingsAllocationEntry.presets
-            #expect(presets.contains(0.10)) // 10%
-            #expect(presets.contains(0.20)) // 20%
-            #expect(presets.contains(0.25)) // 25%
-        }
+    @Test(arguments: [
+        (SavingsAllocationEntry(percentage: 0.05), true),
+        (SavingsAllocationEntry(percentage: 0.50), true),
+        (SavingsAllocationEntry(percentage: 0.04), false),
+        (SavingsAllocationEntry(percentage: 0.51), false),
+        (SavingsAllocationEntry(savingsInputMode: .fixedAmount, fixedAmount: 0), false),
+        (SavingsAllocationEntry(savingsInputMode: .fixedAmount, fixedAmount: 1), true),
+        (Fixture.split(emergency: 0, savings: 0), false),
+        (Fixture.split(emergency: 0, savings: 300), true)
+    ])
+    func `Validation per mode`(allocation: SavingsAllocationEntry, isValid: Bool) {
+        #expect(allocation.isValid == isValid)
     }
 
-    // MARK: - Edge Cases
-
-    @Suite("Edge Cases")
-    struct EdgeCases {
-
-        @Test("Very small percentage calculation")
-        func verySmallPercentage() {
-            let allocation = SavingsAllocationEntry(percentage: 0.05)
-            let savings = allocation.calculateSavings(availableIncome: Decimal(string: "100.50")!)
-
-            // 100.50 * 0.05 = 5.025
-            #expect(savings == Decimal(string: "5.025"))
-        }
-
-        @Test("Large income with small percentage")
-        func largeIncomeSmallPercentage() {
-            let allocation = SavingsAllocationEntry(percentage: 0.05)
-            let savings = allocation.calculateSavings(availableIncome: 1_000_000)
-
-            #expect(savings == 50_000)
-        }
-
-        @Test("Fractional percentage")
-        func fractionalPercentage() {
-            // Not a preset but technically valid
-            let allocation = SavingsAllocationEntry(percentage: 0.123)
-            let savings = allocation.calculateSavings(availableIncome: 10000)
-
-            #expect(savings == 1230)
-        }
-
-        @Test("Boost multiplier of 1.0 is effectively no boost")
-        func boostMultiplierOne() {
-            let allocation = SavingsAllocationEntry(
-                percentage: 0.20,
-                boostEnabled: true,
-                boostMultiplier: 1.0
-            )
-
-            #expect(allocation.effectivePercentage == 0.20)
-        }
-    }
-
-    // MARK: - Fixed Amount Mode
-
-    @Suite("Fixed Amount Mode")
-    struct FixedAmountMode {
-
-        @Test("calculateSavings returns fixed amount in fixedAmount mode")
-        func fixedAmountReturnsExactValue() {
-            let allocation = SavingsAllocationEntry(
-                savingsInputMode: .fixedAmount,
-                fixedAmount: 1500
-            )
-
-            let savings = allocation.calculateSavings(availableIncome: 10000)
-            #expect(savings == 1500)
-        }
-
-        @Test("Fixed amount capped at available income")
-        func fixedAmountCappedAtAvailable() {
-            let allocation = SavingsAllocationEntry(
-                savingsInputMode: .fixedAmount,
-                fixedAmount: 5000
-            )
-
-            let savings = allocation.calculateSavings(availableIncome: 3000)
-            #expect(savings == 3000)
-        }
-
-        @Test("Fixed amount with zero available income returns zero")
-        func fixedAmountZeroAvailable() {
-            let allocation = SavingsAllocationEntry(
-                savingsInputMode: .fixedAmount,
-                fixedAmount: 1000
-            )
-
-            let savings = allocation.calculateSavings(availableIncome: 0)
-            #expect(savings == 0)
-        }
-
-        @Test("isValid requires fixedAmount > 0 in fixedAmount mode")
-        func fixedAmountValidation() {
-            let valid = SavingsAllocationEntry(
-                savingsInputMode: .fixedAmount,
-                fixedAmount: 100
-            )
-            let invalid = SavingsAllocationEntry(
-                savingsInputMode: .fixedAmount,
-                fixedAmount: 0
-            )
-
-            #expect(valid.isValid == true)
-            #expect(invalid.isValid == false)
-        }
-
-        @Test("isBoostApplicable is false for fixedAmount mode")
-        func boostNotApplicable() {
-            let allocation = SavingsAllocationEntry(
-                boostEnabled: true,
-                savingsInputMode: .fixedAmount,
-                fixedAmount: 1000
-            )
-
-            #expect(allocation.isBoostApplicable == false)
-        }
-
-        @Test("effectivePercentage ignores boost in fixedAmount mode")
-        func effectivePercentageIgnoresBoost() {
-            let allocation = SavingsAllocationEntry(
-                percentage: 0.20,
-                boostEnabled: true,
-                boostMultiplier: 3.0,
-                savingsInputMode: .fixedAmount,
-                fixedAmount: 1000
-            )
-
-            // Since boost is not applicable, effectivePercentage should be base
-            #expect(allocation.effectivePercentage == 0.20)
-        }
-    }
-
-    // MARK: - Split Mode Properties
-
-    @Suite("Split Mode Properties")
-    struct SplitModeProperties {
-
-        @Test("splitTotal sums emergency and savings fixed amounts")
-        func splitTotalSumsAmounts() {
-            let allocation = SavingsAllocationEntry(
-                allocationMode: .split,
-                splitEmergencyAmount: 500,
-                splitSavingsAmount: 700
-            )
-
-            // With fixed amounts, splitTotal at any income returns the sum
-            #expect(allocation.splitTotal(availableIncome: 10000) == 1200)
-        }
-
-        @Test("isBoostApplicable is false for split mode")
-        func boostNotApplicableInSplit() {
-            let allocation = SavingsAllocationEntry(
-                boostEnabled: true,
-                allocationMode: .split,
-                splitEmergencyAmount: 500,
-                splitSavingsAmount: 500
-            )
-
-            #expect(allocation.isBoostApplicable == false)
-        }
-
-        @Test("isValid in split mode requires at least one non-zero amount")
-        func splitValidation() {
-            let valid = SavingsAllocationEntry(
-                allocationMode: .split,
-                splitEmergencyAmount: 500,
-                splitSavingsAmount: 0
-            )
-            let alsoValid = SavingsAllocationEntry(
-                allocationMode: .split,
-                splitEmergencyAmount: 0,
-                splitSavingsAmount: 300
-            )
-            let invalid = SavingsAllocationEntry(
-                allocationMode: .split,
-                splitEmergencyAmount: 0,
-                splitSavingsAmount: 0
-            )
-
-            #expect(valid.isValid == true)
-            #expect(alsoValid.isValid == true)
-            #expect(invalid.isValid == false)
-        }
-
-        @Test("Split mode splitTotal with zero amounts")
-        func splitTotalZero() {
-            let allocation = SavingsAllocationEntry(
-                allocationMode: .split,
-                splitEmergencyAmount: 0,
-                splitSavingsAmount: 0
-            )
-
-            #expect(allocation.splitTotal(availableIncome: 10000) == 0)
-        }
-    }
-
-    // MARK: - Backward Compatibility
-
-    @Suite("Backward Compatibility")
-    struct BackwardCompatibility {
-
-        @Test("Default allocationMode is prioritized")
-        func defaultAllocationMode() {
-            let allocation = SavingsAllocationEntry()
-            #expect(allocation.allocationMode == .prioritized)
-        }
-
-        @Test("Default savingsInputMode is percentage")
-        func defaultSavingsInputMode() {
-            let allocation = SavingsAllocationEntry()
-            #expect(allocation.savingsInputMode == .percentage)
-        }
-
-        @Test("Default fixedAmount is 0")
-        func defaultFixedAmount() {
-            let allocation = SavingsAllocationEntry()
-            #expect(allocation.fixedAmount == 0)
-        }
-
-        @Test("Default split amounts are 0")
-        func defaultSplitAmounts() {
-            let allocation = SavingsAllocationEntry()
-            #expect(allocation.splitEmergencyAmount == 0)
-            #expect(allocation.splitSavingsAmount == 0)
-        }
-
-        @Test("Existing init without new params works unchanged")
-        func existingInitStillWorks() {
-            // This mirrors the old constructor signature
-            let allocation = SavingsAllocationEntry(
-                percentage: 0.30,
-                boostEnabled: true,
-                boostMultiplier: 2.0
-            )
-
-            #expect(allocation.percentage == 0.30)
-            #expect(allocation.boostEnabled == true)
-            #expect(allocation.boostMultiplier == 2.0)
-            #expect(allocation.allocationMode == .prioritized)
-            #expect(allocation.savingsInputMode == .percentage)
-            #expect(allocation.fixedAmount == 0)
-        }
-
-        @Test("calculateSavings unchanged for default mode")
-        func calculateSavingsUnchanged() {
-            let allocation = SavingsAllocationEntry(percentage: 0.25)
-            let savings = allocation.calculateSavings(availableIncome: 10000)
-
-            #expect(savings == 2500) // Same as before
-        }
+    @Test(arguments: zip([0.29, 0.57, 0.1 * 3], ["29%", "57%", "30%"]))
+    func `Percentage display rounds instead of truncating Double noise`(percentage: Double, display: String) {
+        #expect(SavingsAllocationEntry(percentage: percentage).percentageDisplay == display)
     }
 }

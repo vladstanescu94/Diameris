@@ -2,7 +2,6 @@ import Foundation
 import SwiftData
 import Domain
 
-/// SwiftData entity for persisted accounts
 @Model
 public final class Account {
     @Attribute(.unique) public var id: UUID
@@ -14,25 +13,21 @@ public final class Account {
 
     // MARK: - Behavioral Properties
 
-    /// For savings-type accounts: marks this as the primary savings account
-    /// that receives automatic savings allocation.
+    /// Savings accounts only: receives the automatic savings allocation.
     public var isPrimarySavings: Bool
 
-    /// For emergency-type accounts: income multiplier for target calculation (3.0-6.0).
-    /// Target = monthlyIncome × emergencyMultiplier
+    /// Emergency accounts only: target = monthly income × multiplier (3–6).
     public var emergencyMultiplier: Double?
 
-    /// For emergency-type accounts: optional hard cap on the target amount.
-    /// When set, target = min(monthlyIncome × emergencyMultiplier, emergencyHardCap)
+    /// Emergency accounts only: caps the target at this amount.
     public var emergencyHardCap: Decimal?
 
-    /// Current balance in this account (for progress tracking).
     public var currentBalance: Decimal
 
-    /// Creation date for audit
     public var createdAt: Date
 
     public init(
+        id: UUID = UUID(),
         name: String,
         purpose: String? = nil,
         isPrimary: Bool = false,
@@ -43,7 +38,7 @@ public final class Account {
         emergencyHardCap: Decimal? = nil,
         currentBalance: Decimal = 0
     ) {
-        self.id = UUID()
+        self.id = id
         self.name = name
         self.purpose = purpose
         self.isPrimary = isPrimary
@@ -56,9 +51,10 @@ public final class Account {
         self.createdAt = Date()
     }
 
-    /// Convenience initializer from Domain AccountEntry
+    /// Keeps the entry's id so expenses linked to it (`linkedAccountId`) stay linked.
     public convenience init(from entry: AccountEntry, sortOrder: Int) {
         self.init(
+            id: entry.id,
             name: entry.name,
             purpose: entry.purpose,
             isPrimary: entry.isPrimary,
@@ -78,7 +74,6 @@ public final class Account {
         set { accountTypeRaw = newValue.rawValue }
     }
 
-    /// Convert to Domain AccountEntry
     public func toEntry() -> AccountEntry {
         AccountEntry(
             id: id,
@@ -93,17 +88,10 @@ public final class Account {
         )
     }
 
-    /// Calculates the emergency fund target based on monthly income.
-    /// When a hard cap is set, returns the minimum of calculated target and hard cap.
-    /// Returns nil if this is not an emergency account.
-    /// - Note: Delegates to the domain entity to avoid code duplication.
     public func emergencyTarget(monthlyIncome: Decimal) -> Decimal? {
         toEntry().emergencyTarget(monthlyIncome: monthlyIncome)
     }
 
-    /// Progress percentage toward emergency target (0.0 to 1.0).
-    /// Returns nil if not an emergency account or target is 0.
-    /// - Note: Delegates to the domain entity to avoid code duplication.
     public func emergencyProgress(monthlyIncome: Decimal) -> Double? {
         toEntry().emergencyProgress(monthlyIncome: monthlyIncome)
     }

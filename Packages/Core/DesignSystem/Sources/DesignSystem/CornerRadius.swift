@@ -1,7 +1,9 @@
 import SwiftUI
 
-/// Corner radius constants for consistent rounded corners
 public enum CornerRadius {
+    /// 2pt - Barely rounded tiny shapes (confetti particles)
+    public static let xs: CGFloat = 2
+
     /// 8pt - Small radius for chips, tags, small elements
     public static let small: CGFloat = 8
 
@@ -18,33 +20,26 @@ public enum CornerRadius {
 // MARK: - RoundedRectangle Convenience
 
 public extension RoundedRectangle {
-    /// Small corner radius (8pt)
     static let small = RoundedRectangle(cornerRadius: CornerRadius.small)
 
-    /// Medium corner radius (12pt)
     static let medium = RoundedRectangle(cornerRadius: CornerRadius.medium)
 
-    /// Large corner radius (16pt)
     static let large = RoundedRectangle(cornerRadius: CornerRadius.large)
 
-    /// Extra large corner radius (24pt)
     static let xl = RoundedRectangle(cornerRadius: CornerRadius.xl)
 }
 
 // MARK: - View Extensions
 
 public extension View {
-    /// Clip to small rounded rectangle (8pt)
     func clipSmall() -> some View {
         clipShape(.rect(cornerRadius: CornerRadius.small))
     }
 
-    /// Clip to medium rounded rectangle (12pt)
     func clipMedium() -> some View {
         clipShape(.rect(cornerRadius: CornerRadius.medium))
     }
 
-    /// Clip to large rounded rectangle (16pt)
     func clipLarge() -> some View {
         clipShape(.rect(cornerRadius: CornerRadius.large))
     }

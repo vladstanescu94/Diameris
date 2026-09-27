@@ -2,7 +2,6 @@ import SwiftUI
 import Domain
 import DesignSystem
 import Utilities
-/// Main view for the Expenses tab
 public struct ExpenseListView: View {
     @Bindable var viewModel: ExpensesViewModel
 
@@ -14,17 +13,15 @@ public struct ExpenseListView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: Spacing.md) {
-                    // Summary header
                     summaryHeader
 
-                    // Frequency toggle
                     frequencyToggle
 
-                    // Category groups
-                    if viewModel.expenseGroups.isEmpty {
+                    let groups = viewModel.expenseGroups
+                    if groups.isEmpty {
                         emptyState
                     } else {
-                        categoryList
+                        categoryList(groups)
                     }
                 }
                 .padding(.horizontal, Spacing.md)
@@ -88,7 +85,7 @@ public struct ExpenseListView: View {
 
     private var summaryHeader: some View {
         VStack(spacing: Spacing.sm) {
-            Text("Total \(viewModel.selectedFrequencyView.displayName) Expenses".localized)
+            Text(totalTitle)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
@@ -100,7 +97,16 @@ public struct ExpenseListView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, Spacing.md)
+        .accessibilityElement(children: .combine)
         .glassCard()
+    }
+
+    /// One full key per frequency so translators can order the words naturally.
+    private var totalTitle: String {
+        switch viewModel.selectedFrequencyView {
+        case .monthly: "Total Monthly Expenses".localized
+        case .annual: "Total Annual Expenses".localized
+        }
     }
 
     // MARK: - Frequency Toggle
@@ -111,27 +117,18 @@ public struct ExpenseListView: View {
 
     // MARK: - Category List
 
-    private var categoryList: some View {
+    private func categoryList(_ groups: [ExpenseGroup]) -> some View {
         LazyVStack(spacing: Spacing.md) {
-            ForEach(viewModel.expenseGroups) { group in
+            ForEach(groups) { group in
                 ExpenseCategoryCard(
                     group: group,
                     displayFrequency: viewModel.selectedFrequencyView,
                     currency: viewModel.currency.rawValue,
-                    isExpanded: Binding(
-                        get: { viewModel.expandedCategories.contains(group.id) },
-                        set: { expanded in
-                            if expanded {
-                                viewModel.expandedCategories.insert(group.id)
-                            } else {
-                                viewModel.expandedCategories.remove(group.id)
-                            }
-                        }
-                    ),
+                    isExpanded: $viewModel[isExpanded: group.id],
                     onExpenseTap: { expense in
                         viewModel.startEditingExpense(expense)
                     },
-                    onExpenseToggle: { expense, enabled in
+                    onExpenseToggle: { expense, _ in
                         Task {
                             await viewModel.toggleExpenseEnabled(expense)
                         }
@@ -159,6 +156,7 @@ public struct ExpenseListView: View {
                 viewModel.startAddingExpense()
             }
             .buttonStyle(.glassProminent)
+            .tint(DiamerisColors.accentPrimaryFill)
         }
         .padding(.vertical, Spacing.xxl)
     }

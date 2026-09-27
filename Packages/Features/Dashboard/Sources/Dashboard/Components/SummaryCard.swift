@@ -1,14 +1,25 @@
 import SwiftUI
 import DesignSystem
+import Domain
 import Utilities
 
-/// Card displaying the monthly financial summary.
 struct SummaryCard: View {
     let income: Decimal
     let expenses: Decimal
     let savings: Decimal
-    let personalSpending: Decimal
+    let remainingMoney: Decimal
+    let remainingDestination: RemainingMoneyDestination
+    let shortfall: Decimal
     let currency: Currency
+
+    /// The last row names where the leftover money goes, not always personal spending.
+    static func remainingLabel(for destination: RemainingMoneyDestination) -> String {
+        switch destination {
+        case .personal: "Personal Spending".localized
+        case .primarySavings: "Extra Savings".localized
+        case .primary: "Stays in Primary".localized
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
@@ -19,6 +30,7 @@ struct SummaryCard: View {
                 Image(systemName: "chart.pie.fill")
                     .foregroundStyle(DiamerisColors.accentPrimary)
             }
+            .accessibilityAddTraits(.isHeader)
 
             Divider()
 
@@ -43,12 +55,16 @@ struct SummaryCard: View {
                 )
                 Divider()
                 SummaryRow(
-                    label: "Personal Spending".localized,
-                    amount: personalSpending,
+                    label: Self.remainingLabel(for: remainingDestination),
+                    amount: remainingMoney,
                     style: .neutral,
                     currency: currency,
                     isTotal: true
                 )
+            }
+
+            if shortfall > 0 {
+                ShortfallWarning(shortfall: shortfall, currency: currency)
             }
         }
         .glassCard()
@@ -91,6 +107,7 @@ private struct SummaryRow: View {
                 .bold(isTotal)
                 .foregroundStyle(style.color)
         }
+        .accessibilityElement(children: .combine)
     }
 
     private var formattedAmount: String {
@@ -104,7 +121,9 @@ private struct SummaryRow: View {
         income: 14303,
         expenses: 5555,
         savings: 2397,
-        personalSpending: 573,
+        remainingMoney: 573,
+        remainingDestination: .personal,
+        shortfall: 0,
         currency: .ron
     )
     .padding()

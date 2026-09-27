@@ -2,7 +2,6 @@ import Foundation
 import SwiftData
 import Domain
 
-/// SwiftData entity for persisted expenses
 @Model
 public final class Expense {
     @Attribute(.unique) public var id: UUID
@@ -11,18 +10,15 @@ public final class Expense {
     public var frequencyRaw: String
     public var icon: String
     public var isEnabled: Bool
-    /// Optional link to account - nil means Primary account (default)
+    /// nil means the Primary account.
     public var linkedAccountId: UUID?
-    /// Optional category ID from Domain.Category
     public var categoryId: UUID?
-    /// User notes about this expense
     public var notes: String?
-    /// Creation date for sorting
     public var createdAt: Date
-    /// Sort order within category
     public var sortOrder: Int
 
     public init(
+        id: UUID = UUID(),
         name: String,
         amount: Decimal,
         icon: String,
@@ -33,7 +29,7 @@ public final class Expense {
         isEnabled: Bool = true,
         sortOrder: Int = 0
     ) {
-        self.id = UUID()
+        self.id = id
         self.name = name
         self.amount = amount
         self.icon = icon
@@ -46,9 +42,10 @@ public final class Expense {
         self.sortOrder = sortOrder
     }
 
-    /// Convenience initializer from Domain ExpenseEntry
+    /// Keeps the entry's id.
     public convenience init(from entry: ExpenseEntry, sortOrder: Int = 0) {
         self.init(
+            id: entry.id,
             name: entry.name,
             amount: entry.amount,
             icon: entry.icon,
@@ -56,19 +53,18 @@ public final class Expense {
             linkedAccountId: entry.linkedAccountId,
             categoryId: entry.categoryId,
             notes: entry.notes,
+            isEnabled: entry.isEnabled,
             sortOrder: sortOrder
         )
     }
 
     // MARK: - Computed Properties
 
-    /// Type-safe frequency access
     public var frequency: Frequency {
         get { Frequency(rawValue: frequencyRaw) ?? .monthly }
         set { frequencyRaw = newValue.rawValue }
     }
 
-    /// Convert to Domain ExpenseEntry
     public func toEntry() -> ExpenseEntry {
         ExpenseEntry(
             id: id,
@@ -83,14 +79,10 @@ public final class Expense {
         )
     }
 
-    /// Amount converted to monthly equivalent.
-    /// Delegates to Domain's ExpenseEntry for the actual calculation.
     public var monthlyAmount: Decimal {
         toEntry().monthlyAmount
     }
 
-    /// Amount converted to annual equivalent.
-    /// Delegates to Domain's ExpenseEntry for the actual calculation.
     public var annualAmount: Decimal {
         toEntry().annualAmount
     }

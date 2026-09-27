@@ -2,10 +2,25 @@
   "sourceLanguage" : "en",
   "strings" : {
     "%lld%%" : {
-
+      "extractionState" : "stale",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%lld%%"
+          }
+        }
+      }
     },
     "+%@" : {
-
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "+%@"
+          }
+        }
+      }
     },
     "Account Balances" : {
       "extractionState" : "stale",
@@ -25,6 +40,7 @@
       }
     },
     "All amounts add up correctly" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -41,6 +57,7 @@
       }
     },
     "Available" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -73,7 +90,19 @@
         }
       }
     },
+    "Back" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Înapoi"
+          }
+        }
+      }
+    },
     "Cancel" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -107,6 +136,7 @@
       }
     },
     "Completes fund to 100%!" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -123,6 +153,7 @@
       }
     },
     "Continue" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -139,6 +170,7 @@
       }
     },
     "Current balance" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -154,7 +186,19 @@
         }
       }
     },
+    "Developer Tools" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Instrumente pentru dezvoltatori"
+          }
+        }
+      }
+    },
     "Did you use any savings this month?" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -171,6 +215,7 @@
       }
     },
     "Done - I made the transfers" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -187,6 +232,7 @@
       }
     },
     "Emergency Fund" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -202,7 +248,19 @@
         }
       }
     },
+    "Enter the current balance of each account." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Introdu soldul curent al fiecărui cont."
+          }
+        }
+      }
+    },
     "Expense Breakdown" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -219,6 +277,7 @@
       }
     },
     "Expenses" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -230,6 +289,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cheltuieli"
+          }
+        }
+      }
+    },
+    "Expenses exceed income by %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Cheltuielile depășesc venitul cu %@"
+          }
+        }
+      }
+    },
+    "Extra Savings" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Economii suplimentare"
           }
         }
       }
@@ -251,6 +332,7 @@
       }
     },
     "How much did you receive?" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -267,6 +349,7 @@
       }
     },
     "Income" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -299,6 +382,7 @@
       }
     },
     "Monthly Summary" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -349,6 +433,7 @@
       }
     },
     "No expenses set" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -365,6 +450,7 @@
       }
     },
     "Personal" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -381,6 +467,7 @@
       }
     },
     "Personal Spending" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -397,6 +484,7 @@
       }
     },
     "Primary" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -430,6 +518,7 @@
       }
     },
     "remaining money" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -446,6 +535,7 @@
       }
     },
     "Savings" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -461,7 +551,19 @@
         }
       }
     },
+    "Settings" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Setări"
+          }
+        }
+      }
+    },
     "stays for automatic payments" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -477,7 +579,19 @@
         }
       }
     },
+    "Stays in Primary" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Rămâne în Principal"
+          }
+        }
+      }
+    },
     "Step %d of %d" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -500,10 +614,17 @@
             "state" : "new",
             "value" : "Step %1$lld of %2$lld"
           }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pasul %1$lld din %2$lld"
+          }
         }
       }
     },
     "Target: %@× monthly income" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -520,7 +641,14 @@
       }
     },
     "Target: %lld× monthly income" : {
-
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Țintă: %lld× venit lunar"
+          }
+        }
+      }
     },
     "Target: %lld× monthly income (capped at %@)" : {
       "localizations" : {
@@ -555,6 +683,7 @@
       }
     },
     "Transfers to make" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -571,6 +700,7 @@
       }
     },
     "Update your account balances" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -603,6 +733,7 @@
       }
     },
     "Your Transfer Plan" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -619,5 +750,5 @@
       }
     }
   },
-  "version" : "1.0"
+  "version" : "1.3"
 }

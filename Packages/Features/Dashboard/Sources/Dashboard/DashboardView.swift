@@ -2,7 +2,6 @@ import SwiftUI
 import DesignSystem
 import Utilities
 
-/// The main Dashboard tab view showing financial summary and actions.
 public struct DashboardView: View {
     @Bindable var viewModel: DashboardViewModel
     var onSettingsTapped: (() -> Void)?
@@ -37,18 +36,17 @@ public struct DashboardView: View {
 private extension DashboardView {
     @ToolbarContentBuilder
     var toolbarButtons: some ToolbarContent {
-        ToolbarItem(placement: .topBarTrailing) {
-            HStack(spacing: Spacing.sm) {
-                if let onSettingsTapped {
-                    Button("Settings".localized, systemImage: "gearshape", action: onSettingsTapped)
-                }
-
-                #if DEBUG
-                if let onDevToolsTapped {
-                    Button("Developer Tools".localized, systemImage: "hammer.fill", action: onDevToolsTapped)
-                }
-                #endif
+        // One system item per button (not an HStack in a single item) so each keeps its own hit target.
+        ToolbarItemGroup(placement: .topBarTrailing) {
+            if let onSettingsTapped {
+                Button("Settings".localized, systemImage: "gearshape", action: onSettingsTapped)
             }
+
+            #if DEBUG
+            if let onDevToolsTapped {
+                Button("Developer Tools".localized, systemImage: "hammer.fill", action: onDevToolsTapped)
+            }
+            #endif
         }
     }
 }
@@ -65,18 +63,22 @@ private extension DashboardView {
         }
     }
 
+    @ViewBuilder
     var dashboardContent: some View {
+        // Computed once per body: every total below comes from Domain's TransferCalculator.
+        let plan = viewModel.transferPlan
+
         VStack(spacing: Spacing.md) {
-            // Financial Summary
             SummaryCard(
-                income: viewModel.monthlyIncome,
-                expenses: viewModel.totalExpenses,
-                savings: viewModel.transferPlan.totalSavings,
-                personalSpending: viewModel.transferPlan.remainingMoney,
+                income: plan.income,
+                expenses: plan.totalExpenses,
+                savings: plan.totalSavings,
+                remainingMoney: plan.remainingMoney,
+                remainingDestination: plan.remainingDestination,
+                shortfall: plan.shortfall,
                 currency: viewModel.currency
             )
 
-            // Emergency Fund Progress (if exists)
             if let emergencyAccount = viewModel.emergencyAccount,
                let progress = viewModel.emergencyProgress,
                let target = viewModel.emergencyTarget {
@@ -90,16 +92,14 @@ private extension DashboardView {
                 )
             }
 
-            // Account Balances
             AccountBalancesSection(
                 accounts: viewModel.accounts,
                 currency: viewModel.currency
             )
 
-            // Expense Breakdown
             ExpenseBreakdownCard(
                 expenses: viewModel.expenses,
-                totalExpenses: viewModel.totalExpenses,
+                totalExpenses: plan.totalExpenses,
                 currency: viewModel.currency
             )
         }

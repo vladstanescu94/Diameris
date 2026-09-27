@@ -4,6 +4,7 @@ import PackageDescription
 
 let package = Package(
     name: "Onboarding",
+    defaultLocalization: "en",
     platforms: [
         .iOS(.v26)
     ],
@@ -17,13 +18,12 @@ let package = Package(
         .package(path: "../../Core/DesignSystem"),
         .package(path: "../../Core/SharedUI"),
         .package(path: "../../Core/Utilities"),
-        .package(path: "../../Core/Domain"),
-        .package(path: "../../Platform/Persistence")
+        .package(path: "../../Core/Domain")
     ],
     targets: [
         .target(
             name: "Onboarding",
-            dependencies: ["DesignSystem", "SharedUI", "Utilities", "Domain", "Persistence"],
+            dependencies: ["DesignSystem", "SharedUI", "Utilities", "Domain"],
             resources: [
                 .process("Resources")
             ],

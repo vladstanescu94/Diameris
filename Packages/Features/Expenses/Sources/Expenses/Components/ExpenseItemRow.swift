@@ -2,7 +2,6 @@ import SwiftUI
 import Domain
 import DesignSystem
 import Utilities
-/// Row displaying a single expense item
 public struct ExpenseItemRow: View {
     let expense: ExpenseDisplayItem
     let displayFrequency: Frequency
@@ -27,57 +26,40 @@ public struct ExpenseItemRow: View {
         self.onDelete = onDelete
     }
 
+    @State private var showDeleteConfirmation = false
+    @ScaledMetric(relativeTo: .title3) private var iconSize = IconSize.md
+
     private var displayAmount: Decimal {
-        displayFrequency == .monthly ? expense.monthlyAmount : expense.annualAmount
+        expense.displayAmount(for: displayFrequency)
+    }
+
+    private var contentStyle: HierarchicalShapeStyle {
+        expense.isEnabled ? .primary : .secondary
     }
 
     public var body: some View {
-        Button {
-            HapticManager.lightTap()
-            onTap?()
-        } label: {
-            HStack(spacing: Spacing.sm) {
-                // Icon
-                Image(systemName: expense.icon)
-                    .font(.title3)
-                    .foregroundStyle(expense.isEnabled ? .primary : .secondary)
-                    .frame(width: IconSize.md, height: IconSize.md)
-
-                // Name
-                Text(expense.name)
-                    .font(.body)
-                    .foregroundStyle(expense.isEnabled ? .primary : .secondary)
-
-                Spacer()
-
-                // Amount and frequency indicator
-                VStack(alignment: .trailing, spacing: Spacing.xxs) {
-                    Text(AmountFormatter.formatForDisplay(displayAmount, currency: currency))
-                        .font(.body.monospacedDigit())
-                        .foregroundStyle(expense.isEnabled ? .primary : .secondary)
-
-                    if expense.frequency == .annual && displayFrequency == .monthly {
-                        Text("(\("Annual".localized))")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                // Toggle
-                Toggle("", isOn: Binding(
-                    get: { expense.isEnabled },
-                    set: { newValue in
-                        HapticManager.selectionChanged()
-                        onToggle?(newValue)
-                    }
-                ))
-                .labelsHidden()
-                .tint(.accentColor)
+        // The toggle sits beside the row button, not inside its label, so VoiceOver and
+        // Switch Control can reach both controls.
+        HStack(spacing: Spacing.sm) {
+            Button {
+                HapticManager.lightTap()
+                onTap?()
+            } label: {
+                rowLabel
             }
-            .padding(.vertical, Spacing.xs)
-            .contentShape(Rectangle())
+            .buttonStyle(.plain)
+
+            Toggle(expense.name, isOn: Binding(
+                get: { expense.isEnabled },
+                set: { newValue in
+                    HapticManager.selectionChanged()
+                    onToggle?(newValue)
+                }
+            ))
+            .labelsHidden()
+            .tint(.accentColor)
         }
-        .buttonStyle(.plain)
+        .padding(.vertical, Spacing.xs)
         .contextMenu {
             if let onTap {
                 Button {
@@ -88,15 +70,56 @@ public struct ExpenseItemRow: View {
                 }
             }
 
-            if let onDelete {
+            if onDelete != nil {
                 Button(role: .destructive) {
                     HapticManager.warning()
-                    onDelete()
+                    showDeleteConfirmation = true
                 } label: {
                     Label("Delete".localized, systemImage: "trash")
                 }
             }
         }
+        .confirmationDialog(
+            "Delete Expense".localized,
+            isPresented: $showDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Delete".localized, role: .destructive) {
+                onDelete?()
+            }
+            Button("Cancel".localized, role: .cancel) {}
+        } message: {
+            Text("Are you sure you want to delete this expense? This action cannot be undone.".localized)
+        }
+    }
+
+    private var rowLabel: some View {
+        HStack(spacing: Spacing.sm) {
+            Image(systemName: expense.icon)
+                .font(.title3)
+                .foregroundStyle(contentStyle)
+                .frame(width: iconSize, height: iconSize)
+                .accessibilityHidden(true)
+
+            Text(expense.name)
+                .font(.body)
+                .foregroundStyle(contentStyle)
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: Spacing.xxs) {
+                Text(AmountFormatter.formatForDisplay(displayAmount, currency: currency))
+                    .font(.body.monospacedDigit())
+                    .foregroundStyle(contentStyle)
+
+                if expense.frequency == .annual && displayFrequency == .monthly {
+                    Text("(\("Annual".localized))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .contentShape(.rect)
     }
 }
 

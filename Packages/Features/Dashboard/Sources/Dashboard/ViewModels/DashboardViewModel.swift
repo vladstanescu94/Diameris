@@ -1,11 +1,8 @@
 import Foundation
-import SwiftData
 import Observation
 import Domain
 import Utilities
 
-/// Protocol for fetching data that Dashboard needs.
-/// This allows the main app to provide SwiftData models.
 public protocol DashboardDataProvider: Sendable {
     var userName: String { get }
     var monthlyIncome: Decimal { get }
@@ -27,9 +24,8 @@ public protocol DashboardDataProvider: Sendable {
     var splitSavingsPercentage: Double { get }
 }
 
-/// Simplified account representation for Dashboard.
-/// Business logic is delegated to Domain's AccountEntry to avoid duplication.
-public struct DashboardAccount: Identifiable, Sendable {
+/// Calculations delegate to Domain's `AccountEntry`.
+public struct DashboardAccount: Identifiable, Equatable, Sendable {
     public let id: UUID
     public let name: String
     public let accountType: AccountType
@@ -59,8 +55,6 @@ public struct DashboardAccount: Identifiable, Sendable {
         self.currentBalance = currentBalance
     }
 
-    /// Convert to Domain AccountEntry for business logic calculations.
-    /// This ensures all calculations use the single source of truth in Domain.
     public func toAccountEntry() -> AccountEntry {
         AccountEntry(
             id: id,
@@ -74,21 +68,17 @@ public struct DashboardAccount: Identifiable, Sendable {
         )
     }
 
-    /// Calculate emergency fund target based on income.
-    /// Delegates to Domain's AccountEntry for the actual calculation.
     public func emergencyTarget(monthlyIncome: Decimal) -> Decimal? {
         toAccountEntry().emergencyTarget(monthlyIncome: monthlyIncome)
     }
 
     /// Progress toward emergency target (0.0-1.0).
-    /// Delegates to Domain's AccountEntry for the actual calculation.
     public func emergencyProgress(monthlyIncome: Decimal) -> Double? {
         toAccountEntry().emergencyProgress(monthlyIncome: monthlyIncome)
     }
 }
 
-/// Simplified expense representation for Dashboard.
-public struct DashboardExpense: Identifiable, Sendable {
+public struct DashboardExpense: Identifiable, Equatable, Sendable {
     public let id: UUID
     public let name: String
     public let amount: Decimal
@@ -108,9 +98,13 @@ public struct DashboardExpense: Identifiable, Sendable {
         self.icon = icon
         self.linkedAccountId = linkedAccountId
     }
+
+    /// `amount` is already the monthly equivalent, so the entry is monthly.
+    public func toExpenseEntry() -> ExpenseEntry {
+        ExpenseEntry(name: name, amount: amount, icon: icon, linkedAccountId: linkedAccountId)
+    }
 }
 
-/// ViewModel for the main Dashboard view.
 @Observable
 @MainActor
 public final class DashboardViewModel {
@@ -138,7 +132,6 @@ public final class DashboardViewModel {
     // MARK: - UI State
 
     public var showNewMonthSheet: Bool = false
-    public var currentMonthRecord: MonthlyRecord?
     public var hasCompletedOnboarding: Bool = false
 
     // MARK: - Init
@@ -147,7 +140,6 @@ public final class DashboardViewModel {
 
     // MARK: - Data Loading
 
-    /// Loads data from the provider (called by the main app).
     public func loadData(from provider: DashboardDataProvider) {
         self.userName = provider.userName
         self.monthlyIncome = provider.monthlyIncome
@@ -171,38 +163,9 @@ public final class DashboardViewModel {
     }
 
     // MARK: - Computed Properties
+    // Totals, available income and savings come from `transferPlan` (Domain's TransferCalculator)
+    // so the Dashboard never re-derives budget math. Views should read the plan once per body.
 
-    /// Total of all enabled expenses.
-    public var totalExpenses: Decimal {
-        expenses.reduce(0) { $0 + $1.amount }
-    }
-
-    /// Income after deducting expenses.
-    public var availableIncome: Decimal {
-        max(0, monthlyIncome - totalExpenses)
-    }
-
-    /// Effective savings percentage after boost.
-    /// Only meaningful in prioritized + percentage mode.
-    public var effectiveSavingsPercentage: Double {
-        let allocation = makeSavingsAllocation()
-        guard allocation.isBoostApplicable else { return savingsPercentage }
-        return savingsBoostEnabled ? min(1.0, savingsPercentage * savingsBoostMultiplier) : savingsPercentage
-    }
-
-    /// Total savings amount based on allocation mode.
-    public var totalSavings: Decimal {
-        switch allocationMode {
-        case .prioritized:
-            return makeSavingsAllocation().calculateSavings(availableIncome: availableIncome)
-        case .split:
-            let allocation = makeSavingsAllocation()
-            let total = allocation.splitTotal(availableIncome: availableIncome)
-            return min(total, availableIncome)
-        }
-    }
-
-    /// Emergency fund account, if exists.
     public var emergencyAccount: DashboardAccount? {
         accounts.first { $0.accountType == .emergency }
     }
@@ -212,39 +175,16 @@ public final class DashboardViewModel {
         emergencyAccount?.emergencyProgress(monthlyIncome: monthlyIncome)
     }
 
-    /// Emergency fund target amount.
     public var emergencyTarget: Decimal? {
         emergencyAccount?.emergencyTarget(monthlyIncome: monthlyIncome)
     }
 
-    /// Primary savings account.
-    public var primarySavingsAccount: DashboardAccount? {
-        accounts.first { $0.isPrimarySavings }
-    }
-
-    /// Personal spending account.
-    public var personalAccount: DashboardAccount? {
-        accounts.first { $0.accountType == .personal }
-    }
-
-    /// Primary (checking) account.
-    public var primaryAccount: DashboardAccount? {
-        accounts.first { $0.isPrimary }
-    }
-
-    /// Non-primary accounts for display.
-    public var displayAccounts: [DashboardAccount] {
-        accounts.filter { !$0.isPrimary }
-    }
-
-    /// Current month and year for header.
     public var currentMonthDisplay: String {
         DateFormatters.monthYear.string(from: .now)
     }
 
     // MARK: - Transfer Plan
 
-    /// Generates a transfer plan using the Domain calculator.
     public var transferPlan: TransferPlan {
         TransferCalculator.calculate(
             income: monthlyIncome,
@@ -263,7 +203,6 @@ public final class DashboardViewModel {
 
     // MARK: - Transfer Plan Calculation
 
-    /// Generates a transfer plan with custom income (for New Month flow).
     /// Optionally overrides each account's current balance with reconciled balances
     /// from the New Month flow's account-reconciliation step.
     public func calculateTransferPlan(
@@ -292,14 +231,7 @@ public final class DashboardViewModel {
     }
 
     private func makeExpenseEntries() -> [ExpenseEntry] {
-        expenses.map { expense in
-            ExpenseEntry(
-                name: expense.name,
-                amount: expense.amount,
-                icon: expense.icon,
-                linkedAccountId: expense.linkedAccountId
-            )
-        }
+        expenses.map { $0.toExpenseEntry() }
     }
 
     private func makeSavingsAllocation() -> SavingsAllocationEntry {
@@ -323,17 +255,7 @@ public final class DashboardViewModel {
 // MARK: - New Month Balance Calculation
 
 extension DashboardViewModel {
-    /// Computes updated account balances after a New Month flow completion.
-    /// Pure function: takes reconciled balances + transfer plan, returns new balances per account ID.
-    ///
-    /// Logic:
-    /// 1. Start from reconciled balances (user's actual current balances from Step 2)
-    /// 2. Add transfer plan allocations (emergency, savings)
-    /// 3. Add expense-linked transfers (e.g., Food → Joint)
-    /// 4. Add remaining money to the designated account
-    /// 5. Set primary account to remainsInPrimary
-    /// Delegates to `Domain.BalanceReconciler` — the calculation itself lives in Domain so the
-    /// New Month flow and the web server share one implementation.
+    /// Balances after the New Month transfers are made; delegates to `Domain.BalanceReconciler`.
     public func computeUpdatedBalances(from data: NewMonthCompletionData) -> [UUID: Decimal] {
         BalanceReconciler.updatedBalances(
             plan: data.transferPlan,
@@ -345,7 +267,6 @@ extension DashboardViewModel {
 
 // MARK: - New Month Completion Data
 
-/// Data passed back when completing the New Month flow.
 public struct NewMonthCompletionData: Sendable {
     public let income: Decimal
     public let transferPlan: TransferPlan

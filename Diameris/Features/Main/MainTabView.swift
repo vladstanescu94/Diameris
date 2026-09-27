@@ -1,16 +1,18 @@
 import SwiftUI
 import SwiftData
+import os
 import DesignSystem
 import Dashboard
 import Domain
+import Persistence
 import Utilities
-import Onboarding
 import Expenses
 
 struct MainTabView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var userProfiles: [UserProfile]
-    @Query private var accounts: [Account]
+    @Query private var incomes: [Income]
+    @Query(sort: \Account.sortOrder) private var accounts: [Account]
     @Query private var expenses: [Expense]
     @Query private var savingsAllocations: [SavingsAllocation]
     @Query private var customCategories: [CustomCategory]
@@ -25,7 +27,6 @@ struct MainTabView: View {
     #endif
 
     private var userProfile: UserProfile? { userProfiles.first }
-    private var savingsAllocation: SavingsAllocation? { savingsAllocations.first }
 
     var body: some View {
         TabView {
@@ -76,8 +77,7 @@ struct MainTabView: View {
 
     private var newMonthAccessoryButton: some View {
         Button {
-            // Ensure we have fresh data before opening the flow
-            // (DataObserver handles changes, but this catches any pending saves)
+            // Catches saves the DataObserver hasn't delivered yet.
             refreshAllData()
             dashboardViewModel.openNewMonthFlow()
         } label: {
@@ -101,8 +101,6 @@ struct MainTabView: View {
 
     // MARK: - Centralized Data Management
 
-    /// Sets up the DataObserver to listen for SwiftData changes.
-    /// This replaces scattered onChange handlers with a single notification-based approach.
     private func setupDataObserver() {
         dataObserver.onDataChanged = { [self] in
             refreshAllData()
@@ -110,8 +108,6 @@ struct MainTabView: View {
         dataObserver.startObserving(modelContext: modelContext)
     }
 
-    /// Refreshes all view model data from SwiftData.
-    /// Called once on appear and automatically when any data changes.
     private func refreshAllData() {
         loadDashboardData()
         loadExpensesData()
@@ -122,67 +118,15 @@ struct MainTabView: View {
             dashboardViewModel.hasCompletedOnboarding = false
             return
         }
-
-        // Get currency from profile
-        let currency = Currency(rawValue: profile.currencyCode) ?? .ron
-
-        // Get income from query or default
-        let income = fetchMonthlyIncome()
-
-        // Convert accounts to DashboardAccount
-        let dashboardAccounts = accounts.map { account in
-            DashboardAccount(
-                id: account.id,
-                name: account.name,
-                accountType: account.accountType,
-                isPrimary: account.isPrimary,
-                isPrimarySavings: account.isPrimarySavings,
-                emergencyMultiplier: account.emergencyMultiplier,
-                emergencyHardCap: account.emergencyHardCap,
-                currentBalance: account.currentBalance
-            )
-        }
-
-        // Convert expenses to DashboardExpense (using monthlyAmount for consistent display)
-        let dashboardExpenses = expenses.filter { $0.isEnabled }.map { expense in
-            DashboardExpense(
-                id: expense.id,
-                name: expense.name,
-                amount: expense.monthlyAmount,
-                icon: expense.icon,
-                linkedAccountId: expense.linkedAccountId
-            )
-        }
-
-        // Get savings allocation
-        let allocation = savingsAllocation
-
-        // Update the view model
-        dashboardViewModel.userName = profile.name
-        dashboardViewModel.monthlyIncome = income
-        dashboardViewModel.currency = currency
-        dashboardViewModel.accounts = dashboardAccounts
-        dashboardViewModel.expenses = dashboardExpenses
-        dashboardViewModel.savingsPercentage = allocation?.percentage ?? 0.25
-        dashboardViewModel.savingsBoostEnabled = allocation?.boostEnabled ?? false
-        dashboardViewModel.savingsBoostMultiplier = allocation?.boostMultiplier ?? 3.0
-        dashboardViewModel.allocationMode = allocation?.allocationMode ?? .prioritized
-        dashboardViewModel.savingsInputMode = allocation?.savingsInputMode ?? .percentage
-        dashboardViewModel.savingsFixedAmount = allocation?.fixedAmount ?? 0
-        dashboardViewModel.splitEmergencyInputMode = allocation?.splitEmergencyInputMode ?? .fixedAmount
-        dashboardViewModel.splitEmergencyAmount = allocation?.splitEmergencyAmount ?? 0
-        dashboardViewModel.splitEmergencyPercentage = allocation?.splitEmergencyPercentage ?? 0.10
-        dashboardViewModel.splitSavingsInputMode = allocation?.splitSavingsInputMode ?? .fixedAmount
-        dashboardViewModel.splitSavingsAmount = allocation?.splitSavingsAmount ?? 0
-        dashboardViewModel.splitSavingsPercentage = allocation?.splitSavingsPercentage ?? 0.15
-        dashboardViewModel.remainingMoneyDestination = profile.remainingMoneyDestination
+        dashboardViewModel.loadData(from: StoredDashboardData(
+            profile: profile,
+            monthlyIncome: incomes.first?.amount ?? 0,
+            accounts: accounts,
+            expenses: expenses,
+            allocation: savingsAllocations.first
+        ))
+        // A stored profile means onboarding finished, even if the name or income is empty.
         dashboardViewModel.hasCompletedOnboarding = true
-    }
-
-    private func fetchMonthlyIncome() -> Decimal {
-        let descriptor = FetchDescriptor<Income>()
-        let incomes = try? modelContext.fetch(descriptor)
-        return incomes?.first?.amount ?? 0
     }
 
     // MARK: - Expenses Data Management
@@ -190,18 +134,10 @@ struct MainTabView: View {
     private func loadExpensesData() {
         guard let profile = userProfile else { return }
 
-        // Set currency
-        let currency = Currency(rawValue: profile.currencyCode) ?? .ron
-        expensesViewModel.currency = currency
+        expensesViewModel.currency = Currency(rawValue: profile.currencyCode) ?? .ron
 
-        // Load custom categories from @Query FIRST
-        // Merge with existing to preserve optimistic updates that might not be in @Query yet
-        let queriedCategories = customCategories.map { $0.toCategory() }
-        let queriedIds = Set(queriedCategories.map { $0.id })
-        let existingOptimistic = expensesViewModel.customCategories.filter { !queriedIds.contains($0.id) }
-        expensesViewModel.customCategories = queriedCategories + existingOptimistic
+        expensesViewModel.applyStoredCategories(customCategories.map { $0.toCategory() })
 
-        // Then convert expenses to ExpenseDisplayItem
         expensesViewModel.expenses = expenses.map { expense in
             ExpenseDisplayItem(
                 id: expense.id,
@@ -216,7 +152,6 @@ struct MainTabView: View {
             )
         }
 
-        // Load accounts for expense linking
         expensesViewModel.accounts = accounts.map { account in
             ExpenseAccount(
                 id: account.id,
@@ -227,108 +162,77 @@ struct MainTabView: View {
         }
     }
 
+    /// The view model updates optimistically, so a failed write reloads from the store to drop
+    /// the change that was never saved.
     private func setupExpensesCallbacks() {
-        // Add expense callback
-        expensesViewModel.onAddExpense = { [weak modelContext] input in
-            guard let context = modelContext else { return }
-            let expense = Expense(
-                name: input.name,
-                amount: input.amount,
-                icon: input.icon,
-                frequency: input.frequency,
-                linkedAccountId: input.linkedAccountId,
-                categoryId: input.categoryId,
-                notes: input.notes,
-                isEnabled: input.isEnabled
-            )
-            context.insert(expense)
-            try? context.save()
+        let context = modelContext
+        @discardableResult
+        func write(_ operation: String, _ change: (ModelContext) throws -> Void) -> Bool {
+            do {
+                try change(context)
+                return true
+            } catch {
+                Logger.persistence.error("\(operation, privacy: .public) failed: \(error)")
+                refreshAllData()
+                return false
+            }
         }
 
-        // Update expense callback
-        expensesViewModel.onUpdateExpense = { [weak modelContext] input in
-            guard let context = modelContext, let id = input.id else { return }
-            var descriptor = FetchDescriptor<Expense>(predicate: #Predicate { $0.id == id })
-            descriptor.fetchLimit = 1
-            guard let expense = try? context.fetch(descriptor).first else { return }
-            expense.name = input.name
-            expense.amount = input.amount
-            expense.frequency = input.frequency
-            expense.icon = input.icon
-            expense.categoryId = input.categoryId
-            expense.linkedAccountId = input.linkedAccountId
-            expense.isEnabled = input.isEnabled
-            expense.notes = input.notes
-            try? context.save()
+        expensesViewModel.onAddExpense = { input in
+            // Store under the view model's id so the optimistic row and the stored row match.
+            write("Add expense") { try $0.insertExpense(input.toEntry(id: input.id ?? UUID())) }
         }
-
-        // Delete expense callback
-        expensesViewModel.onDeleteExpense = { [weak modelContext] id in
-            guard let context = modelContext else { return }
-            var descriptor = FetchDescriptor<Expense>(predicate: #Predicate { $0.id == id })
-            descriptor.fetchLimit = 1
-            guard let expense = try? context.fetch(descriptor).first else { return }
-            context.delete(expense)
-            try? context.save()
+        expensesViewModel.onUpdateExpense = { input in
+            guard let id = input.id else { return }
+            write("Update expense") { try $0.updateExpense(input.toEntry(id: id)) }
         }
-
-        // Toggle expense enabled callback
-        expensesViewModel.onToggleExpense = { [weak modelContext] id, enabled in
-            guard let context = modelContext else { return }
-            var descriptor = FetchDescriptor<Expense>(predicate: #Predicate { $0.id == id })
-            descriptor.fetchLimit = 1
-            guard let expense = try? context.fetch(descriptor).first else { return }
-            expense.isEnabled = enabled
-            try? context.save()
+        expensesViewModel.onDeleteExpense = { id in
+            write("Delete expense") { try $0.deleteExpense(id: id) }
         }
-
-        // Add custom category callback
-        expensesViewModel.onAddCategory = { [weak modelContext] id, name, icon, colorHex in
-            guard let context = modelContext else { return }
-            let category = CustomCategory(id: id, name: name, icon: icon, colorHex: colorHex)
-            context.insert(category)
-            try? context.save()
+        expensesViewModel.onToggleExpense = { id, enabled in
+            write("Toggle expense") { try $0.setExpenseEnabled(id: id, isEnabled: enabled) }
         }
-
-        // Delete custom category callback
-        expensesViewModel.onDeleteCategory = { [weak modelContext] id in
-            guard let context = modelContext else { return }
-            var descriptor = FetchDescriptor<CustomCategory>(predicate: #Predicate { $0.id == id })
-            descriptor.fetchLimit = 1
-            guard let category = try? context.fetch(descriptor).first else { return }
-            context.delete(category)
-            try? context.save()
+        expensesViewModel.onAddCategory = { [expensesViewModel] id, name, icon, colorHex in
+            let saved = write("Add category") {
+                try $0.insertCustomCategory(id: id, name: name, icon: icon, colorHex: colorHex)
+            }
+            if !saved { expensesViewModel.categorySaveFailed(id) }
+        }
+        expensesViewModel.onDeleteCategory = { id in
+            write("Delete category") { try $0.deleteCustomCategory(id: id) }
         }
     }
 
     // MARK: - New Month Flow Completion
 
     private func handleNewMonthCompletion(_ data: NewMonthCompletionData) {
-        HapticManager.success()
-
-        // 1. Update income if it changed
-        let incomeDescriptor = FetchDescriptor<Income>()
-        if let income = try? modelContext.fetch(incomeDescriptor).first,
-           income.amount != data.income {
-            income.amount = data.income
-        }
-
-        // 2. Compute updated balances (reconciled + transfer plan)
-        let updatedBalances = dashboardViewModel.computeUpdatedBalances(from: data)
-
-        // 3. Apply to SwiftData accounts
-        for (accountId, newBalance) in updatedBalances {
-            if let account = accounts.first(where: { $0.id == accountId }) {
-                account.currentBalance = newBalance
-            }
-        }
-
-        // 4. Save changes - DataObserver will automatically refresh data
         do {
-            try modelContext.save()
+            // DataObserver refreshes the dashboard after the save.
+            try modelContext.applyNewMonth(
+                income: data.income,
+                balances: dashboardViewModel.computeUpdatedBalances(from: data)
+            )
+            HapticManager.success()
         } catch {
-            print("Failed to save new month data: \(error)")
+            Logger.persistence.error("Saving new month failed: \(error)")
+            HapticManager.error()
         }
+    }
+}
+
+private extension ExpenseInput {
+    func toEntry(id: UUID) -> ExpenseEntry {
+        ExpenseEntry(
+            id: id,
+            name: name,
+            amount: amount,
+            frequency: frequency,
+            icon: icon,
+            categoryId: categoryId,
+            linkedAccountId: linkedAccountId,
+            isEnabled: isEnabled,
+            notes: notes
+        )
     }
 }
 

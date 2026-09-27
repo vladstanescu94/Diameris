@@ -1,170 +1,100 @@
 import SwiftUI
 import DesignSystem
 import Utilities
+import Domain
 
-/// Custom slider for selecting savings percentage with haptic feedback.
 public struct SavingsSlider: View {
     @Binding var percentage: Double
-    let availableIncome: Decimal
+    /// Monthly amount the current (possibly boosted) rate saves — computed by Domain.
+    let savingsAmount: Decimal
     let currency: String
-    let boostEnabled: Bool
-    let boostMultiplier: Double
 
     @State private var isDragging = false
+    /// Decided on the first drag event; vertical drags are left to the enclosing scroll view.
+    @State private var isHorizontalDrag: Bool?
+    @ScaledMetric(relativeTo: .body) private var thumbSize: CGFloat = IconSize.md
+    @ScaledMetric(relativeTo: .body) private var trackHeight: CGFloat = ComponentSize.progressDot
 
-    private let minimumPercentage: Double = 0.05
-    private let maximumPercentage: Double = 0.50
-    private let recommendedPercentage: Double = 0.25
-    private let snapThreshold: Double = 0.02  // Snap within 2%
+    private let minimumPercentage = SavingsAllocationEntry.minimumPercentage
+    private let maximumPercentage = SavingsAllocationEntry.maximumPercentage
+    private let recommendedPercentage = SavingsAllocationEntry.recommendedPercentage
+    /// Whole percents the thumb snaps to from one point away while dragging.
+    private static let snapPercents = [10, 15, 20, 25, 30, 35, 40]
+    private static let snapValues = snapPercents.map { Double($0) / 100 }
+    private static let snapDistance = 2
+    private static let accessibilityStep: Double = 0.05
+    /// Rates labelled "Great savings rate!" (the 20–30% financial-advice band).
+    private static let recommendedRange: ClosedRange<Double> = 0.20...0.30
+    private static let thumbStrokeWidth: CGFloat = 2
+    private static let thumbShadowRadius: CGFloat = 4
+    private static let thumbShadowOffset: CGFloat = 2
 
     public init(
         percentage: Binding<Double>,
-        availableIncome: Decimal,
-        currency: String,
-        boostEnabled: Bool = false,
-        boostMultiplier: Double = 3.0
+        savingsAmount: Decimal,
+        currency: String
     ) {
         self._percentage = percentage
-        self.availableIncome = availableIncome
+        self.savingsAmount = savingsAmount
         self.currency = currency
-        self.boostEnabled = boostEnabled
-        self.boostMultiplier = boostMultiplier
-    }
-
-    private var effectivePercentage: Double {
-        boostEnabled ? percentage * boostMultiplier : percentage
-    }
-
-    private var savingsAmount: Decimal {
-        availableIncome * Decimal(effectivePercentage)
     }
 
     private var displayPercentage: Int {
-        Int(percentage * 100)
+        Int((percentage * 100).rounded())
+    }
+
+    private var isInRecommendedRange: Bool {
+        Self.recommendedRange.contains(percentage)
     }
 
     public var body: some View {
         VStack(spacing: Spacing.md) {
-            // Percentage display
             HStack(alignment: .lastTextBaseline) {
-                Text("\(displayPercentage)")
-                    .font(.system(size: 48, weight: .bold, design: .rounded))
+                Text(displayPercentage, format: .number)
+                    .font(.system(.largeTitle, design: .rounded, weight: .bold))
                     .foregroundStyle(DiamerisColors.accentPrimary)
                     .contentTransition(.numericText())
 
-                Text("%")
+                Text(verbatim: "%")
                     .font(.title2)
                     .fontWeight(.semibold)
                     .foregroundStyle(.secondary)
             }
             .animation(SpringPreset.responsive, value: displayPercentage)
 
-            // Savings amount
             Text(String(localized: "That's \(AmountFormatter.formatForDisplay(savingsAmount, currency: currency))/month", bundle: .module))
                 .font(.headline)
                 .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
 
-            // Custom slider
-            GeometryReader { geometry in
-                let width = geometry.size.width
-                let normalizedValue = (percentage - minimumPercentage) / (maximumPercentage - minimumPercentage)
-                let thumbPosition = width * normalizedValue
+            track
+                .frame(height: thumbSize)
 
-                ZStack(alignment: .leading) {
-                    // Track background
-                    Capsule()
-                        .fill(Color.secondary.opacity(0.15))
-                        .frame(height: 8)
-
-                    // Filled track
-                    Capsule()
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    DiamerisColors.accentPrimary,
-                                    DiamerisColors.accentSecondary
-                                ],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .frame(width: max(0, thumbPosition + 12), height: 8)
-
-                    // Recommended marker
-                    let recommendedPosition = width * ((recommendedPercentage - minimumPercentage) / (maximumPercentage - minimumPercentage))
-                    Circle()
-                        .fill(DiamerisColors.accentSecondary)
-                        .frame(width: 6, height: 6)
-                        .offset(x: recommendedPosition - 3)
-
-                    // Thumb
-                    Circle()
-                        .fill(.white)
-                        .frame(width: 24, height: 24)
-                        .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
-                        .overlay {
-                            Circle()
-                                .stroke(DiamerisColors.accentPrimary, lineWidth: 2)
-                        }
-                        .scaleEffect(isDragging ? 1.1 : 1.0)
-                        .offset(x: thumbPosition - 12)
-                        .gesture(
-                            DragGesture(minimumDistance: 0)
-                                .onChanged { value in
-                                    isDragging = true
-                                    let newValue = value.location.x / width
-                                    let clampedValue = max(0, min(1, newValue))
-                                    var newPercentage = minimumPercentage + clampedValue * (maximumPercentage - minimumPercentage)
-
-                                    // Snap to common values
-                                    let snapValues: [Double] = [0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40]
-                                    for snapValue in snapValues {
-                                        if abs(newPercentage - snapValue) < snapThreshold {
-                                            newPercentage = snapValue
-                                            HapticManager.lightTap()
-                                            break
-                                        }
-                                    }
-
-                                    percentage = newPercentage
-                                }
-                                .onEnded { _ in
-                                    isDragging = false
-                                    HapticManager.mediumTap()
-                                }
-                        )
-                }
-            }
-            .frame(height: 24)
-
-            // Min/max labels
             HStack {
-                Text("5%")
+                Text(minimumPercentage, format: .percent)
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary)
 
                 Spacer()
 
                 Text("25% recommended".localized)
                     .font(.caption)
-                    .foregroundStyle(DiamerisColors.accentSecondary)
+                    .foregroundStyle(.secondary)
 
                 Spacer()
 
-                Text("50%")
+                Text(maximumPercentage, format: .percent)
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary)
             }
 
-            // Recommendation badge
-            if percentage >= 0.20 && percentage <= 0.30 {
+            if isInRecommendedRange {
                 HStack(spacing: Spacing.xxs) {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(DiamerisColors.accentSecondary)
                     Text("Great savings rate!".localized)
                         .font(.caption)
                         .fontWeight(.medium)
-                        .foregroundStyle(DiamerisColors.accentSecondary)
                 }
                 .padding(.vertical, Spacing.xs)
                 .padding(.horizontal, Spacing.sm)
@@ -173,17 +103,16 @@ public struct SavingsSlider: View {
                 .transition(.scale.combined(with: .opacity))
             }
         }
-        .animation(.easeOut(duration: AnimationDuration.appear), value: percentage >= 0.20 && percentage <= 0.30)
+        .animation(.easeOut(duration: AnimationDuration.appear), value: isInRecommendedRange)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Savings percentage".localized)
         .accessibilityValue(String(localized: "\(displayPercentage) percent, \(AmountFormatter.formatForDisplay(savingsAmount, currency: currency)) per month", bundle: .module))
         .accessibilityAdjustableAction { direction in
-            let step: Double = 0.05
             switch direction {
             case .increment:
-                percentage = min(maximumPercentage, percentage + step)
+                percentage = min(maximumPercentage, percentage + Self.accessibilityStep)
             case .decrement:
-                percentage = max(minimumPercentage, percentage - step)
+                percentage = max(minimumPercentage, percentage - Self.accessibilityStep)
             @unknown default:
                 break
             }
@@ -191,21 +120,104 @@ public struct SavingsSlider: View {
     }
 }
 
-#Preview {
-    struct PreviewWrapper: View {
-        @State private var percentage: Double = 0.25
+// MARK: - Drag Value
 
-        var body: some View {
-            VStack(spacing: Spacing.xl) {
-                SavingsSlider(
-                    percentage: $percentage,
-                    availableIncome: 10000,
-                    currency: "RON"
-                )
+extension SavingsSlider {
+    /// Rate for a drag position along the track (0 = start, 1 = end). Stored as whole
+    /// percents so the saved rate matches the displayed one, and pulled onto nearby snap values.
+    static func percentage(atFraction fraction: Double) -> Double {
+        let minimum = SavingsAllocationEntry.minimumPercentage
+        let maximum = SavingsAllocationEntry.maximumPercentage
+        let rawPercentage = minimum + max(0, min(1, fraction)) * (maximum - minimum)
+        // Compared as integers: in Double, 0.12 - 0.10 < 0.02, so rates two points away snapped too.
+        let percent = Int((rawPercentage * 100).rounded())
+        let snapped = snapPercents.first { abs(percent - $0) < snapDistance } ?? percent
+        return Double(snapped) / 100
+    }
+}
+
+// MARK: - Track
+
+private extension SavingsSlider {
+    var track: some View {
+        GeometryReader { geometry in
+            let width = geometry.size.width
+            let range = maximumPercentage - minimumPercentage
+            let thumbPosition = width * (percentage - minimumPercentage) / range
+            let recommendedPosition = width * (recommendedPercentage - minimumPercentage) / range
+
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.secondary.opacity(Opacity.light))
+                    .frame(height: trackHeight)
+
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [DiamerisColors.accentPrimary, DiamerisColors.accentSecondary],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: max(0, thumbPosition + thumbSize / 2), height: trackHeight)
+
+                Circle()
+                    .fill(DiamerisColors.accentSecondary)
+                    .frame(width: trackHeight, height: trackHeight)
+                    .offset(x: recommendedPosition - trackHeight / 2)
+
+                thumb
+                    .offset(x: thumbPosition - thumbSize / 2)
+                    .gesture(dragGesture(trackWidth: width))
             }
-            .padding()
         }
     }
 
-    return PreviewWrapper()
+    var thumb: some View {
+        Circle()
+            .fill(.white)
+            .stroke(DiamerisColors.accentPrimary, lineWidth: Self.thumbStrokeWidth)
+            .frame(width: thumbSize, height: thumbSize)
+            .shadow(color: .black.opacity(Opacity.light), radius: Self.thumbShadowRadius, y: Self.thumbShadowOffset)
+            .scaleEffect(isDragging ? ScaleEffect.prominent : 1.0)
+            // Enlarge the hit area to the minimum touch target without changing the visuals.
+            .contentShape(.rect.inset(by: -(ComponentSize.minTouchTarget - thumbSize) / 2))
+    }
+
+    func dragGesture(trackWidth: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: Spacing.xs)
+            .onChanged { value in
+                if isHorizontalDrag == nil {
+                    isHorizontalDrag = abs(value.translation.width) > abs(value.translation.height)
+                }
+                guard isHorizontalDrag == true else { return }
+
+                isDragging = true
+                let newPercentage = Self.percentage(atFraction: value.location.x / trackWidth)
+                // Only tick when the value actually lands on a new snap point,
+                // not on every drag event while it rests there.
+                if newPercentage != percentage && Self.snapValues.contains(newPercentage) {
+                    HapticManager.lightTap()
+                }
+                percentage = newPercentage
+            }
+            .onEnded { _ in
+                if isHorizontalDrag == true {
+                    HapticManager.mediumTap()
+                }
+                isDragging = false
+                isHorizontalDrag = nil
+            }
+    }
+}
+
+#Preview {
+    @Previewable @State var percentage = 0.25
+
+    SavingsSlider(
+        percentage: $percentage,
+        savingsAmount: 2500,
+        currency: "RON"
+    )
+    .padding()
 }

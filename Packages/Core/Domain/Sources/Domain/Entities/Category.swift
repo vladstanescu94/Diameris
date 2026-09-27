@@ -1,6 +1,5 @@
 import Foundation
 
-/// Expense category for grouping and analysis
 public struct Category: Identifiable, Equatable, Sendable, Hashable {
     public let id: UUID
     public var name: String
@@ -25,7 +24,6 @@ public struct Category: Identifiable, Equatable, Sendable, Hashable {
         self.sortOrder = sortOrder
     }
 
-    /// Factory method for creating custom categories
     public static func custom(
         id: UUID = UUID(),
         name: String,
@@ -46,8 +44,10 @@ public struct Category: Identifiable, Equatable, Sendable, Hashable {
 
 // MARK: - Default Categories
 
+/// Default names are localized when first accessed. Only `id` is persisted (as
+/// `Expense.categoryId`), so a name never has to survive a language change.
 extension Category {
-    // Stable UUIDs for default categories (ensures consistency across app launches)
+    // Persisted as `Expense.categoryId` — never change these UUIDs.
     private static let autoTransportId = UUID(uuidString: "D1A00001-0000-0000-0000-000000000001")!
     private static let subscriptionsId = UUID(uuidString: "D1A00002-0000-0000-0000-000000000002")!
     private static let lifestyleId = UUID(uuidString: "D1A00003-0000-0000-0000-000000000003")!
@@ -60,9 +60,9 @@ extension Category {
     /// Auto & Transportation expenses (gas, insurance, car service, etc.)
     public static let autoTransport = Category(
         id: autoTransportId,
-        name: "Auto/Transport",
+        name: String(localized: "Auto/Transport", bundle: .module),
         icon: "car.fill",
-        colorHex: "#3B82F6", // Blue
+        colorHex: "#3B82F6",
         isDefault: true,
         sortOrder: 0
     )
@@ -70,9 +70,9 @@ extension Category {
     /// Recurring subscriptions (streaming, cloud, apps)
     public static let subscriptions = Category(
         id: subscriptionsId,
-        name: "Subscriptions",
+        name: String(localized: "Subscriptions", bundle: .module),
         icon: "repeat.circle.fill",
-        colorHex: "#8B5CF6", // Purple
+        colorHex: "#8B5CF6",
         isDefault: true,
         sortOrder: 1
     )
@@ -80,9 +80,9 @@ extension Category {
     /// Daily lifestyle expenses (haircuts, random purchases)
     public static let lifestyle = Category(
         id: lifestyleId,
-        name: "Lifestyle",
+        name: String(localized: "Lifestyle", bundle: .module),
         icon: "sparkles",
-        colorHex: "#F59E0B", // Amber
+        colorHex: "#F59E0B",
         isDefault: true,
         sortOrder: 2
     )
@@ -90,19 +90,18 @@ extension Category {
     /// Housing expenses (rent, utilities)
     public static let housing = Category(
         id: housingId,
-        name: "Housing",
+        name: String(localized: "Housing", bundle: .module),
         icon: "house.fill",
-        colorHex: "#10B981", // Emerald
+        colorHex: "#10B981",
         isDefault: true,
         sortOrder: 3
     )
 
-    /// Pet-related expenses
     public static let pets = Category(
         id: petsId,
-        name: "Pets",
+        name: String(localized: "Pets", bundle: .module),
         icon: "pawprint.fill",
-        colorHex: "#EC4899", // Pink
+        colorHex: "#EC4899",
         isDefault: true,
         sortOrder: 4
     )
@@ -110,34 +109,31 @@ extension Category {
     /// Health and fitness (gym, supplements)
     public static let healthFitness = Category(
         id: healthFitnessId,
-        name: "Health/Fitness",
+        name: String(localized: "Health/Fitness", bundle: .module),
         icon: "heart.fill",
-        colorHex: "#EF4444", // Red
+        colorHex: "#EF4444",
         isDefault: true,
         sortOrder: 5
     )
 
-    /// Food and groceries
     public static let foodGroceries = Category(
         id: foodGroceriesId,
-        name: "Food/Groceries",
+        name: String(localized: "Food/Groceries", bundle: .module),
         icon: "cart.fill",
-        colorHex: "#22C55E", // Green
+        colorHex: "#22C55E",
         isDefault: true,
         sortOrder: 6
     )
 
-    /// Entertainment and leisure
     public static let entertainment = Category(
         id: entertainmentId,
-        name: "Entertainment",
+        name: String(localized: "Entertainment", bundle: .module),
         icon: "tv.fill",
-        colorHex: "#06B6D4", // Cyan
+        colorHex: "#06B6D4",
         isDefault: true,
         sortOrder: 7
     )
 
-    /// All predefined default categories
     public static let defaults: [Category] = [
         autoTransport,
         subscriptions,
@@ -149,7 +145,6 @@ extension Category {
         entertainment
     ]
 
-    /// Find a default category by ID
     public static func defaultCategory(for id: UUID) -> Category? {
         defaults.first { $0.id == id }
     }

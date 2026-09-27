@@ -3,72 +3,68 @@ import DesignSystem
 import Utilities
 import Domain
 
-/// Picker for selecting where remaining money after savings should go.
 struct RemainingMoneyPicker: View {
     @Binding var selectedDestination: RemainingMoneyDestination
-    let hasSavingsAccount: Bool
-    let hasPersonalAccount: Bool
+    /// Only destinations backed by an existing account.
+    let destinations: [RemainingMoneyDestination]
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(spacing: Spacing.sm) {
-            ForEach(availableDestinations, id: \.self) { destination in
+            ForEach(destinations) { destination in
                 destinationButton(destination)
             }
         }
     }
 
-    private var availableDestinations: [RemainingMoneyDestination] {
-        var destinations: [RemainingMoneyDestination] = [.primary]
-
-        if hasSavingsAccount {
-            destinations.insert(.primarySavings, at: 0)
-        }
-
-        if hasPersonalAccount {
-            destinations.append(.personal)
-        }
-
-        return destinations
-    }
-
     private func destinationButton(_ destination: RemainingMoneyDestination) -> some View {
-        Button {
-            withAnimation(SpringPreset.responsive) {
+        let isSelected = selectedDestination == destination
+
+        return Button {
+            withAnimation(reduceMotion ? nil : SpringPreset.responsive) {
                 selectedDestination = destination
             }
             HapticManager.lightTap()
         } label: {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: destination.icon)
-                    .foregroundStyle(selectedDestination == destination ? .white : DiamerisColors.accentSecondary)
+                    .foregroundStyle(DiamerisColors.accentSecondary)
+                    .accessibilityHidden(true)
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(destination.displayName)
                         .font(.subheadline)
                         .fontWeight(.medium)
-                        .foregroundStyle(selectedDestination == destination ? .white : .primary)
+                        .foregroundStyle(.primary)
 
                     Text(destination.description)
                         .font(.caption)
-                        .foregroundStyle(selectedDestination == destination ? .white.opacity(0.8) : .secondary)
+                        .foregroundStyle(.secondary)
                 }
 
                 Spacer()
 
-                if selectedDestination == destination {
+                if isSelected {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.white)
+                        .foregroundStyle(DiamerisColors.accentSecondary)
                         .transition(.opacity.animation(.easeOut(duration: AnimationDuration.appear)))
+                        .accessibilityHidden(true)
                 }
             }
             .padding(Spacing.md)
             .background {
+                // Tinted fill + border instead of white-on-cyan text (fails 4.5:1 in light mode).
                 RoundedRectangle(cornerRadius: CornerRadius.medium)
-                    .fill(selectedDestination == destination ? DiamerisColors.accentSecondary : Color.secondary.opacity(Opacity.faint))
+                    .fill(isSelected ? DiamerisColors.accentSecondary.opacity(Opacity.light) : Color.secondary.opacity(Opacity.faint))
+                    .stroke(isSelected ? DiamerisColors.accentSecondary : .clear)
                     .animation(.easeOut(duration: AnimationDuration.appear), value: selectedDestination)
             }
+            .contentShape(.rect(cornerRadius: CornerRadius.medium))
         }
         .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 
@@ -92,13 +88,12 @@ extension RemainingMoneyDestination {
             VStack(spacing: Spacing.lg) {
                 RemainingMoneyPicker(
                     selectedDestination: $destination,
-                    hasSavingsAccount: true,
-                    hasPersonalAccount: true
+                    destinations: RemainingMoneyDestination.allCases
                 )
 
                 Divider()
 
-                Text("Selected: \(destination.displayName)")
+                Text(verbatim: "Selected: \(destination.displayName)")
                     .font(.caption)
             }
             .padding()

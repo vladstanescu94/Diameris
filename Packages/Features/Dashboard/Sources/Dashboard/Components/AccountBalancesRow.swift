@@ -1,57 +1,56 @@
 import SwiftUI
 import DesignSystem
 import Domain
+import SharedUI
 import Utilities
 
-/// Section displaying all account balances.
 struct AccountBalancesSection: View {
     let accounts: [DashboardAccount]
     let currency: Currency
 
-    /// Primary account (where salary lands)
     private var primaryAccount: DashboardAccount? {
         accounts.first { $0.isPrimary }
     }
 
-    /// Other accounts excluding primary and emergency (emergency has its own card)
+    /// Excludes emergency, which has its own card.
     private var otherAccounts: [DashboardAccount] {
         accounts.filter { account in
             !account.isPrimary && account.accountType != .emergency
         }
     }
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
-        GlassEffectContainer(spacing: Spacing.sm) {
-            VStack(spacing: Spacing.sm) {
-                Label {
-                    Text("Account Balances".localized)
-                        .font(.headline)
-                } icon: {
-                    Image(systemName: "building.columns.fill")
-                        .foregroundStyle(DiamerisColors.accentPrimary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+        VStack(spacing: Spacing.sm) {
+            Label {
+                Text("Account Balances".localized)
+                    .font(.headline)
+            } icon: {
+                Image(systemName: "building.columns.fill")
+                    .foregroundStyle(DiamerisColors.accentPrimary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityAddTraits(.isHeader)
 
-                if let primary = primaryAccount {
-                    PrimaryAccountCard(account: primary, currency: currency)
-                }
+            if let primary = primaryAccount {
+                PrimaryAccountCard(account: primary, currency: currency)
+            }
 
-                if !otherAccounts.isEmpty {
-                    LazyVGrid(columns: gridColumns, spacing: Spacing.sm) {
-                        ForEach(otherAccounts) { account in
-                            SecondaryAccountCard(account: account, currency: currency)
-                        }
+            if !otherAccounts.isEmpty {
+                LazyVGrid(columns: gridColumns, spacing: Spacing.sm) {
+                    ForEach(otherAccounts) { account in
+                        SecondaryAccountCard(account: account, currency: currency)
                     }
                 }
             }
         }
     }
 
+    /// Two columns normally; one column at accessibility text sizes so balances aren't squeezed.
     private var gridColumns: [GridItem] {
-        [
-            GridItem(.flexible(), spacing: Spacing.sm),
-            GridItem(.flexible(), spacing: Spacing.sm)
-        ]
+        let columnCount = dynamicTypeSize.isAccessibilitySize ? 1 : 2
+        return Array(repeating: GridItem(.flexible(), spacing: Spacing.sm), count: columnCount)
     }
 }
 
@@ -71,7 +70,7 @@ private struct PrimaryAccountCard: View {
                 } icon: {
                     Image(systemName: account.accountType.icon)
                         .font(.subheadline)
-                        .foregroundStyle(DiamerisColors.accentPrimary)
+                        .foregroundStyle(account.accountType.color)
                 }
 
                 Text(AmountFormatter.formatForDisplay(account.currentBalance, currency: currency.rawValue))
@@ -88,6 +87,7 @@ private struct PrimaryAccountCard: View {
                 .padding(.vertical, Spacing.xxs)
                 .background(Color.secondary.opacity(Opacity.faint), in: Capsule())
         }
+        .accessibilityElement(children: .combine)
         .glassCard()
     }
 }
@@ -104,36 +104,19 @@ private struct SecondaryAccountCard: View {
                 Text(account.name)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .lineLimit(1)
             } icon: {
                 Image(systemName: account.accountType.icon)
                     .font(.caption)
-                    .foregroundStyle(iconColor)
+                    .foregroundStyle(account.accountType.color)
             }
 
             Text(AmountFormatter.formatForDisplay(account.currentBalance, currency: currency.rawValue))
                 .font(.subheadline)
                 .bold()
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
         .glassCard()
-    }
-
-    private var iconColor: Color {
-        switch account.accountType {
-        case .primary, .savings:
-            DiamerisColors.accentPrimary
-        case .personal:
-            DiamerisColors.accentSecondary
-        case .joint:
-            .purple
-        case .emergency:
-            DiamerisColors.warning
-        case .other:
-            .secondary
-        }
     }
 }
 

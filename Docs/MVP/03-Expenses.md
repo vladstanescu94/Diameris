@@ -303,6 +303,13 @@ func topExpenses(expenses: [Expense], count: Int = 5) -> [Expense] {
 
 **Note:** Amount of 0 is valid (user may want to track a suspended expense).
 
+**As built:** these rules are `ExpenseEntry.validationError(name:amount:)` in Domain (whitespace-only
+names count as missing); `ExpenseInput.isValid` and the Add/Edit sheet's footer message use it.
+Other behaviour worth knowing: delete asks for confirmation from both the edit sheet and the context
+menu; expenses whose category was deleted are grouped under the single *Uncategorized* card (and
+deleting a category clears it from its expenses); search trims whitespace and ignores diacritics
+(ș/ş, ț/ţ); totals come from Domain's `totalMonthly` / `totalAnnual` over enabled expenses.
+
 ---
 
 ## Foundation Models Integration

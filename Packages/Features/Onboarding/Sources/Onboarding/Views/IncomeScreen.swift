@@ -9,7 +9,7 @@ struct IncomeScreen: View {
     @State private var contentAppeared = false
 
     var body: some View {
-        VStack(spacing: Spacing.xl) {
+        OnboardingScrollContainer {
             Spacer()
             header
             incomeInputSection
@@ -17,7 +17,6 @@ struct IncomeScreen: View {
             Spacer()
             continueButton
         }
-        .padding(Spacing.lg)
         .onAppear { triggerAnimations() }
     }
 }
@@ -42,12 +41,11 @@ private extension IncomeScreen {
 
             CurrencyAmountField(
                 amount: $viewModel.monthlyIncome,
-                currency: $viewModel.currency
+                currency: $viewModel.currency,
+                accessibilityLabel: "Monthly income amount".localized
             )
-            .accessibilityLabel("Monthly income amount".localized)
         }
-        .opacity(contentAppeared ? 1 : 0)
-        .offset(y: contentAppeared ? 0 : SlideOffset.standard)
+        .entrance(contentAppeared, y: SlideOffset.standard)
     }
 
     var helperText: some View {
@@ -63,9 +61,8 @@ private extension IncomeScreen {
         OnboardingButton("Continue".localized, isEnabled: viewModel.canAdvance) {
             viewModel.advance()
         }
-        .opacity(contentAppeared ? 1 : 0)
-        .offset(y: contentAppeared ? 0 : SlideOffset.standard)
-        .accessibilityHint("Continues to the expenses step".localized)
+        .entrance(contentAppeared, y: SlideOffset.standard)
+        .accessibilityHint("Continues to the accounts step".localized)
     }
 }
 

@@ -3,7 +3,6 @@ import Domain
 import DesignSystem
 import Utilities
 
-/// Picker for selecting expense category
 public struct CategoryPicker: View {
     @Binding var selection: UUID?
     let categories: [ExpenseCategory]

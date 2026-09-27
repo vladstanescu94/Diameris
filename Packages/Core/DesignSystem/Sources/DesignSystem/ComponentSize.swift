@@ -1,6 +1,5 @@
 import SwiftUI
 
-/// Size constants for common UI components
 public enum ComponentSize {
     // MARK: - Icon Containers
 
@@ -68,6 +67,16 @@ public enum ComponentSize {
 
     /// 18pt - Progress indicator outer ring size
     public static let progressRingSize: CGFloat = 18
+
+    /// 40 / 60 / 80pt - Circular goal progress ring diameters (small / medium / large)
+    public static let goalRingSmall: CGFloat = 40
+    public static let goalRingMedium: CGFloat = 60
+    public static let goalRingLarge: CGFloat = 80
+
+    /// 4 / 6 / 8pt - Stroke widths matching the goal ring diameters
+    public static let goalRingLineSmall: CGFloat = 4
+    public static let goalRingLineMedium: CGFloat = 6
+    public static let goalRingLineLarge: CGFloat = 8
 
     /// 280pt - Maximum progress bar width
     public static let progressBarMaxWidth: CGFloat = 280

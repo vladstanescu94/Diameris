@@ -7,18 +7,24 @@ public struct CurrencyAmountField: View {
     @Binding var amount: Decimal
     @Binding var currency: Currency
     let showCurrencyPicker: Bool
+    let fieldAccessibilityLabel: String?
 
     @State private var amountText: String = ""
     @FocusState private var isFocused: Bool
 
+    /// - Parameter accessibilityLabel: What VoiceOver calls the amount field (e.g. the account
+    ///   name). Pass one whenever a screen shows several amount fields; the default,
+    ///   "Amount in RON", is only distinguishable when there is a single field.
     public init(
         amount: Binding<Decimal>,
         currency: Binding<Currency>,
-        showCurrencyPicker: Bool = true
+        showCurrencyPicker: Bool = true,
+        accessibilityLabel: String? = nil
     ) {
         self._amount = amount
         self._currency = currency
         self.showCurrencyPicker = showCurrencyPicker
+        self.fieldAccessibilityLabel = accessibilityLabel
     }
 
     public var body: some View {
@@ -54,8 +60,8 @@ private extension CurrencyAmountField {
                 .fixedSize(horizontal: true, vertical: false)
             }
             .buttonStyle(.glass)
-            .accessibilityLabel(String(localized: "Currency: \(currency.displayName)"))
-            .accessibilityHint(String(localized: "Double tap to change currency"))
+            .accessibilityLabel(Text("Currency: \(currency.displayName)", bundle: .module, comment: "VoiceOver label for the currency picker; the argument is the currency name"))
+            .accessibilityHint(Text("Double tap to change currency", bundle: .module))
         } else {
             Text(currency.rawValue)
                 .font(.headline)
@@ -66,7 +72,7 @@ private extension CurrencyAmountField {
     }
 
     var amountTextField: some View {
-        TextField("0", text: $amountText)
+        TextField(Decimal.zero.formatted(), text: $amountText)
             .font(.title2)
             .fontWeight(.semibold)
             .keyboardType(.decimalPad)
@@ -75,12 +81,27 @@ private extension CurrencyAmountField {
             .onChange(of: amountText) { _, newValue in
                 amount = AmountFormatter.parse(newValue)
             }
+            .onChange(of: amount) { _, newValue in
+                // The amount can change from outside (presets, imports, reconciliation);
+                // don't rewrite what the user is typing when it already parses to this value.
+                if AmountFormatter.parse(amountText) != newValue {
+                    amountText = AmountFormatter.formatForEditing(newValue)
+                }
+            }
             .onAppear {
                 if amount > 0 {
                     amountText = AmountFormatter.formatForEditing(amount)
                 }
             }
-            .accessibilityLabel(String(localized: "Amount"))
+            .accessibilityLabel(fieldLabel)
+    }
+
+    var fieldLabel: Text {
+        if let fieldAccessibilityLabel {
+            Text(fieldAccessibilityLabel)
+        } else {
+            Text("Amount in \(currency.rawValue)", bundle: .module, comment: "VoiceOver label for an amount text field; the argument is a currency code like RON")
+        }
     }
 }
 

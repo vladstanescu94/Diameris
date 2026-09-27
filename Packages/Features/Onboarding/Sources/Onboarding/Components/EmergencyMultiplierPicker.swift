@@ -1,8 +1,9 @@
 import SwiftUI
 import DesignSystem
 import Utilities
+import Domain
 
-/// Picker for selecting emergency fund target multiplier (3x-6x monthly income) with optional hard cap.
+/// Emergency fund target as 3–6 months of income, with an optional hard cap.
 struct EmergencyMultiplierPicker: View {
     @Binding var multiplier: Double
     @Binding var hardCap: Decimal?
@@ -12,25 +13,24 @@ struct EmergencyMultiplierPicker: View {
     @State private var hardCapEnabled: Bool = false
     @State private var hardCapText: String = ""
 
-    private let multiplierOptions: [Double] = [3.0, 4.0, 5.0, 6.0]
+    /// Months of income offered as emergency fund targets.
+    static let multiplierOptions: [Double] = [3, 4, 5, 6]
+    static let defaultMultiplier = multiplierOptions[0]
 
-    /// The calculated target based on multiplier alone
+    /// Target from the multiplier alone (Domain calculation, ignoring the cap).
     private var calculatedTarget: Decimal {
-        monthlyIncome * Decimal(multiplier)
+        AccountEntry.emergency(multiplier: multiplier)
+            .uncappedEmergencyTarget(monthlyIncome: monthlyIncome) ?? 0
     }
 
-    /// The effective target considering the hard cap
+    /// Target after applying the hard cap (Domain calculation).
     private var effectiveTarget: Decimal {
-        if let cap = hardCap {
-            return min(calculatedTarget, cap)
-        }
-        return calculatedTarget
+        AccountEntry.emergency(multiplier: multiplier, hardCap: hardCap)
+            .emergencyTarget(monthlyIncome: monthlyIncome) ?? 0
     }
 
-    /// Whether the hard cap is limiting the target
     private var isCapActive: Bool {
-        guard let cap = hardCap else { return false }
-        return cap < calculatedTarget
+        effectiveTarget < calculatedTarget
     }
 
     var body: some View {
@@ -40,7 +40,6 @@ struct EmergencyMultiplierPicker: View {
             hardCapSection
         }
         .onAppear {
-            // Initialize state from binding
             hardCapEnabled = hardCap != nil
             if let cap = hardCap {
                 hardCapText = AmountFormatter.formatForEditing(cap)
@@ -53,32 +52,15 @@ struct EmergencyMultiplierPicker: View {
 
 private extension EmergencyMultiplierPicker {
     var segmentedPicker: some View {
-        HStack(spacing: Spacing.xs) {
-            ForEach(multiplierOptions, id: \.self) { option in
-                multiplierButton(option)
+        Picker("Target: months of income".localized, selection: $multiplier) {
+            ForEach(Self.multiplierOptions, id: \.self) { option in
+                Text(verbatim: "\(Int(option))×").tag(option)
             }
         }
-    }
-
-    func multiplierButton(_ option: Double) -> some View {
-        Button {
-            withAnimation(SpringPreset.responsive) {
-                multiplier = option
-            }
+        .pickerStyle(.segmented)
+        .onChange(of: multiplier) {
             HapticManager.lightTap()
-        } label: {
-            Text("\(Int(option))×")
-                .font(.subheadline)
-                .fontWeight(multiplier == option ? .semibold : .regular)
-                .foregroundStyle(multiplier == option ? .white : .primary)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, Spacing.sm)
-                .background(
-                    RoundedRectangle(cornerRadius: CornerRadius.small)
-                        .fill(multiplier == option ? Color.orange : Color.clear)
-                )
         }
-        .buttonStyle(.plain)
     }
 
     var targetDisplay: some View {
@@ -88,7 +70,6 @@ private extension EmergencyMultiplierPicker {
                 .foregroundStyle(.secondary)
 
             if isCapActive {
-                // Show capped target with strikethrough on original
                 HStack(spacing: Spacing.xs) {
                     Text(AmountFormatter.formatForDisplay(calculatedTarget, currency: currency))
                         .font(.caption)
@@ -98,8 +79,12 @@ private extension EmergencyMultiplierPicker {
                     Text(AmountFormatter.formatForDisplay(effectiveTarget, currency: currency))
                         .font(.caption)
                         .fontWeight(.medium)
-                        .foregroundStyle(.orange)
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(String(
+                    localized: "\(AmountFormatter.formatForDisplay(effectiveTarget, currency: currency)), capped from \(AmountFormatter.formatForDisplay(calculatedTarget, currency: currency))",
+                    bundle: .module
+                ))
                 .contentTransition(.numericText())
                 .animation(.easeOut(duration: AnimationDuration.appear), value: multiplier)
                 .animation(.easeOut(duration: AnimationDuration.appear), value: hardCap)
@@ -107,7 +92,6 @@ private extension EmergencyMultiplierPicker {
                 Text(AmountFormatter.formatForDisplay(effectiveTarget, currency: currency))
                     .font(.caption)
                     .fontWeight(.medium)
-                    .foregroundStyle(.orange)
                     .contentTransition(.numericText())
                     .animation(.easeOut(duration: AnimationDuration.appear), value: multiplier)
                     .animation(.easeOut(duration: AnimationDuration.appear), value: hardCap)
@@ -118,8 +102,7 @@ private extension EmergencyMultiplierPicker {
             Text(multiplierDescription)
                 .font(.caption)
                 .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+                .multilineTextAlignment(.trailing)
                 .contentTransition(.interpolate)
                 .animation(.easeOut(duration: AnimationDuration.appear), value: multiplier)
         }
@@ -127,7 +110,6 @@ private extension EmergencyMultiplierPicker {
 
     var hardCapSection: some View {
         VStack(spacing: Spacing.sm) {
-            // Toggle for enabling hard cap
             HStack {
                 Toggle(isOn: $hardCapEnabled) {
                     Text("Set maximum".localized)
@@ -138,7 +120,6 @@ private extension EmergencyMultiplierPicker {
                 .onChange(of: hardCapEnabled) { _, enabled in
                     withAnimation(SpringPreset.responsive) {
                         if enabled {
-                            // Default to calculated target when enabling
                             let defaultCap = calculatedTarget
                             hardCap = defaultCap
                             hardCapText = AmountFormatter.formatForEditing(defaultCap)
@@ -151,7 +132,6 @@ private extension EmergencyMultiplierPicker {
                 }
             }
 
-            // Amount input when enabled
             if hardCapEnabled {
                 HStack(spacing: Spacing.sm) {
                     Text("Max:".localized)
@@ -164,11 +144,9 @@ private extension EmergencyMultiplierPicker {
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
                             .onChange(of: hardCapText) { _, newValue in
+                                // Clearing the field removes the cap but keeps it open for retyping.
                                 let parsed = AmountFormatter.parse(newValue)
                                 hardCap = parsed > 0 ? parsed : nil
-                                if parsed <= 0 {
-                                    hardCapEnabled = false
-                                }
                             }
                             .accessibilityLabel("Maximum amount".localized)
 
@@ -177,8 +155,8 @@ private extension EmergencyMultiplierPicker {
                             .foregroundStyle(.secondary)
                     }
                     .padding(Spacing.sm)
-                    .background(Color.secondary.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: CornerRadius.small))
+                    .background(Color.secondary.opacity(Opacity.faint))
+                    .clipShape(.rect(cornerRadius: CornerRadius.small))
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }

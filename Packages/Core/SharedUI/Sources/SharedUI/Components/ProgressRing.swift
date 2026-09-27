@@ -3,22 +3,23 @@ import DesignSystem
 
 /// A circular progress ring with animated fill and optional percentage label.
 public struct ProgressRing: View {
-    let progress: Double  // 0.0 - 1.0
+    let progress: Double  // 0.0 - 1.0, clamped
     let size: CGFloat
     let lineWidth: CGFloat
     let showLabel: Bool
     let color: Color
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var animatedProgress: Double = 0
 
     public init(
         progress: Double,
-        size: CGFloat = 60,
-        lineWidth: CGFloat = 6,
+        size: CGFloat = ComponentSize.goalRingMedium,
+        lineWidth: CGFloat = ComponentSize.goalRingLineMedium,
         showLabel: Bool = true,
         color: Color = DiamerisColors.accentSecondary
     ) {
-        self.progress = progress
+        self.progress = min(1, max(0, progress))
         self.size = size
         self.lineWidth = lineWidth
         self.showLabel = showLabel
@@ -33,17 +34,36 @@ public struct ProgressRing: View {
         }
         .frame(width: size, height: size)
         .onAppear {
-            withAnimation(SpringPreset.smooth) {
+            withAnimation(fillAnimation) {
                 animatedProgress = progress
             }
         }
         .onChange(of: progress) { _, newValue in
-            withAnimation(SpringPreset.smooth) {
+            withAnimation(fillAnimation) {
                 animatedProgress = newValue
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(String(localized: "\(Int(progress * 100)) percent complete"))
+        .accessibilityLabel(Text("Progress", bundle: .module, comment: "VoiceOver label for a circular progress ring"))
+        .accessibilityValue(Text(progress, format: Self.percentFormat))
+    }
+}
+
+// MARK: - Metrics
+
+extension ProgressRing {
+    enum Metrics {
+        /// Start the fill at 12 o'clock rather than 3 o'clock.
+        static let startAngle: Angle = .degrees(-90)
+        /// Lets the percentage shrink to fit the ring at large Dynamic Type sizes.
+        static let labelMinimumScale: CGFloat = 0.5
+    }
+
+    /// Locale-aware whole percent ("45%" in English, "45 %" in Romanian).
+    static let percentFormat = FloatingPointFormatStyle<Double>.Percent.percent.precision(.fractionLength(0))
+
+    private var fillAnimation: Animation? {
+        reduceMotion ? nil : SpringPreset.smooth
     }
 }
 
@@ -53,7 +73,7 @@ private extension ProgressRing {
     var backgroundRing: some View {
         Circle()
             .stroke(
-                Color.secondary.opacity(0.15),
+                Color.secondary.opacity(Opacity.light),
                 lineWidth: lineWidth
             )
     }
@@ -68,16 +88,19 @@ private extension ProgressRing {
                     lineCap: .round
                 )
             )
-            .rotationEffect(.degrees(-90))
+            .rotationEffect(Metrics.startAngle)
     }
 
     @ViewBuilder
     var percentageLabel: some View {
         if showLabel {
-            Text("\(Int(animatedProgress * 100))%")
+            Text(animatedProgress, format: Self.percentFormat)
                 .font(.caption)
                 .fontWeight(.semibold)
                 .foregroundStyle(color)
+                .lineLimit(1)
+                .minimumScaleFactor(Metrics.labelMinimumScale)
+                .padding(.horizontal, lineWidth)
                 .contentTransition(.numericText())
         }
     }
@@ -86,21 +109,19 @@ private extension ProgressRing {
 // MARK: - Variants
 
 public extension ProgressRing {
-    /// Small progress ring (40pt)
     static func small(
         progress: Double,
         color: Color = DiamerisColors.accentSecondary
     ) -> ProgressRing {
         ProgressRing(
             progress: progress,
-            size: 40,
-            lineWidth: 4,
+            size: ComponentSize.goalRingSmall,
+            lineWidth: ComponentSize.goalRingLineSmall,
             showLabel: false,
             color: color
         )
     }
 
-    /// Medium progress ring (60pt) - default
     static func medium(
         progress: Double,
         showLabel: Bool = true,
@@ -108,14 +129,13 @@ public extension ProgressRing {
     ) -> ProgressRing {
         ProgressRing(
             progress: progress,
-            size: 60,
-            lineWidth: 6,
+            size: ComponentSize.goalRingMedium,
+            lineWidth: ComponentSize.goalRingLineMedium,
             showLabel: showLabel,
             color: color
         )
     }
 
-    /// Large progress ring (80pt)
     static func large(
         progress: Double,
         showLabel: Bool = true,
@@ -123,8 +143,8 @@ public extension ProgressRing {
     ) -> ProgressRing {
         ProgressRing(
             progress: progress,
-            size: 80,
-            lineWidth: 8,
+            size: ComponentSize.goalRingLarge,
+            lineWidth: ComponentSize.goalRingLineLarge,
             showLabel: showLabel,
             color: color
         )

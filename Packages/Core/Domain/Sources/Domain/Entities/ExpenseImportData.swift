@@ -1,6 +1,6 @@
 import Foundation
 
-/// Data structure for importing expenses from external sources (like the Python script)
+/// Dev-tools import format produced by the Python export script.
 public struct ExpenseImportData: Codable, Sendable {
     public let version: String
     public let exportDate: String
@@ -90,7 +90,6 @@ extension ExpenseImportData {
             self.isEnabled = isEnabled
         }
 
-        /// Convert to ExpenseEntry for use in the app
         public func toExpenseEntry() -> ExpenseEntry {
             let freq = frequency == "annual" ? Frequency.annual : Frequency.monthly
             let catId = categoryId.flatMap { UUID(uuidString: $0) }
@@ -130,19 +129,12 @@ extension ExpenseImportData {
             self.currentBalance = currentBalance
         }
 
-        /// Convert string account type to AccountType enum
+        /// Unrecognised types become `.other` — never `.primary`, which would give the import a
+        /// second salary account.
         public var accountTypeEnum: AccountType {
-            switch accountType.lowercased() {
-            case "primary": return .primary
-            case "emergency": return .emergency
-            case "savings": return .savings
-            case "personal": return .personal
-            case "joint": return .joint
-            default: return .primary
-            }
+            AccountType(rawValue: accountType.lowercased()) ?? .other
         }
 
-        /// Convert to AccountEntry for use in the app
         public func toAccountEntry() -> AccountEntry {
             AccountEntry(
                 name: name,
@@ -159,7 +151,6 @@ extension ExpenseImportData {
 // MARK: - Parsing
 
 extension ExpenseImportData {
-    /// Parse JSON string into ExpenseImportData
     public static func parse(from jsonString: String) throws -> ExpenseImportData {
         guard let data = jsonString.data(using: .utf8) else {
             throw ImportError.invalidData
@@ -167,7 +158,6 @@ extension ExpenseImportData {
         return try JSONDecoder().decode(ExpenseImportData.self, from: data)
     }
 
-    /// Parse JSON data into ExpenseImportData
     public static func parse(from data: Data) throws -> ExpenseImportData {
         try JSONDecoder().decode(ExpenseImportData.self, from: data)
     }

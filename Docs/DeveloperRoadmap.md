@@ -150,6 +150,13 @@ This document tracks implementation progress. **Update this file after completin
 | `BalanceReconciler` in Domain | 2026-08-06 | Moved `DashboardViewModel.computeUpdatedBalances` into `Domain/UseCases/BalanceReconciler.swift`; the view model now delegates. Fixed a latent bug while moving it: un-reconciled accounts were seeded at `0` instead of their `currentBalance`, so a Joint account receiving an expense transfer would silently lose its balance (the New Month sheet only reconciles emergency/savings/personal accounts, so Joint is never in the dict). Now also reports `unallocatedRemainingMoney` when `remainingDestination` names a role no account fills — money that previously vanished without a trace. All 77 Dashboard tests pass unchanged |
 | Xcode MCP bridge + full XcodeBuildMCP automation | 2026-09-27 | Registered `xcode` server (`xcrun mcpbridge`) in `.mcp.json`, mirroring MoMA; enabled `debugging`, `device`, `session-management`, `doctor` XcodeBuildMCP workflows. See `XcodeBuildMCP-Simulator-Workflow.md` |
 | Xcode skills plugin + Apple docs rules | 2026-09-27 | `claude` wrapper in `~/.zshrc` loads Xcode's `xcode-integration` skills plugin; `CLAUDE.md` now mandates those skills per work type and `DocumentationSearch` (xcode MCP) before guessing at Apple APIs. See `XcodeBuildMCP-Simulator-Workflow.md` |
+| Full app audit | 2026-09-27 | Architecture, SwiftUI/a11y/localization skills, business-logic placement, tests and simulator QA across every package. Record, bug ledger and follow-ups: [Audit-2026-09-27.md](./Audit-2026-09-27.md) |
+| Layering restored | 2026-09-27 | Features no longer import Persistence/SwiftData; Onboarding returns a Domain `OnboardingResult`; all writes go through `Persistence/ModelContext+Writes.swift` (rollback + logged errors); `MonthlyRecord` moved to Persistence; `SettingsSheet` split up. Repository protocols / DI container deliberately deferred |
+| Money-logic fixes | 2026-09-27 | Annual expenses counted 12×, "Keep in Primary" losing remaining money, salary-below-expenses creating money (now capped + `shortfall` warning), Double drift (all money in whole cents, plans sum exactly to income), locale-aware amount parsing/display, Joint accumulating every month (New Month now reconciles every non-primary account). Each proven by a test that fails with the bug |
+| Broken expense→account links | 2026-09-27 | `Account(from:)` generated new ids, so every onboarding link was orphaned. Fixed, plus an idempotent startup repair (`repairDanglingExpenseLinks`) for existing stores; verified by upgrading a HEAD-built install in the simulator |
+| Account & settings rules in Domain | 2026-09-27 | `canAssign(_:toAccount:)`, `availableRemainingDestinations`, `withSafeBoost` shared by Onboarding and Settings, and enforced again by `updateAccount` / `saveSettings` |
+| Accessibility & localization pass | 2026-09-27 | VoiceOver labels/grouping, Dynamic Type layouts, Reduce Motion, WCAG AA accents (light `#A21CAF` / `#0E7490`, `accentPrimaryFill` for filled buttons, enforced by `ColorTests`), missing Romanian strings added (machine-translated — needs review) |
+| Test suites rebuilt | 2026-09-27 | Tautological tests removed; real-scenario tests added (Domain invariant: every plan sums exactly to income across 55 cases; in-memory SwiftData scenarios in Persistence) |
 
 ### In Progress
 
@@ -161,7 +168,8 @@ This document tracks implementation progress. **Update this file after completin
 
 | Priority | Task | Reference |
 |----------|------|-----------|
-| 1 | Implement Insights feature | Stats, AI tips (Foundation Models), scenario analysis |
+| 1 | Audit follow-ups (product decisions, a11y polish, native Romanian review) | [Audit-2026-09-27.md › Follow-ups](./Audit-2026-09-27.md#4-follow-ups-deliberately-not-done) |
+| 2 | Implement Insights feature | Stats, AI tips (Foundation Models), scenario analysis; income history via `MonthlyRecord` |
 
 ---
 
@@ -199,7 +207,7 @@ Based on [Architecture.md](./Architecture.md)
 | Core | Utilities | Done | HapticManager, AmountFormatter, Currency |
 | Core | SharedUI | Done | CelebrationEffect, ProgressRing, CurrencyAmountField |
 | Core | Domain | Done | AccountType, AccountEntry, ExpenseEntry, ExpenseCategory, Frequency, SavingsAllocationEntry, RemainingMoneyDestination, TransferPlan, TransferCalculator |
-| Domain | Repositories | Not Started | Protocol definitions |
+| Domain | Repositories | Deferred | Closures are the feature↔storage boundary; add protocols only when a feature must query storage |
 | Platform | Persistence | Done | SwiftData models: Expense, Account, Income, UserProfile, SavingsAllocation, CustomCategory |
 | Features | Onboarding | Done | 7-screen flow, SwiftData models, ViewModel, microinteractions, celebrations |
 | Features | Dashboard | Done | DashboardView, NewMonthSheet, 3-step flow, MonthlyRecord model |
@@ -211,7 +219,7 @@ Based on [Architecture.md](./Architecture.md)
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| DependencyContainer | Not Started | Manual DI composition root |
+| DependencyContainer | Deferred | Not needed while the app target is the only `ModelContext` user |
 | AppRouter | Not Started | Navigation state management |
 | MainTabView | Done | 3 tabs (Dashboard, Expenses, Insights) + NewMonth accessory |
 | Onboarding flow | Done | Forward-only, UserDefaults flag, SwiftData persistence, polished UX |
@@ -221,14 +229,33 @@ Based on [Architecture.md](./Architecture.md)
 
 ## Technical Debt & Notes
 
-- Animation constants in DesignSystem; well-organized for reuse across features
-- Expenses feature needs unit tests (ExpensesViewModelTests.swift)
-- Dashboard feature needs unit tests (DashboardViewModelTests.swift)
+- Open follow-ups from the 2026-09-27 audit are tracked in [Audit-2026-09-27.md](./Audit-2026-09-27.md#4-follow-ups-deliberately-not-done)
+- `.localized` keys are not extracted by Xcode and show as "stale" — never run "Remove stale strings"
 - Consider adding expense sorting/reordering within categories
 
 ---
 
 ## Session Notes
+
+### 2026-09-27 - Full App Audit
+
+**Focus:** Full audit with a team of agents (Domain/Core, Persistence/app, Dashboard/Expenses,
+Onboarding, simulator QA), then a code review and an independent verification pass that proved every
+bug claim with a test failing when the bug is put back.
+
+**Key Learnings:**
+1. **Mapping must keep ids.** `Account(from:)` minting a new UUID silently orphaned every
+   `linkedAccountId`. Round-trip tests (`Model(from: entry).toEntry() == entry`) catch this class of bug.
+2. **Money is Decimal, rounded to cents, and must sum exactly.** `Decimal(Double)` drifts
+   (`Decimal(0.07)`); snap rates, round to cents, and let one bucket absorb the residue. An invariant
+   test over awkward inputs is worth more than many example tests.
+3. **Mutation-check your tests.** Several "passing" tests didn't cover their bug (MonthlyRecord
+   cleanup, a 3.3 multiplier that happens to be exact, a 1-in-6 ordering test). Put the bug back and
+   watch the test go red.
+4. **Xcode 27 + `name=` destinations:** `OS:latest` resolves to iOS 27 (iPhone 18 only) — pin `OS=` or use `id=`.
+5. **`defaultLocalization` enables catalog symbol generation**: case-only duplicate keys fail the build.
+6. **Exclusive access with @Observable:** passing `&array[i]` inout while the callee reads `self.array` traps at runtime.
+
 
 ### 2025-12-22 - Onboarding Polish Session
 

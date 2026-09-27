@@ -2,9 +2,7 @@ import Foundation
 import SwiftData
 import Observation
 
-/// Observes SwiftData changes and triggers refresh callbacks.
-/// This provides a centralized way to react to any data changes
-/// instead of scattered onChange handlers throughout the app.
+/// Calls `onDataChanged` after every `ModelContext` save, from any context.
 @Observable
 @MainActor
 final class DataObserver {
@@ -22,12 +20,9 @@ final class DataObserver {
 
     // MARK: - Lifecycle
 
-    /// Start observing ModelContext.didSave notifications.
-    /// Call this when the view appears.
     func startObserving(modelContext: ModelContext) {
         stopObserving()
 
-        // Capture modelContext weakly for the async task
         notificationTask = Task { @MainActor [weak self] in
             let notifications = NotificationCenter.default.notifications(
                 named: ModelContext.didSave
@@ -40,8 +35,6 @@ final class DataObserver {
         }
     }
 
-    /// Stop observing notifications.
-    /// Call this when the view disappears.
     func stopObserving() {
         notificationTask?.cancel()
         notificationTask = nil

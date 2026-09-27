@@ -3,35 +3,17 @@ import DesignSystem
 import Utilities
 import Domain
 
-/// Modal flow for processing a new month's salary.
 public struct NewMonthSheet: View {
-    @Bindable var viewModel: DashboardViewModel
+    let currency: Currency
     let onComplete: (NewMonthCompletionData) -> Void
 
-    public init(viewModel: DashboardViewModel, onComplete: @escaping (NewMonthCompletionData) -> Void) {
-        self.viewModel = viewModel
-        self.onComplete = onComplete
-    }
-
     @Environment(\.dismiss) private var dismiss
+    @State private var flow: NewMonthFlowModel
 
-    @State private var currentStep: NewMonthStep = .salaryEntry
-    @State private var enteredIncome: Decimal = 0
-    @State private var accountBalances: [UUID: Decimal] = [:]
-    @State private var calculatedPlan: TransferPlan?
-
-    enum NewMonthStep: Int, CaseIterable {
-        case salaryEntry = 1
-        case reconcileAccounts = 2
-        case transferPlan = 3
-
-        var title: String {
-            switch self {
-            case .salaryEntry: return "How much did you receive?".localized
-            case .reconcileAccounts: return "Update your account balances".localized
-            case .transferPlan: return "Your Transfer Plan".localized
-            }
-        }
+    public init(viewModel: DashboardViewModel, onComplete: @escaping (NewMonthCompletionData) -> Void) {
+        self.currency = viewModel.currency
+        self.onComplete = onComplete
+        self._flow = State(initialValue: NewMonthFlowModel(dashboard: viewModel))
     }
 
     public var body: some View {
@@ -41,7 +23,7 @@ public struct NewMonthSheet: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
-                        if currentStep == .salaryEntry {
+                        if flow.isFirstStep {
                             Button("Cancel".localized) {
                                 dismiss()
                             }
@@ -52,15 +34,12 @@ public struct NewMonthSheet: View {
                 }
         }
         .presentationDetents([.large])
-        .interactiveDismissDisabled(currentStep != .salaryEntry)
-        .onAppear {
-            setupInitialValues()
-        }
+        .interactiveDismissDisabled(!flow.isFirstStep)
     }
 
     private var stepTitle: String {
         String(
-            localized: "Step \(currentStep.rawValue) of \(NewMonthStep.allCases.count)",
+            localized: "Step \(flow.step.rawValue) of \(NewMonthFlowModel.Step.allCases.count)",
             bundle: .module
         )
     }
@@ -71,30 +50,28 @@ public struct NewMonthSheet: View {
 private extension NewMonthSheet {
     @ViewBuilder
     var content: some View {
-        switch currentStep {
+        switch flow.step {
         case .salaryEntry:
             SalaryEntryStep(
-                income: $enteredIncome,
-                lastMonthIncome: viewModel.monthlyIncome,
-                currency: viewModel.currency,
-                onContinue: { advanceToNextStep() }
+                income: $flow.income,
+                lastMonthIncome: flow.lastMonthIncome,
+                currency: currency,
+                canContinue: flow.canContinue,
+                onContinue: advance
             )
 
         case .reconcileAccounts:
             ReconcileAccountsStep(
-                accounts: viewModel.accounts,
-                balances: $accountBalances,
-                currency: viewModel.currency,
-                onContinue: { advanceToNextStep() }
+                flow: flow,
+                currency: currency,
+                onContinue: advance
             )
 
         case .transferPlan:
             TransferPlanStep(
-                income: enteredIncome,
-                expenses: viewModel.totalExpenses,
-                transferPlan: calculatedPlan ?? viewModel.transferPlan,
-                currency: viewModel.currency,
-                onComplete: { completeFlow() }
+                transferPlan: flow.plan,
+                currency: currency,
+                onComplete: completeFlow
             )
         }
     }
@@ -103,72 +80,20 @@ private extension NewMonthSheet {
 // MARK: - Actions
 
 private extension NewMonthSheet {
-    func setupInitialValues() {
-        enteredIncome = viewModel.monthlyIncome
-        for account in viewModel.accounts {
-            accountBalances[account.id] = account.currentBalance
-        }
-        // Calculate initial plan
-        calculatedPlan = viewModel.calculateTransferPlan(withIncome: enteredIncome)
-    }
-
-    func advanceToNextStep() {
+    func advance() {
         withAnimation(SpringPreset.responsive) {
-            switch currentStep {
-            case .salaryEntry:
-                calculatedPlan = viewModel.calculateTransferPlan(
-                    withIncome: enteredIncome,
-                    reconciledBalances: accountBalances
-                )
-                currentStep = .reconcileAccounts
-            case .reconcileAccounts:
-                // Recalculate plan using the user's reconciled balances so emergency/savings
-                // deficits created by the user spending money are reflected in the plan.
-                calculatedPlan = viewModel.calculateTransferPlan(
-                    withIncome: enteredIncome,
-                    reconciledBalances: accountBalances
-                )
-                currentStep = .transferPlan
-            case .transferPlan:
-                break
-            }
+            flow.advance()
         }
     }
 
     func goBack() {
         withAnimation(SpringPreset.responsive) {
-            switch currentStep {
-            case .salaryEntry:
-                break
-            case .reconcileAccounts:
-                currentStep = .salaryEntry
-            case .transferPlan:
-                currentStep = .reconcileAccounts
-            }
+            flow.goBack()
         }
     }
 
     func completeFlow() {
-        guard let plan = calculatedPlan else {
-            dismiss()
-            return
-        }
-
-        // Create completion data with all necessary info
-        let completionData = NewMonthCompletionData(
-            income: enteredIncome,
-            transferPlan: plan,
-            reconciledBalances: accountBalances
-        )
-
-        // Pass data back to main app for persistence
-        onComplete(completionData)
+        onComplete(flow.completionData)
         dismiss()
     }
-}
-
-// MARK: - Localization
-
-private extension String {
-    static let cancelLocalized = "Cancel".localized
 }

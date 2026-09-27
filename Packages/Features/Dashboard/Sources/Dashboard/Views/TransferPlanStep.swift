@@ -4,10 +4,7 @@ import SharedUI
 import Domain
 import Utilities
 
-/// Step 3: Review and confirm the transfer plan.
 struct TransferPlanStep: View {
-    let income: Decimal
-    let expenses: Decimal
     let transferPlan: TransferPlan
     let currency: Currency
     let onComplete: () -> Void
@@ -15,26 +12,30 @@ struct TransferPlanStep: View {
     var body: some View {
         VStack(spacing: Spacing.lg) {
             ScrollView {
-                GlassEffectContainer(spacing: Spacing.md) {
-                    VStack(spacing: Spacing.md) {
-                        TransferPlanSummary(
-                            income: income,
-                            expenses: expenses,
-                            availableIncome: transferPlan.availableIncome,
-                            currency: currency
-                        )
+                VStack(spacing: Spacing.md) {
+                    if transferPlan.shortfall > 0 {
+                        verificationBadge
+                    }
 
-                        TransferPlanTransfers(
-                            transferPlan: transferPlan,
-                            currency: currency
-                        )
+                    TransferPlanSummary(
+                        income: transferPlan.income,
+                        expenses: transferPlan.totalExpenses,
+                        availableIncome: transferPlan.availableIncome,
+                        currency: currency
+                    )
 
-                        PrimaryAccountRow(
-                            amount: transferPlan.remainsInPrimary,
-                            currency: currency
-                        )
+                    TransferPlanTransfers(
+                        transferPlan: transferPlan,
+                        currency: currency
+                    )
 
-                        TransferPlanVerificationBadge(isBalanced: transferPlan.isBalanced)
+                    PrimaryAccountRow(
+                        amount: transferPlan.remainsInPrimary,
+                        currency: currency
+                    )
+
+                    if transferPlan.shortfall == 0 {
+                        verificationBadge
                     }
                 }
                 .padding(.horizontal, Spacing.lg)
@@ -47,9 +48,19 @@ struct TransferPlanStep: View {
                     .padding(.vertical, Spacing.sm)
             }
             .buttonStyle(.glassProminent)
+            .tint(DiamerisColors.accentPrimaryFill)
             .padding(.horizontal, Spacing.lg)
         }
         .padding(.vertical, Spacing.md)
+    }
+
+    /// Leads the plan when there is a shortfall so the warning is seen before the transfers.
+    private var verificationBadge: some View {
+        TransferPlanVerificationBadge(
+            isBalanced: transferPlan.isBalanced,
+            shortfall: transferPlan.shortfall,
+            currency: currency
+        )
     }
 }
 
@@ -70,6 +81,7 @@ private struct TransferPlanSummary: View {
                 Image(systemName: "list.clipboard.fill")
                     .foregroundStyle(DiamerisColors.accentPrimary)
             }
+            .accessibilityAddTraits(.isHeader)
 
             HStack {
                 Text("Income".localized)
@@ -78,6 +90,7 @@ private struct TransferPlanSummary: View {
                 Text(formatAmount(income))
             }
             .font(.subheadline)
+            .accessibilityElement(children: .combine)
 
             HStack {
                 Text("Expenses".localized)
@@ -87,6 +100,7 @@ private struct TransferPlanSummary: View {
                     .foregroundStyle(DiamerisColors.negative)
             }
             .font(.subheadline)
+            .accessibilityElement(children: .combine)
 
             Divider()
 
@@ -98,6 +112,7 @@ private struct TransferPlanSummary: View {
                     .bold()
             }
             .font(.subheadline)
+            .accessibilityElement(children: .combine)
         }
         .glassCard()
     }
@@ -125,6 +140,7 @@ private struct TransferPlanTransfers: View {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 Text("Transfers to make".localized)
                     .font(.headline)
+                    .accessibilityAddTraits(.isHeader)
 
                 ForEach(transferPlan.accountAllocations) { allocation in
                     AllocationTransferRow(allocation: allocation, currency: currency)
@@ -153,12 +169,15 @@ private struct AllocationTransferRow: View {
     let allocation: TransferPlan.AccountAllocation
     let currency: Currency
 
+    @ScaledMetric(relativeTo: .body) private var iconWidth = ComponentSize.iconContainer
+
     var body: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: allocation.icon)
                 .font(.body)
-                .foregroundStyle(iconColor)
-                .frame(width: ComponentSize.iconContainer)
+                .foregroundStyle(allocation.accountType.color)
+                .frame(width: iconWidth)
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(allocation.accountName)
@@ -179,6 +198,7 @@ private struct AllocationTransferRow: View {
                 .bold()
                 .foregroundStyle(DiamerisColors.positive)
         }
+        .accessibilityElement(children: .combine)
     }
 
     private var formattedAmount: String {
@@ -191,16 +211,6 @@ private struct AllocationTransferRow: View {
         }
         return allocation.progressChangeDisplay
     }
-
-    private var iconColor: Color {
-        switch allocation.accountType {
-        case .primary: .secondary
-        case .emergency: DiamerisColors.warning
-        case .savings: DiamerisColors.accentPrimary
-        case .personal: DiamerisColors.accentSecondary
-        default: .secondary
-        }
-    }
 }
 
 // MARK: - Expense Transfer Row
@@ -209,19 +219,22 @@ private struct ExpenseTransferRow: View {
     let transfer: TransferPlan.AccountExpenseTransfer
     let currency: Currency
 
+    @ScaledMetric(relativeTo: .body) private var iconWidth = ComponentSize.iconContainer
+
     var body: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: "arrow.right.circle.fill")
                 .font(.body)
                 .foregroundStyle(DiamerisColors.accentSecondary)
-                .frame(width: ComponentSize.iconContainer)
+                .frame(width: iconWidth)
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(String.localized("Transfer to \(transfer.accountName)"))
                     .font(.subheadline)
                     .bold()
 
-                Text(String.localized("for \(transfer.expenseNames.joined(separator: ", "))"))
+                Text(String.localized("for \(transfer.expenseNames.formatted(.list(type: .and)))"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -233,6 +246,7 @@ private struct ExpenseTransferRow: View {
                 .bold()
                 .foregroundStyle(DiamerisColors.positive)
         }
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -243,12 +257,15 @@ private struct RemainingMoneyRow: View {
     let destination: RemainingMoneyDestination
     let currency: Currency
 
+    @ScaledMetric(relativeTo: .body) private var iconWidth = ComponentSize.iconContainer
+
     var body: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: icon)
                 .font(.body)
                 .foregroundStyle(color)
-                .frame(width: ComponentSize.iconContainer)
+                .frame(width: iconWidth)
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(name)
@@ -267,6 +284,7 @@ private struct RemainingMoneyRow: View {
                 .bold()
                 .foregroundStyle(DiamerisColors.positive)
         }
+        .accessibilityElement(children: .combine)
     }
 
     private var icon: String {
@@ -279,8 +297,8 @@ private struct RemainingMoneyRow: View {
 
     private var color: Color {
         switch destination {
-        case .primarySavings: DiamerisColors.accentPrimary
-        case .personal: DiamerisColors.accentSecondary
+        case .primarySavings: AccountType.savings.color
+        case .personal: AccountType.personal.color
         case .primary: .secondary
         }
     }
@@ -300,12 +318,15 @@ private struct PrimaryAccountRow: View {
     let amount: Decimal
     let currency: Currency
 
+    @ScaledMetric(relativeTo: .body) private var iconWidth = ComponentSize.iconContainer
+
     var body: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: "building.columns.fill")
                 .font(.body)
                 .foregroundStyle(.secondary)
-                .frame(width: ComponentSize.iconContainer)
+                .frame(width: iconWidth)
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text("Primary".localized)
@@ -323,6 +344,7 @@ private struct PrimaryAccountRow: View {
                 .font(.subheadline)
                 .bold()
         }
+        .accessibilityElement(children: .combine)
         .glassCard()
     }
 }
@@ -331,12 +353,17 @@ private struct PrimaryAccountRow: View {
 
 private struct TransferPlanVerificationBadge: View {
     let isBalanced: Bool
+    let shortfall: Decimal
+    let currency: Currency
 
     var body: some View {
-        if isBalanced {
+        if shortfall > 0 {
+            ShortfallWarning(shortfall: shortfall, currency: currency)
+        } else if isBalanced {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(DiamerisColors.positive)
+                    .accessibilityHidden(true)
 
                 Text("All amounts add up correctly".localized)
                     .font(.subheadline)
@@ -344,7 +371,7 @@ private struct TransferPlanVerificationBadge: View {
             }
             .padding(Spacing.sm)
             .frame(maxWidth: .infinity)
-            .background(DiamerisColors.positive.opacity(0.1), in: RoundedRectangle(cornerRadius: CornerRadius.medium))
+            .background(DiamerisColors.positive.opacity(Opacity.faint), in: .rect(cornerRadius: CornerRadius.medium))
         }
     }
 }
@@ -364,8 +391,6 @@ private struct TransferPlanVerificationBadge: View {
     )
 
     TransferPlanStep(
-        income: 14303,
-        expenses: 7205,
         transferPlan: plan,
         currency: .ron,
         onComplete: {}

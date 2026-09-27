@@ -4,12 +4,13 @@ import SharedUI
 import Utilities
 import Domain
 
-/// A row displaying an account with editable properties based on account type.
 struct AccountRow: View {
     let account: AccountEntry
     let monthlyIncome: Decimal
     let currency: String
-    let hasExistingEmergency: Bool
+    /// Types the type menu offers (the primary role can't be reassigned).
+    let assignableTypes: [AccountType]
+    let canAssignEmergency: Bool
 
     let onTypeChange: (AccountType) -> Void
     let onNameChange: (String) -> Void
@@ -22,7 +23,10 @@ struct AccountRow: View {
     @State private var isEditing = false
     @State private var editedName: String = ""
     @State private var isExpanded = false
+    @FocusState private var isNameFocused: Bool
     @Namespace private var glassNamespace
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         // Single glass surface that morphs as content expands/collapses
@@ -30,15 +34,14 @@ struct AccountRow: View {
             VStack(spacing: 0) {
                 mainRow
 
-                if isExpanded {
+                if isExpanded && shouldShowExpandedContent {
                     expandedContent
                 }
             }
             .glassEffect(in: .rect(cornerRadius: CornerRadius.large))
             .glassEffectID("card-\(account.id)", in: glassNamespace)
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(accessibilityDescription)
+        .accessibilityElement(children: .contain)
     }
 }
 
@@ -46,22 +49,34 @@ struct AccountRow: View {
 
 private extension AccountRow {
     var mainRow: some View {
-        HStack(spacing: Spacing.md) {
-            accountIcon
+        mainRowLayout {
+            // At accessibility sizes the decorative icon is dropped and the
+            // buttons move under the name so nothing is pushed off-screen.
+            if !dynamicTypeSize.isAccessibilitySize {
+                accountIcon
+            }
             accountContent
-            Spacer()
+            if !dynamicTypeSize.isAccessibilitySize {
+                Spacer()
+            }
             trailingContent
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Spacing.md)
         .contentShape(Rectangle())
         .onTapGesture {
+            // Convenience for sighted users; VoiceOver uses the chevron button.
             if shouldShowExpandedContent {
-                withAnimation(.bouncy) {
-                    isExpanded.toggle()
-                }
-                HapticManager.lightTap()
+                toggleExpanded()
             }
         }
+    }
+
+    func toggleExpanded() {
+        withAnimation(reduceMotion ? nil : .bouncy) {
+            isExpanded.toggle()
+        }
+        HapticManager.lightTap()
     }
 
     var accountIcon: some View {
@@ -98,42 +113,76 @@ private extension AccountRow {
         TextField("Account name".localized, text: $editedName)
             .font(.headline)
             .textFieldStyle(.plain)
-            .onSubmit {
-                onNameChange(editedName)
-                isEditing = false
+            .submitLabel(.done)
+            .focused($isNameFocused)
+            .onAppear { isNameFocused = true }
+            .onSubmit { commitName() }
+            .onChange(of: isNameFocused) { _, isFocused in
+                // Losing focus (e.g. to another field) commits too, not only Return.
+                if !isFocused { commitName() }
             }
     }
 
     var nameDisplay: some View {
-        HStack(spacing: Spacing.xs) {
-            Text(account.name)
-                .font(.headline)
-
-            if account.isPrimary {
-                primaryBadge
-                    .transition(.opacity.animation(.easeOut(duration: AnimationDuration.appear)))
-            }
-
-            if account.isPrimarySavings {
-                primarySavingsBadge
-                    .transition(.opacity.animation(.easeOut(duration: AnimationDuration.appear)))
-            }
-        }
-        .onTapGesture {
+        Button {
             editedName = account.name
             isEditing = true
+        } label: {
+            nameLayout {
+                Text(account.name)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.leading)
+
+                if account.isPrimary {
+                    primaryBadge
+                        .transition(.opacity.animation(.easeOut(duration: AnimationDuration.appear)))
+                }
+
+                if account.isPrimarySavings {
+                    primarySavingsBadge
+                        .transition(.opacity.animation(.easeOut(duration: AnimationDuration.appear)))
+                }
+            }
         }
+        .buttonStyle(.plain)
+        .accessibilityHint("Double tap to rename".localized)
     }
 
+    func commitName() {
+        guard isEditing else { return }
+        onNameChange(editedName)
+        isEditing = false
+    }
+
+    var mainRowLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.sm))
+            : AnyLayout(HStackLayout(spacing: Spacing.md))
+    }
+
+    /// Badges wrap under the name at accessibility sizes.
+    var nameLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.xxs))
+            : AnyLayout(HStackLayout(spacing: Spacing.xs))
+    }
+
+    @ViewBuilder
     var typeAndBadgesSection: some View {
-        AccountTypeSelector(
-            selectedType: .init(
-                get: { account.accountType },
-                set: { onTypeChange($0) }
-            ),
-            compact: true,
-            disableEmergency: hasExistingEmergency
-        )
+        // The primary account's role is fixed (its "Primary" badge already says so),
+        // so it gets no type menu.
+        if !account.isPrimary {
+            AccountTypeSelector(
+                selectedType: .init(
+                    get: { account.accountType },
+                    set: { onTypeChange($0) }
+                ),
+                types: assignableTypes,
+                compact: true,
+                disableEmergency: !canAssignEmergency
+            )
+        }
     }
 
     var trailingContent: some View {
@@ -146,23 +195,32 @@ private extension AccountRow {
         }
     }
 
-    @ViewBuilder
     var expandChevron: some View {
-        Image(systemName: "chevron.down")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .rotationEffect(.degrees(isExpanded ? 180 : 0))
-            .animation(.easeOut(duration: AnimationDuration.appear), value: isExpanded)
+        Button {
+            toggleExpanded()
+        } label: {
+            Image(systemName: "chevron.down")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .rotationEffect(isExpanded ? .degrees(180) : .zero)
+                .animation(.easeOut(duration: AnimationDuration.appear), value: isExpanded)
+                .frame(minWidth: ComponentSize.minTouchTarget, minHeight: ComponentSize.minTouchTarget)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(isExpanded ? "Hide details".localized : "Show details".localized)
     }
 
     @ViewBuilder
     var deleteButton: some View {
-        if let onDelete = onDelete {
+        if let onDelete {
             Button {
                 onDelete()
             } label: {
                 Image(systemName: "xmark.circle.fill")
                     .foregroundStyle(.secondary)
+                    .frame(minWidth: ComponentSize.minTouchTarget, minHeight: ComponentSize.minTouchTarget)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel(String(localized: "Remove \(account.name)", bundle: .module))
@@ -177,10 +235,10 @@ private extension AccountRow {
         Text("Primary".localized)
             .font(.caption2)
             .fontWeight(.medium)
-            .foregroundStyle(DiamerisColors.accentPrimary)
+            .foregroundStyle(.primary)
             .padding(.horizontal, Spacing.xs)
-            .padding(.vertical, 2)
-            .background(DiamerisColors.accentPrimary.opacity(0.15))
+            .padding(.vertical, Spacing.xxs)
+            .background(DiamerisColors.accentPrimary.opacity(Opacity.light))
             .clipShape(Capsule())
     }
 
@@ -188,10 +246,10 @@ private extension AccountRow {
         Text("Auto-Save".localized)
             .font(.caption2)
             .fontWeight(.medium)
-            .foregroundStyle(DiamerisColors.accentSecondary)
+            .foregroundStyle(.primary)
             .padding(.horizontal, Spacing.xs)
-            .padding(.vertical, 2)
-            .background(DiamerisColors.accentSecondary.opacity(0.15))
+            .padding(.vertical, Spacing.xxs)
+            .background(DiamerisColors.accentSecondary.opacity(Opacity.light))
             .clipShape(Capsule())
     }
 }
@@ -219,12 +277,10 @@ private extension AccountRow {
             .padding(.horizontal, Spacing.md)
             .padding(.bottom, Spacing.md)
         }
-        // GlassEffectContainer handles the morphing animation
     }
 
     var emergencyExpandedContent: some View {
         VStack(spacing: Spacing.md) {
-            // Multiplier Picker with Hard Cap
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text("Target: months of income".localized)
                     .font(.caption)
@@ -232,7 +288,7 @@ private extension AccountRow {
 
                 EmergencyMultiplierPicker(
                     multiplier: Binding(
-                        get: { account.emergencyMultiplier ?? 3.0 },
+                        get: { account.emergencyMultiplier ?? EmergencyMultiplierPicker.defaultMultiplier },
                         set: { onMultiplierChange?($0) }
                     ),
                     hardCap: Binding(
@@ -244,7 +300,6 @@ private extension AccountRow {
                 )
             }
 
-            // Current Balance
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text("Current balance".localized)
                     .font(.caption)
@@ -259,7 +314,6 @@ private extension AccountRow {
                 )
             }
 
-            // Progress Display
             if let progress = account.emergencyProgress(monthlyIncome: monthlyIncome) {
                 emergencyProgressView(progress: progress)
                     .transition(.opacity.animation(.easeOut(duration: AnimationDuration.appear)))
@@ -276,7 +330,7 @@ private extension AccountRow {
 
                 Spacer()
 
-                Text("\(Int(progress * 100))%")
+                Text(progress, format: .percent.precision(.fractionLength(0)))
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundStyle(progress >= 1.0 ? .green : .orange)
@@ -327,28 +381,6 @@ private extension AccountRow {
     }
 }
 
-// MARK: - Accessibility
-
-private extension AccountRow {
-    var accessibilityDescription: String {
-        var description = "\(account.name), \(account.accountType.displayName)"
-
-        if account.isPrimary {
-            description += ", primary account"
-        }
-
-        if account.isPrimarySavings {
-            description += ", primary savings"
-        }
-
-        if account.accountType == .emergency, let target = account.emergencyTarget(monthlyIncome: monthlyIncome) {
-            description += ", target \(AmountFormatter.formatForDisplay(target, currency: currency))"
-        }
-
-        return description
-    }
-}
-
 // MARK: - Balance Input Field
 
 private struct BalanceInputField: View {
@@ -366,6 +398,7 @@ private struct BalanceInputField: View {
 
             TextField("0", text: $text)
                 .font(.subheadline)
+                .accessibilityLabel("Current balance".localized)
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)
                 .onChange(of: text) { _, newValue in
@@ -378,8 +411,8 @@ private struct BalanceInputField: View {
                 }
         }
         .padding(Spacing.sm)
-        .background(Color.secondary.opacity(0.1))
-        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.small))
+        .background(Color.secondary.opacity(Opacity.faint))
+        .clipShape(.rect(cornerRadius: CornerRadius.small))
     }
 }
 
@@ -389,7 +422,8 @@ private struct BalanceInputField: View {
             account: .primary(),
             monthlyIncome: 5000,
             currency: "USD",
-            hasExistingEmergency: false,
+            assignableTypes: OnboardingViewModel.assignableAccountTypes,
+            canAssignEmergency: true,
             onTypeChange: { _ in },
             onNameChange: { _ in },
             onMultiplierChange: nil,
@@ -403,7 +437,8 @@ private struct BalanceInputField: View {
             account: .emergency(multiplier: 3.0, currentBalance: 5000),
             monthlyIncome: 5000,
             currency: "USD",
-            hasExistingEmergency: true,
+            assignableTypes: OnboardingViewModel.assignableAccountTypes,
+            canAssignEmergency: false,
             onTypeChange: { _ in },
             onNameChange: { _ in },
             onMultiplierChange: { _ in },
@@ -417,7 +452,8 @@ private struct BalanceInputField: View {
             account: .savings(isPrimarySavings: true),
             monthlyIncome: 5000,
             currency: "USD",
-            hasExistingEmergency: true,
+            assignableTypes: OnboardingViewModel.assignableAccountTypes,
+            canAssignEmergency: false,
             onTypeChange: { _ in },
             onNameChange: { _ in },
             onMultiplierChange: nil,

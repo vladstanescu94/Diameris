@@ -2,1150 +2,464 @@ import Foundation
 import Testing
 @testable import Domain
 
-/// Tests for TransferCalculator - the core business logic that determines
-/// how money flows from income through accounts based on account types.
-@Suite("TransferCalculator Tests")
 struct TransferCalculatorTests {
 
-    // MARK: - Test Fixtures
+    // MARK: - Prioritized mode
 
-    /// Standard test income for consistent calculations
-    static let testIncome: Decimal = 10000
+    @Test func `8500 RON salary with Joint rent and annual insurance fills emergency first, then savings`() throws {
+        let primary = AccountEntry.primary(name: "Main")
+        let joint = AccountEntry.joint(name: "Joint")
+        let emergency = AccountEntry.emergency(name: "Emergency", multiplier: 3, currentBalance: 24_900)
+        let savings = AccountEntry.savings(name: "Savings")
 
-    /// Creates a standard allocation with given percentage
-    static func allocation(
-        percentage: Double = 0.25,
-        boost: Bool = false,
-        allocationMode: AllocationMode = .prioritized,
-        savingsInputMode: SavingsInputMode = .percentage,
-        fixedAmount: Decimal = 0,
-        splitEmergency: Decimal = 0,
-        splitSavings: Decimal = 0,
-        splitEmergencyInputMode: SavingsInputMode = .fixedAmount,
-        splitEmergencyPercentage: Double = 0.10,
-        splitSavingsInputMode: SavingsInputMode = .fixedAmount,
-        splitSavingsPercentage: Double = 0.15
-    ) -> SavingsAllocationEntry {
-        SavingsAllocationEntry(
-            percentage: percentage,
-            boostEnabled: boost,
-            boostMultiplier: 3.0,
-            allocationMode: allocationMode,
-            savingsInputMode: savingsInputMode,
-            fixedAmount: fixedAmount,
-            splitEmergencyInputMode: splitEmergencyInputMode,
-            splitEmergencyAmount: splitEmergency,
-            splitEmergencyPercentage: splitEmergencyPercentage,
-            splitSavingsInputMode: splitSavingsInputMode,
-            splitSavingsAmount: splitSavings,
-            splitSavingsPercentage: splitSavingsPercentage
+        let plan = Fixture.plan(
+            income: 8500,
+            expenses: [
+                Fixture.expense("Rent", 2500, linkedTo: joint),
+                Fixture.expense("Insurance", 1200, .annual),
+                Fixture.expense("Food", 1400)
+            ],
+            allocation: Fixture.prioritized(0.25),
+            accounts: [primary, joint, emergency, savings]
         )
+
+        // 2500 + 1200/12 + 1400 = 4000 → 4500 available → 25% = 1125 to save
+        #expect(plan.totalExpenses == 4000)
+        #expect(plan.availableIncome == 4500)
+        #expect(plan.totalSavings == 1125)
+
+        // Emergency target 3 × 8500 = 25 500; it only needs 600 more, the rest overflows to savings
+        let emergencyAllocation = try #require(plan.emergencyAllocation)
+        #expect(emergencyAllocation.amount == 600)
+        #expect(emergencyAllocation.targetAmount == 25_500)
+        #expect(emergencyAllocation.isComplete)
+        #expect(plan.savingsAllocation?.amount == 525)
+
+        #expect(plan.remainsInPrimary == 1500)
+        #expect(plan.accountExpenseTransfers.map(\.accountId) == [joint.id])
+        #expect(plan.accountExpenseTransfers.first?.amount == 2500)
+        #expect(plan.remainingMoney == 3375)
+        #expect(plan.sumOfParts == 8500)
+        #expect(plan.isBalanced)
     }
 
-    /// Creates a basic set of accounts for testing
-    static func basicAccounts() -> [AccountEntry] {
-        [
-            .primary(name: "Main"),
-            .emergency(name: "Emergency", multiplier: 3.0, currentBalance: 0),
-            .savings(name: "Savings", isPrimarySavings: true)
-        ]
+    @Test func `Emergency fund built from scratch takes the whole savings pool`() throws {
+        let plan = Fixture.plan(
+            income: 10_000,
+            accounts: [.primary(), .emergency(multiplier: 3), .savings()]
+        )
+
+        let emergencyAllocation = try #require(plan.emergencyAllocation)
+        #expect(emergencyAllocation.amount == 2500)
+        #expect(emergencyAllocation.isComplete == false)
+        #expect(emergencyAllocation.progressBefore == 0)
+        #expect(emergencyAllocation.progressChangeDisplay == "0% → 8%")
+        #expect(plan.savingsAllocation == nil)
     }
 
-    // MARK: - Basic Calculations
-
-    @Suite("Basic Calculations")
-    struct BasicCalculations {
-
-        @Test("Income minus expenses equals available income")
-        func availableIncomeCalculation() {
-            let expenses = [
-                ExpenseEntry(name: "Rent", amount: 2000, icon: "house"),
-                ExpenseEntry(name: "Food", amount: 1000, icon: "cart")
+    @Test func `Hard cap reached mid-month sends only the gap to emergency`() throws {
+        let plan = Fixture.plan(
+            income: 10_000,
+            accounts: [
+                .primary(),
+                .emergency(multiplier: 3, hardCap: 10_000, currentBalance: 9800),
+                .savings()
             ]
+        )
 
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: expenses,
-                allocation: allocation(),
-                accounts: [.primary()],
-                remainingDestination: .primary
-            )
-
-            #expect(plan.totalExpenses == 3000)
-            #expect(plan.availableIncome == 7000) // 10000 - 3000
-        }
-
-        @Test("Savings calculated from available income, not total income")
-        func savingsFromAvailableIncome() {
-            let expenses = [ExpenseEntry(name: "Rent", amount: 5000, icon: "house")]
-
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: expenses,
-                allocation: allocation(percentage: 0.20), // 20%
-                accounts: [.primary(), .savings()],
-                remainingDestination: .primary
-            )
-
-            // Available: 10000 - 5000 = 5000
-            // Savings: 5000 * 0.20 = 1000
-            #expect(plan.totalSavings == 1000)
-        }
-
-        @Test("Zero expenses means full income available")
-        func zeroExpenses() {
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: [],
-                allocation: allocation(percentage: 0.10),
-                accounts: [.primary(), .savings()],
-                remainingDestination: .primary
-            )
-
-            #expect(plan.totalExpenses == 0)
-            #expect(plan.availableIncome == testIncome)
-            #expect(plan.totalSavings == 1000) // 10000 * 0.10
-        }
-
-        @Test("Plan is always balanced")
-        func planIsBalanced() {
-            let expenses = [
-                ExpenseEntry(name: "Rent", amount: 2500, icon: "house"),
-                ExpenseEntry(name: "Food", amount: 800, icon: "cart"),
-                ExpenseEntry(name: "Transport", amount: 300, icon: "car")
-            ]
-
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: expenses,
-                allocation: allocation(percentage: 0.25),
-                accounts: basicAccounts(),
-                remainingDestination: .primarySavings
-            )
-
-            #expect(plan.isBalanced)
-        }
-
-        @Test("Expenses exceeding income result in zero available",
-              arguments: [11000, 15000, 20000] as [Decimal])
-        func expensesExceedIncome(expenseAmount: Decimal) {
-            let expenses = [ExpenseEntry(name: "Huge Expense", amount: expenseAmount, icon: "exclamationmark")]
-
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: expenses,
-                allocation: allocation(),
-                accounts: [.primary()],
-                remainingDestination: .primary
-            )
-
-            #expect(plan.availableIncome == 0)
-            #expect(plan.totalSavings == 0)
-            #expect(plan.remainingMoney == 0)
-        }
+        let emergencyAllocation = try #require(plan.emergencyAllocation)
+        #expect(emergencyAllocation.targetAmount == 10_000, "Cap beats 3 × income = 30 000")
+        #expect(emergencyAllocation.amount == 200)
+        #expect(emergencyAllocation.isComplete)
+        #expect(plan.savingsAllocation?.amount == 2300)
     }
 
-    // MARK: - Emergency Account Priority
+    @Test func `Progress text rounds to nearest like the progress ring`() throws {
+        let plan = Fixture.plan(
+            income: 8500,
+            allocation: Fixture.prioritized(0.29),
+            accounts: [.primary(), .emergency(multiplier: 3, currentBalance: 5000)]
+        )
 
-    @Suite("Emergency Account Priority")
-    struct EmergencyAccountPriority {
-
-        @Test("Emergency account fills before savings account")
-        func emergencyFillsFirst() {
-            let accounts = [
-                AccountEntry.primary(name: "Main"),
-                AccountEntry.emergency(name: "Emergency", multiplier: 3.0, currentBalance: 0),
-                AccountEntry.savings(name: "Savings", isPrimarySavings: true)
-            ]
-
-            // With 10000 income, 3x target = 30000
-            // 25% savings = 2500 per month
-            // All 2500 should go to emergency first
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: [],
-                allocation: allocation(percentage: 0.25),
-                accounts: accounts,
-                remainingDestination: .primary
-            )
-
-            let emergencyAlloc = plan.emergencyAllocation
-            let savingsAlloc = plan.savingsAllocation
-
-            #expect(emergencyAlloc != nil)
-            #expect(emergencyAlloc?.amount == 2500)
-            #expect(savingsAlloc == nil) // No overflow to savings yet
-        }
-
-        @Test("Savings receives overflow when emergency is full")
-        func savingsGetsOverflow() {
-            let accounts = [
-                AccountEntry.primary(name: "Main"),
-                // Emergency already at target (30000)
-                AccountEntry.emergency(name: "Emergency", multiplier: 3.0, currentBalance: 30000),
-                AccountEntry.savings(name: "Savings", isPrimarySavings: true)
-            ]
-
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: [],
-                allocation: allocation(percentage: 0.25),
-                accounts: accounts,
-                remainingDestination: .primary
-            )
-
-            let emergencyAlloc = plan.emergencyAllocation
-            let savingsAlloc = plan.savingsAllocation
-
-            // Emergency is full, should get 0
-            #expect(emergencyAlloc?.amount == 0)
-            #expect(emergencyAlloc?.isComplete == true)
-
-            // All savings go to savings account
-            #expect(savingsAlloc?.amount == 2500)
-        }
-
-        @Test("Partial emergency fill with remainder to savings")
-        func partialEmergencyFill() {
-            let accounts = [
-                AccountEntry.primary(name: "Main"),
-                // Emergency needs 1000 more to reach 30000 target
-                AccountEntry.emergency(name: "Emergency", multiplier: 3.0, currentBalance: 29000),
-                AccountEntry.savings(name: "Savings", isPrimarySavings: true)
-            ]
-
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: [],
-                allocation: allocation(percentage: 0.25), // 2500 total savings
-                accounts: accounts,
-                remainingDestination: .primary
-            )
-
-            let emergencyAlloc = plan.emergencyAllocation
-            let savingsAlloc = plan.savingsAllocation
-
-            // Emergency gets only what it needs (1000)
-            #expect(emergencyAlloc?.amount == 1000)
-            #expect(emergencyAlloc?.isComplete == true)
-
-            // Savings gets remainder (1500)
-            #expect(savingsAlloc?.amount == 1500)
-        }
-
-        @Test("Emergency multiplier affects target",
-              arguments: [3.0, 4.0, 5.0, 6.0])
-        func emergencyMultiplierAffectsTarget(multiplier: Double) throws {
-            let accounts = [
-                AccountEntry.primary(name: "Main"),
-                AccountEntry.emergency(name: "Emergency", multiplier: multiplier, currentBalance: 0)
-            ]
-
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: [],
-                allocation: allocation(percentage: 0.50), // Max savings
-                accounts: accounts,
-                remainingDestination: .primary
-            )
-
-            let emergencyAlloc = try #require(plan.emergencyAllocation)
-            let expectedTarget = testIncome * Decimal(multiplier)
-
-            #expect(emergencyAlloc.targetAmount == expectedTarget)
-        }
-
-        @Test("Emergency progress tracking is accurate")
-        func emergencyProgressTracking() throws {
-            let accounts = [
-                AccountEntry.primary(name: "Main"),
-                // 15000 of 30000 = 50% progress
-                AccountEntry.emergency(name: "Emergency", multiplier: 3.0, currentBalance: 15000),
-                AccountEntry.savings(name: "Savings", isPrimarySavings: true)
-            ]
-
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: [],
-                allocation: allocation(percentage: 0.25), // 2500 savings
-                accounts: accounts,
-                remainingDestination: .primary
-            )
-
-            let emergencyAlloc = try #require(plan.emergencyAllocation)
-
-            // Before: 15000/30000 = 50%
-            #expect(emergencyAlloc.progressBefore == 0.5)
-
-            // After: (15000 + 2500) / 30000 = 58.33%
-            let expectedProgressAfter = 17500.0 / 30000.0
-            let progressAfter = try #require(emergencyAlloc.progressAfter)
-            #expect(abs(progressAfter - expectedProgressAfter) < 0.01)
-        }
-
-        @Test("Emergency with hard cap uses capped target")
-        func emergencyWithHardCapUsesCappedTarget() {
-            let accounts = [
-                AccountEntry.primary(name: "Main"),
-                // 3x income = 30000, but capped to 20000
-                AccountEntry.emergency(name: "Emergency", multiplier: 3.0, hardCap: 20000, currentBalance: 0),
-                AccountEntry.savings(name: "Savings", isPrimarySavings: true)
-            ]
-
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: [],
-                allocation: allocation(percentage: 0.25), // 2500 savings
-                accounts: accounts,
-                remainingDestination: .primary
-            )
-
-            let emergencyAlloc = plan.emergencyAllocation
-
-            // Target should be capped at 20000, not 30000
-            #expect(emergencyAlloc?.targetAmount == 20000)
-            #expect(emergencyAlloc?.amount == 2500)
-        }
-
-        @Test("Emergency hard cap overflow goes to savings")
-        func emergencyHardCapOverflowGoesToSavings() {
-            let accounts = [
-                AccountEntry.primary(name: "Main"),
-                // 3x income = 30000, capped to 20000, already has 19000 (needs only 1000)
-                AccountEntry.emergency(name: "Emergency", multiplier: 3.0, hardCap: 20000, currentBalance: 19000),
-                AccountEntry.savings(name: "Savings", isPrimarySavings: true)
-            ]
-
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: [],
-                allocation: allocation(percentage: 0.25), // 2500 savings
-                accounts: accounts,
-                remainingDestination: .primary
-            )
-
-            let emergencyAlloc = plan.emergencyAllocation
-            let savingsAlloc = plan.savingsAllocation
-
-            // Emergency needs only 1000 to reach capped target of 20000
-            #expect(emergencyAlloc?.amount == 1000)
-            #expect(emergencyAlloc?.isComplete == true)
-
-            // Remaining 1500 should go to savings
-            #expect(savingsAlloc?.amount == 1500)
-        }
-
-        @Test("Emergency fully funded at hard cap")
-        func emergencyFullyFundedAtHardCap() {
-            let accounts = [
-                AccountEntry.primary(name: "Main"),
-                // 3x income = 30000, capped to 20000, already at cap
-                AccountEntry.emergency(name: "Emergency", multiplier: 3.0, hardCap: 20000, currentBalance: 20000),
-                AccountEntry.savings(name: "Savings", isPrimarySavings: true)
-            ]
-
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: [],
-                allocation: allocation(percentage: 0.25), // 2500 savings
-                accounts: accounts,
-                remainingDestination: .primary
-            )
-
-            let emergencyAlloc = plan.emergencyAllocation
-            let savingsAlloc = plan.savingsAllocation
-
-            // Emergency is complete at capped target
-            #expect(emergencyAlloc?.amount == 0)
-            #expect(emergencyAlloc?.isComplete == true)
-
-            // All savings go to savings account
-            #expect(savingsAlloc?.amount == 2500)
-        }
+        // 5000 / 25 500 = 19.6% → 20%; + 2465 = 7465 / 25 500 = 29.27% → 29%
+        let emergencyAllocation = try #require(plan.emergencyAllocation)
+        #expect(emergencyAllocation.progressChangeDisplay == "20% → 29%")
     }
 
-    // MARK: - Savings Account Behavior
+    @Test func `Full emergency fund still shows its progress row but everything goes to savings`() {
+        let plan = Fixture.plan(
+            income: 10_000,
+            accounts: [.primary(), .emergency(multiplier: 3, currentBalance: 30_000), .savings()]
+        )
 
-    @Suite("Savings Account Behavior")
-    struct SavingsAccountBehavior {
-
-        @Test("Primary savings account receives allocation")
-        func primarySavingsReceivesAllocation() {
-            let accounts = [
-                AccountEntry.primary(name: "Main"),
-                AccountEntry.savings(name: "My Savings", isPrimarySavings: true)
-            ]
-
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: [],
-                allocation: allocation(percentage: 0.30),
-                accounts: accounts,
-                remainingDestination: .primary
-            )
-
-            let savingsAlloc = plan.savingsAllocation
-            #expect(savingsAlloc?.amount == 3000)
-            #expect(savingsAlloc?.accountName == "My Savings")
-        }
-
-        @Test("Falls back to first savings-type account if no primary savings")
-        func fallbackToFirstSavingsAccount() {
-            let accounts = [
-                AccountEntry.primary(name: "Main"),
-                // Savings account but NOT marked as primary savings
-                AccountEntry(name: "General Savings", accountType: .savings, isPrimarySavings: false)
-            ]
-
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: [],
-                allocation: allocation(percentage: 0.20),
-                accounts: accounts,
-                remainingDestination: .primary
-            )
-
-            let savingsAlloc = plan.savingsAllocation
-            #expect(savingsAlloc?.amount == 2000)
-            #expect(savingsAlloc?.accountName == "General Savings")
-        }
-
-        @Test("No savings allocation when no savings account exists")
-        func noSavingsAccountMeansNoAllocation() {
-            let accounts = [
-                AccountEntry.primary(name: "Main"),
-                AccountEntry.personal(name: "Personal")
-            ]
-
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: [],
-                allocation: allocation(percentage: 0.25),
-                accounts: accounts,
-                remainingDestination: .primary
-            )
-
-            #expect(plan.savingsAllocation == nil)
-            #expect(plan.totalSavings == 0)
-        }
+        #expect(plan.emergencyAllocation?.amount == 0)
+        #expect(plan.emergencyAllocation?.isComplete == true)
+        #expect(plan.savingsAllocation?.amount == 2500)
     }
 
-    // MARK: - Boost Mode
+    @Test func `Emergency account without a multiplier has no target and absorbs all savings`() {
+        let emergency = AccountEntry(name: "Emergency", accountType: .emergency)
+        let plan = Fixture.plan(income: 10_000, accounts: [.primary(), emergency, .savings()])
 
-    @Suite("Boost Mode")
-    struct BoostMode {
-
-        @Test("Boost multiplies savings percentage")
-        func boostMultipliesSavings() {
-            let accounts: [AccountEntry] = [.primary(), .savings()]
-
-            // 10% base * 3x boost = 30%
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: [],
-                allocation: allocation(percentage: 0.10, boost: true),
-                accounts: accounts,
-                remainingDestination: .primary
-            )
-
-            #expect(abs(plan.totalSavings - 3000) < 0.01) // 10000 * 0.30
-        }
-
-        @Test("Boost disabled means base percentage",
-              arguments: [0.10, 0.20, 0.30, 0.40, 0.50])
-        func boostDisabledUsesBase(percentage: Double) {
-            let accounts: [AccountEntry] = [.primary(), .savings()]
-
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: [],
-                allocation: allocation(percentage: percentage, boost: false),
-                accounts: accounts,
-                remainingDestination: .primary
-            )
-
-            let expectedSavings = testIncome * Decimal(percentage)
-            #expect(abs(plan.totalSavings - expectedSavings) < 0.01)
-        }
+        #expect(plan.emergencyAllocation?.amount == 2500)
+        #expect(plan.savingsAllocation == nil)
     }
 
-    // MARK: - Expense Distribution
+    @Test func `Savings fall back to the first savings account when none is flagged primary`() {
+        let fallback = AccountEntry.savings(name: "Broker", isPrimarySavings: false)
+        let plan = Fixture.plan(
+            income: 10_000,
+            accounts: [.primary(), fallback, .savings(name: "Other", isPrimarySavings: false)]
+        )
 
-    @Suite("Expense Distribution")
-    struct ExpenseDistribution {
-
-        @Test("Unlinked expenses stay in primary account")
-        func unlinkedExpensesStayInPrimary() {
-            let expenses = [
-                ExpenseEntry(name: "Rent", amount: 1500, icon: "house", linkedAccountId: nil),
-                ExpenseEntry(name: "Food", amount: 500, icon: "cart", linkedAccountId: nil)
-            ]
-
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: expenses,
-                allocation: allocation(),
-                accounts: [.primary()],
-                remainingDestination: .primary
-            )
-
-            #expect(plan.remainsInPrimary == 2000)
-            #expect(plan.accountExpenseTransfers.isEmpty)
-        }
-
-        @Test("Linked expenses create transfers to target accounts")
-        func linkedExpensesCreateTransfers() throws {
-            let jointAccount = AccountEntry(
-                name: "Joint Account",
-                accountType: .joint,
-                isPrimary: false
-            )
-            // Need to get the actual ID from the account we create
-            let accounts = [AccountEntry.primary(), jointAccount]
-            let actualJointId = accounts[1].id
-
-            let expenses = [
-                ExpenseEntry(name: "Rent", amount: 1500, icon: "house", linkedAccountId: nil),
-                ExpenseEntry(name: "Utilities", amount: 300, icon: "bolt", linkedAccountId: actualJointId),
-                ExpenseEntry(name: "Internet", amount: 100, icon: "wifi", linkedAccountId: actualJointId)
-            ]
-
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: expenses,
-                allocation: allocation(),
-                accounts: accounts,
-                remainingDestination: .primary
-            )
-
-            #expect(plan.remainsInPrimary == 1500) // Only unlinked rent
-            #expect(plan.accountExpenseTransfers.count == 1)
-
-            let jointTransfer = try #require(plan.accountExpenseTransfers.first)
-            #expect(jointTransfer.amount == 400) // 300 + 100
-            #expect(jointTransfer.accountName == "Joint Account")
-            #expect(jointTransfer.expenseNames.count == 2)
-        }
-
-        @Test("Zero amount expenses are ignored")
-        func zeroExpensesIgnored() {
-            let expenses = [
-                ExpenseEntry(name: "Rent", amount: 1000, icon: "house"),
-                ExpenseEntry(name: "Unused", amount: 0, icon: "xmark"),
-                ExpenseEntry(name: "Food", amount: 500, icon: "cart")
-            ]
-
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: expenses,
-                allocation: allocation(),
-                accounts: [.primary()],
-                remainingDestination: .primary
-            )
-
-            #expect(plan.totalExpenses == 1500)
-        }
+        #expect(plan.savingsAllocation?.accountId == fallback.id)
+        #expect(plan.savingsAllocation?.amount == 2500)
     }
 
-    // MARK: - Remaining Money
+    @Test func `Savings with no account to receive them stay as remaining money`() {
+        let plan = Fixture.plan(income: 10_000, accounts: [.primary()])
 
-    @Suite("Remaining Money")
-    struct RemainingMoney {
-
-        @Test("Remaining money calculated correctly")
-        func remainingMoneyCalculation() {
-            let expenses = [ExpenseEntry(name: "Rent", amount: 3000, icon: "house")]
-
-            // Income: 10000, Expenses: 3000, Available: 7000
-            // Savings at 20%: 1400
-            // Remaining: 7000 - 1400 = 5600
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: expenses,
-                allocation: allocation(percentage: 0.20),
-                accounts: [.primary(), .savings()],
-                remainingDestination: .primary
-            )
-
-            #expect(plan.remainingMoney == 5600)
-        }
-
-        @Test("Remaining destination is preserved in plan",
-              arguments: RemainingMoneyDestination.allCases)
-        func remainingDestinationPreserved(destination: RemainingMoneyDestination) {
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: [],
-                allocation: allocation(),
-                accounts: [.primary(), .savings(), .personal()],
-                remainingDestination: destination
-            )
-
-            #expect(plan.remainingDestination == destination)
-        }
+        #expect(plan.accountAllocations.isEmpty)
+        #expect(plan.totalSavings == 0)
+        #expect(plan.remainingMoney == 10_000)
+        #expect(plan.isBalanced)
     }
 
-    // MARK: - Edge Cases
+    @Test func `Boosted 10 percent saves exactly 30 percent`() {
+        let plan = Fixture.plan(
+            income: 10_000,
+            allocation: Fixture.prioritized(0.10, boost: true),
+            accounts: [.primary(), .savings()]
+        )
 
-    @Suite("Edge Cases")
-    struct EdgeCases {
-
-        @Test("Zero income produces zero everything")
-        func zeroIncome() {
-            let plan = TransferCalculator.calculate(
-                income: 0,
-                expenses: [],
-                allocation: allocation(),
-                accounts: basicAccounts(),
-                remainingDestination: .primary
-            )
-
-            #expect(plan.income == 0)
-            #expect(plan.availableIncome == 0)
-            #expect(plan.totalSavings == 0)
-            #expect(plan.remainingMoney == 0)
-            #expect(plan.isBalanced)
-        }
-
-        @Test("Very small amounts don't cause rounding issues")
-        func smallAmounts() {
-            let plan = TransferCalculator.calculate(
-                income: Decimal(string: "100.50")!,
-                expenses: [ExpenseEntry(name: "Small", amount: Decimal(string: "33.33")!, icon: "minus")],
-                allocation: allocation(percentage: 0.10),
-                accounts: [.primary(), .savings()],
-                remainingDestination: .primary
-            )
-
-            #expect(plan.isBalanced)
-        }
-
-        @Test("Large amounts don't overflow")
-        func largeAmounts() {
-            let largeIncome: Decimal = 1_000_000_000 // 1 billion
-
-            let plan = TransferCalculator.calculate(
-                income: largeIncome,
-                expenses: [],
-                allocation: allocation(percentage: 0.50),
-                accounts: [.primary(), .savings()],
-                remainingDestination: .primary
-            )
-
-            #expect(plan.totalSavings == 500_000_000)
-            #expect(plan.isBalanced)
-        }
-
-        @Test("Only primary account still produces valid plan")
-        func onlyPrimaryAccount() {
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: [ExpenseEntry(name: "Rent", amount: 2000, icon: "house")],
-                allocation: allocation(percentage: 0.25),
-                accounts: [.primary()],
-                remainingDestination: .primary
-            )
-
-            // No savings accounts, so no savings allocated
-            #expect(plan.totalSavings == 0)
-            #expect(plan.accountAllocations.isEmpty)
-            // All available income becomes remaining money
-            #expect(plan.remainingMoney == 8000) // 10000 - 2000
-            #expect(plan.isBalanced)
-        }
-
-        @Test("Emergency account without multiplier gets all savings")
-        func emergencyWithoutMultiplier() {
-            var emergency = AccountEntry.emergency(name: "Emergency", multiplier: 3.0)
-            emergency.emergencyMultiplier = nil // Remove multiplier
-
-            let accounts = [.primary(), emergency, .savings()]
-
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: [],
-                allocation: allocation(percentage: 0.25),
-                accounts: accounts,
-                remainingDestination: .primary
-            )
-
-            // Without target, emergency should receive all savings
-            let emergencyAlloc = plan.emergencyAllocation
-            #expect(emergencyAlloc?.amount == 2500)
-            #expect(emergencyAlloc?.targetAmount == nil)
-        }
+        // 0.1 × 3 in Double is 0.30000000000000004 — must not leak into money.
+        #expect(plan.totalSavings == 3000)
     }
 
-    // MARK: - Real World Scenarios
+    @Test(arguments: zip([0.07, 0.13, 0.29, 0.1 + 0.2], [Decimal(595), 1105, 2465, 2550]))
+    func `Slider percentages produce whole-cent savings`(percentage: Double, expected: Decimal) {
+        let plan = Fixture.plan(
+            income: 8500,
+            allocation: Fixture.prioritized(percentage),
+            accounts: [.primary(), .savings()]
+        )
 
-    @Suite("Real World Scenarios")
-    struct RealWorldScenarios {
-
-        @Test("Typical salary with standard expenses")
-        func typicalSalaryScenario() {
-            let income: Decimal = 14303 // Typical Romanian salary
-            let expenses = [
-                ExpenseEntry(name: "Rent", amount: 3500, icon: "house"),
-                ExpenseEntry(name: "Food", amount: 1800, icon: "cart"),
-                ExpenseEntry(name: "Transport", amount: 600, icon: "car"),
-                ExpenseEntry(name: "Subscriptions", amount: 200, icon: "repeat")
-            ]
-
-            let accounts = [
-                AccountEntry.primary(name: "BT Checking"),
-                AccountEntry.emergency(name: "Emergency Fund", multiplier: 3.0, currentBalance: 10000),
-                AccountEntry.savings(name: "Savings", isPrimarySavings: true)
-            ]
-
-            let plan = TransferCalculator.calculate(
-                income: income,
-                expenses: expenses,
-                allocation: SavingsAllocationEntry(percentage: 0.25, boostEnabled: false),
-                accounts: accounts,
-                remainingDestination: .primarySavings
-            )
-
-            // Income: 14303
-            // Expenses: 6100
-            // Available: 8203
-            // Savings (25%): 2050.75
-            // Remaining: 6152.25
-
-            #expect(plan.totalExpenses == 6100)
-            #expect(plan.isBalanced)
-            #expect(plan.emergencyAllocation != nil)
-        }
-
-        @Test("User building emergency fund from scratch")
-        func buildingEmergencyFund() {
-            let income: Decimal = 8000
-            let accounts = [
-                AccountEntry.primary(),
-                AccountEntry.emergency(name: "Emergency", multiplier: 6.0, currentBalance: 0), // 6 months target
-                AccountEntry.savings(isPrimarySavings: true)
-            ]
-
-            // Target: 8000 * 6 = 48000
-            // With aggressive 50% savings rate
-            let plan = TransferCalculator.calculate(
-                income: income,
-                expenses: [],
-                allocation: SavingsAllocationEntry(percentage: 0.50, boostEnabled: false),
-                accounts: accounts,
-                remainingDestination: .primary
-            )
-
-            // All 4000 savings should go to emergency (needs 48000)
-            #expect(plan.emergencyAllocation?.amount == 4000)
-            #expect(plan.savingsAllocation == nil) // Nothing left for regular savings
-            #expect(plan.emergencyAllocation?.isComplete == false)
-        }
-
-        @Test("User with boost enabled to accelerate savings")
-        func boostAcceleratedSavings() {
-            let income: Decimal = 12000
-            let expenses = [ExpenseEntry(name: "Living costs", amount: 4000, icon: "house")]
-
-            let accounts = [
-                AccountEntry.primary(),
-                // Emergency almost complete
-                AccountEntry.emergency(name: "Emergency", multiplier: 3.0, currentBalance: 35000),
-                AccountEntry.savings(isPrimarySavings: true)
-            ]
-
-            // Available: 8000
-            // Base savings 15% = 1200, but with 3x boost = 3600
-            let plan = TransferCalculator.calculate(
-                income: income,
-                expenses: expenses,
-                allocation: SavingsAllocationEntry(percentage: 0.15, boostEnabled: true, boostMultiplier: 3.0),
-                accounts: accounts,
-                remainingDestination: .personal
-            )
-
-            // 8000 * 0.45 (15% * 3) = 3600
-            #expect(abs(plan.totalSavings - 3600) < 0.01)
-            // Emergency target is 36000, has 35000, needs 1000
-            #expect(plan.emergencyAllocation?.amount == 1000)
-            #expect(plan.emergencyAllocation?.isComplete == true)
-            // Remaining 2600 goes to savings (3600 - 1000)
-            #expect(abs((plan.savingsAllocation?.amount ?? 0) - 2600) < 0.01)
-        }
+        #expect(plan.totalSavings == expected)
     }
 
-    // MARK: - Split Allocation Mode
+    @Test func `Fixed savings amount is capped at what is left after expenses`() {
+        let plan = Fixture.plan(
+            income: 10_000,
+            expenses: [Fixture.expense("Rent", 9500)],
+            allocation: SavingsAllocationEntry(savingsInputMode: .fixedAmount, fixedAmount: 2000),
+            accounts: [.primary(), .savings()]
+        )
 
-    @Suite("Split Allocation Mode")
-    struct SplitAllocationMode {
-
-        @Test("Split mode allocates independent amounts to emergency and savings")
-        func splitIndependentAmounts() {
-            let accounts = basicAccounts()
-
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: [],
-                allocation: allocation(
-                    allocationMode: .split,
-                    splitEmergency: 500,
-                    splitSavings: 500
-                ),
-                accounts: accounts,
-                remainingDestination: .primary
-            )
-
-            let emergencyAlloc = plan.emergencyAllocation
-            let savingsAlloc = plan.savingsAllocation
-
-            #expect(emergencyAlloc?.amount == 500)
-            #expect(savingsAlloc?.amount == 500)
-            #expect(plan.totalSavings == 1000)
-            #expect(plan.isBalanced)
-        }
-
-        @Test("Split mode: emergency stops at target, overflow redirects to savings")
-        func splitEmergencyStopsAtTarget() {
-            let accounts = [
-                AccountEntry.primary(name: "Main"),
-                // Target = 30000, already has 29700, needs only 300
-                AccountEntry.emergency(name: "Emergency", multiplier: 3.0, currentBalance: 29700),
-                AccountEntry.savings(name: "Savings", isPrimarySavings: true)
-            ]
-
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: [],
-                allocation: allocation(
-                    allocationMode: .split,
-                    splitEmergency: 500,
-                    splitSavings: 500
-                ),
-                accounts: accounts,
-                remainingDestination: .primary
-            )
-
-            let emergencyAlloc = plan.emergencyAllocation
-            let savingsAlloc = plan.savingsAllocation
-
-            // Emergency gets only 300 (what it needs), remaining 200 overflows to savings
-            #expect(emergencyAlloc?.amount == 300)
-            #expect(emergencyAlloc?.isComplete == true)
-
-            // Savings gets its 500 + 200 overflow = 700
-            #expect(savingsAlloc?.amount == 700)
-            #expect(plan.isBalanced)
-        }
-
-        @Test("Split mode: emergency target fully reached redirects all to savings")
-        func splitEmergencyFullyReached() {
-            let accounts = [
-                AccountEntry.primary(name: "Main"),
-                AccountEntry.emergency(name: "Emergency", multiplier: 3.0, currentBalance: 30000),
-                AccountEntry.savings(name: "Savings", isPrimarySavings: true)
-            ]
-
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: [],
-                allocation: allocation(
-                    allocationMode: .split,
-                    splitEmergency: 500,
-                    splitSavings: 500
-                ),
-                accounts: accounts,
-                remainingDestination: .primary
-            )
-
-            // Emergency gets nothing, all 500 redirects to savings
-            // Note: emergency alloc may still appear with 0 amount due to target tracking
-            let savingsAlloc = plan.savingsAllocation
-            #expect(savingsAlloc?.amount == 1000) // 500 + 500 redirected
-            #expect(plan.isBalanced)
-        }
-
-        @Test("Split mode: proportional reduction when exceeding available income")
-        func splitProportionalReduction() {
-            let expenses = [ExpenseEntry(name: "Rent", amount: 9500, icon: "house")]
-
-            // Available = 10000 - 9500 = 500
-            // Requested = 500 + 500 = 1000 > 500
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: expenses,
-                allocation: allocation(
-                    allocationMode: .split,
-                    splitEmergency: 500,
-                    splitSavings: 500
-                ),
-                accounts: basicAccounts(),
-                remainingDestination: .primary
-            )
-
-            // Ratio = 500 / 1000 = 0.5, so each gets 250
-            #expect(plan.totalSavings == 500)
-            #expect(plan.emergencyAllocation?.amount == 250)
-            #expect(plan.savingsAllocation?.amount == 250)
-            #expect(plan.isBalanced)
-        }
-
-        @Test("Split mode: no emergency account means only savings allocated")
-        func splitNoEmergencyAccount() {
-            let accounts = [
-                AccountEntry.primary(name: "Main"),
-                AccountEntry.savings(name: "Savings", isPrimarySavings: true)
-            ]
-
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: [],
-                allocation: allocation(
-                    allocationMode: .split,
-                    splitEmergency: 500,
-                    splitSavings: 500
-                ),
-                accounts: accounts,
-                remainingDestination: .primary
-            )
-
-            // No emergency account, only savings gets its amount
-            #expect(plan.emergencyAllocation == nil)
-            #expect(plan.savingsAllocation?.amount == 500)
-            #expect(plan.totalSavings == 500)
-            #expect(plan.isBalanced)
-        }
-
-        @Test("Split mode: no savings account means only emergency allocated")
-        func splitNoSavingsAccount() {
-            let accounts = [
-                AccountEntry.primary(name: "Main"),
-                AccountEntry.emergency(name: "Emergency", multiplier: 3.0, currentBalance: 0)
-            ]
-
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: [],
-                allocation: allocation(
-                    allocationMode: .split,
-                    splitEmergency: 500,
-                    splitSavings: 500
-                ),
-                accounts: accounts,
-                remainingDestination: .primary
-            )
-
-            #expect(plan.emergencyAllocation?.amount == 500)
-            #expect(plan.savingsAllocation == nil)
-            #expect(plan.totalSavings == 500)
-            #expect(plan.isBalanced)
-        }
-
-        @Test("Split mode: both amounts zero means no allocations")
-        func splitBothZero() {
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: [],
-                allocation: allocation(
-                    allocationMode: .split,
-                    splitEmergency: 0,
-                    splitSavings: 0
-                ),
-                accounts: basicAccounts(),
-                remainingDestination: .primary
-            )
-
-            #expect(plan.totalSavings == 0)
-            #expect(plan.accountAllocations.isEmpty)
-            #expect(plan.remainingMoney == testIncome)
-            #expect(plan.isBalanced)
-        }
-
-        @Test("Split mode: asymmetric amounts")
-        func splitAsymmetricAmounts() {
-            let accounts = basicAccounts()
-
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: [],
-                allocation: allocation(
-                    allocationMode: .split,
-                    splitEmergency: 300,
-                    splitSavings: 700
-                ),
-                accounts: accounts,
-                remainingDestination: .primary
-            )
-
-            #expect(plan.emergencyAllocation?.amount == 300)
-            #expect(plan.savingsAllocation?.amount == 700)
-            #expect(plan.totalSavings == 1000)
-            #expect(plan.isBalanced)
-        }
-
-        @Test("Split mode with percentage-based emergency allocation")
-        func splitPercentageEmergency() {
-            let accounts = basicAccounts()
-
-            // 10% of 10000 available = 1000 to emergency, 500 fixed to savings
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: [],
-                allocation: allocation(
-                    allocationMode: .split,
-                    splitEmergency: 0,            // not used in percentage mode
-                    splitSavings: 500,
-                    splitEmergencyInputMode: .percentage,
-                    splitEmergencyPercentage: 0.10
-                ),
-                accounts: accounts,
-                remainingDestination: .primary
-            )
-
-            #expect(plan.emergencyAllocation?.amount == 1000)
-            #expect(plan.savingsAllocation?.amount == 500)
-            #expect(plan.totalSavings == 1500)
-            #expect(plan.isBalanced)
-        }
-
-        @Test("Split mode with percentage-based savings allocation")
-        func splitPercentageSavings() {
-            let accounts = basicAccounts()
-
-            // 500 fixed to emergency, 15% of 10000 = 1500 to savings
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: [],
-                allocation: allocation(
-                    allocationMode: .split,
-                    splitEmergency: 500,
-                    splitSavings: 0,              // not used in percentage mode
-                    splitSavingsInputMode: .percentage,
-                    splitSavingsPercentage: 0.15
-                ),
-                accounts: accounts,
-                remainingDestination: .primary
-            )
-
-            #expect(plan.emergencyAllocation?.amount == 500)
-            #expect(plan.savingsAllocation?.amount == 1500)
-            #expect(plan.totalSavings == 2000)
-            #expect(plan.isBalanced)
-        }
-
-        @Test("Split mode with both percentage-based allocations")
-        func splitBothPercentage() {
-            let accounts = basicAccounts()
-
-            // 10% to emergency = 1000, 15% to savings = 1500
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: [],
-                allocation: allocation(
-                    allocationMode: .split,
-                    splitEmergencyInputMode: .percentage,
-                    splitEmergencyPercentage: 0.10,
-                    splitSavingsInputMode: .percentage,
-                    splitSavingsPercentage: 0.15
-                ),
-                accounts: accounts,
-                remainingDestination: .primary
-            )
-
-            #expect(plan.emergencyAllocation?.amount == 1000)
-            #expect(plan.savingsAllocation?.amount == 1500)
-            #expect(plan.totalSavings == 2500)
-            #expect(plan.isBalanced)
-        }
+        #expect(plan.totalSavings == 500)
+        #expect(plan.remainingMoney == 0)
+        #expect(plan.isBalanced)
     }
 
-    // MARK: - Fixed Amount Savings Mode
+    @Test func `Negative fixed savings amount saves nothing instead of inventing money`() {
+        let plan = Fixture.plan(
+            income: 10_000,
+            allocation: SavingsAllocationEntry(savingsInputMode: .fixedAmount, fixedAmount: -500),
+            accounts: [.primary(), .savings()]
+        )
 
-    @Suite("Fixed Amount Savings Mode")
-    struct FixedAmountSavingsMode {
+        #expect(plan.totalSavings == 0)
+        #expect(plan.remainingMoney == 10_000)
+    }
 
-        @Test("Fixed amount used instead of percentage in prioritized mode")
-        func fixedAmountInPrioritizedMode() {
-            let accounts: [AccountEntry] = [.primary(), .savings()]
+    // MARK: - Split mode
 
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: [],
-                allocation: allocation(
-                    savingsInputMode: .fixedAmount,
-                    fixedAmount: 1500
-                ),
-                accounts: accounts,
-                remainingDestination: .primary
-            )
+    @Test func `Split amounts exceeding available income are scaled down to exactly what is available`() {
+        let plan = Fixture.plan(
+            income: 1000,
+            allocation: Fixture.split(emergency: 2000, savings: 1000),
+            accounts: [.primary(), .emergency(multiplier: 3), .savings()]
+        )
 
-            #expect(plan.totalSavings == 1500)
-            #expect(plan.savingsAllocation?.amount == 1500)
-            #expect(plan.isBalanced)
-        }
+        // 1000 split 2:1 is 666.666…/333.333… — must round to cents and still add up.
+        #expect(plan.emergencyAllocation?.amount == Decimal(string: "666.67"))
+        #expect(plan.savingsAllocation?.amount == Decimal(string: "333.33"))
+        #expect(plan.totalSavings == 1000)
+        #expect(plan.remainingMoney == 0)
+        #expect(plan.sumOfParts == 1000)
+    }
 
-        @Test("Fixed amount capped at available income")
-        func fixedAmountCappedAtAvailable() {
-            let expenses = [ExpenseEntry(name: "Rent", amount: 9500, icon: "house")]
+    @Test func `Split mode redirects emergency overflow to savings once the gap is closed`() throws {
+        let plan = Fixture.plan(
+            income: 10_000,
+            allocation: Fixture.split(emergency: 500, savings: 500),
+            accounts: [.primary(), .emergency(multiplier: 3, currentBalance: 29_800), .savings()]
+        )
 
-            // Available = 500, but requesting 2000
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: expenses,
-                allocation: allocation(
-                    savingsInputMode: .fixedAmount,
-                    fixedAmount: 2000
-                ),
-                accounts: [.primary(), .savings()],
-                remainingDestination: .primary
-            )
+        let emergencyAllocation = try #require(plan.emergencyAllocation)
+        #expect(emergencyAllocation.amount == 200)
+        #expect(emergencyAllocation.isComplete)
+        #expect(plan.savingsAllocation?.amount == 800)
+        #expect(plan.totalSavings == 1000)
+    }
 
-            #expect(plan.totalSavings == 500) // Capped at available
-            #expect(plan.isBalanced)
-        }
+    @Test func `Split mode with a full emergency fund sends both amounts to savings`() {
+        let plan = Fixture.plan(
+            income: 10_000,
+            allocation: Fixture.split(emergency: 500, savings: 500),
+            accounts: [.primary(), .emergency(multiplier: 3, currentBalance: 30_000), .savings()]
+        )
 
-        @Test("Fixed amount with prioritized mode: emergency fills first")
-        func fixedAmountEmergencyFirst() {
-            let accounts = [
-                AccountEntry.primary(name: "Main"),
-                // Needs 30000, has 28500, needs 1500
-                AccountEntry.emergency(name: "Emergency", multiplier: 3.0, currentBalance: 28500),
-                AccountEntry.savings(name: "Savings", isPrimarySavings: true)
+        #expect(plan.savingsAllocation?.amount == 1000)
+    }
+
+    @Test func `Split percentages resolve against available income`() {
+        let allocation = SavingsAllocationEntry(
+            allocationMode: .split,
+            splitEmergencyInputMode: .percentage,
+            splitEmergencyPercentage: 0.07,
+            splitSavingsInputMode: .fixedAmount,
+            splitSavingsAmount: 500
+        )
+        let plan = Fixture.plan(
+            income: 10_000,
+            expenses: [Fixture.expense("Rent", 1500)],
+            allocation: allocation,
+            accounts: [.primary(), .emergency(multiplier: 3), .savings()]
+        )
+
+        #expect(plan.emergencyAllocation?.amount == 595)
+        #expect(plan.savingsAllocation?.amount == 500)
+    }
+
+    // MARK: - Expenses
+
+    @Test func `Expenses exceeding income report the shortfall instead of negative savings`() {
+        let plan = Fixture.plan(
+            income: 3000,
+            expenses: [Fixture.expense("Rent", 3500)],
+            accounts: [.primary(), .emergency(multiplier: 3), .savings()]
+        )
+
+        #expect(plan.availableIncome == 0)
+        #expect(plan.totalSavings == 0)
+        #expect(plan.remainingMoney == 0)
+        #expect(plan.shortfall == 500)
+        #expect(plan.remainsInPrimary == 3000, "Only the salary that exists can stay in primary")
+        #expect(plan.sumOfParts == 3000)
+        #expect(plan.isBalanced == false, "Nothing can make 3500 of bills fit in 3000")
+    }
+
+    @Test func `Salary below bills pays the linked Joint rent first and never invents money`() {
+        let primary = AccountEntry.primary()
+        let joint = AccountEntry.joint()
+        let accounts = [primary, joint]
+        let plan = Fixture.plan(
+            income: 4000,
+            expenses: [Fixture.expense("Rent", 2500, linkedTo: joint), Fixture.expense("Bills", 2400)],
+            accounts: accounts
+        )
+
+        #expect(plan.accountExpenseTransfers.map(\.amount) == [2500])
+        #expect(plan.remainsInPrimary == 1500)
+        #expect(plan.shortfall == 900)
+        #expect(plan.sumOfParts == 4000)
+
+        let balances = BalanceReconciler.updatedBalances(plan: plan, accounts: accounts, reconciledBalances: [:])
+        #expect(balances[primary.id] == 1500)
+        #expect(balances[joint.id] == 2500)
+    }
+
+    @Test func `Linked transfers alone above income are scaled down to exactly the income`() {
+        let joint = AccountEntry.joint()
+        let personal = AccountEntry.personal()
+        let plan = Fixture.plan(
+            income: 1000,
+            expenses: [
+                Fixture.expense("Rent", 2000, linkedTo: joint),
+                Fixture.expense("Phone", 1000, linkedTo: personal),
+                Fixture.expense("Bills", 500)
+            ],
+            accounts: [.primary(), joint, personal]
+        )
+
+        // 3000 of transfers into 1000: 2:1 → 666.67 + 333.33, nothing left for primary
+        #expect(plan.accountExpenseTransfers.map(\.amount) == [Decimal(string: "666.67")!, Decimal(string: "333.33")!])
+        #expect(plan.remainsInPrimary == 0)
+        #expect(plan.shortfall == 2500)
+        #expect(plan.sumOfParts == 1000)
+    }
+
+    @Test func `Disabled, zero and negative expenses are left out of the plan`() {
+        let plan = Fixture.plan(
+            income: 5000,
+            expenses: [
+                Fixture.expense("Gym", 200, enabled: false),
+                Fixture.expense("Placeholder", 0),
+                Fixture.expense("Refund", -300),
+                Fixture.expense("Rent", 2000)
+            ],
+            accounts: [.primary()]
+        )
+
+        #expect(plan.totalExpenses == 2000)
+        #expect(plan.remainsInPrimary == 2000)
+        #expect(plan.isBalanced)
+    }
+
+    @Test func `Expense linked to a deleted account stays in primary`() {
+        let ghost = AccountEntry.joint(name: "Deleted")
+        let plan = Fixture.plan(
+            income: 5000,
+            expenses: [Fixture.expense("Food", 800, linkedTo: ghost)],
+            accounts: [.primary()]
+        )
+
+        #expect(plan.accountExpenseTransfers.isEmpty)
+        #expect(plan.remainsInPrimary == 800)
+    }
+
+    @Test func `Expense linked to the primary account itself is not a transfer`() {
+        let primary = AccountEntry.primary()
+        let plan = Fixture.plan(
+            income: 5000,
+            expenses: [Fixture.expense("Utilities", 400, linkedTo: primary)],
+            accounts: [primary]
+        )
+
+        #expect(plan.accountExpenseTransfers.isEmpty)
+        #expect(plan.remainsInPrimary == 400)
+    }
+
+    @Test func `Expense transfers follow account order and group expenses per account`() {
+        let joint = AccountEntry.joint(name: "Joint")
+        let personal = AccountEntry.personal(name: "Personal")
+        let kids = AccountEntry(name: "Kids", accountType: .other)
+        let car = AccountEntry(name: "Car", accountType: .other)
+        let partner = AccountEntry.personal(name: "Partner")
+        let holiday = AccountEntry(name: "Holiday", accountType: .other)
+        let linked = [joint, personal, kids, car, partner, holiday]
+        let plan = Fixture.plan(
+            income: 10_000,
+            expenses: [
+                Fixture.expense("Trip", 400, linkedTo: holiday),
+                Fixture.expense("School", 300, linkedTo: kids),
+                Fixture.expense("Rent", 2000, linkedTo: joint),
+                Fixture.expense("Gift", 100, linkedTo: partner),
+                Fixture.expense("Hobby", 150, linkedTo: personal),
+                Fixture.expense("Fuel", 250, linkedTo: car),
+                Fixture.expense("Food", 900, linkedTo: joint)
+            ],
+            accounts: [.primary()] + linked
+        )
+
+        // Six accounts: a Dictionary-ordered plan matches by luck 1 time in 720.
+        #expect(plan.accountExpenseTransfers.map(\.accountId) == linked.map(\.id))
+        #expect(plan.accountExpenseTransfers.map(\.amount) == [2900, 150, 300, 250, 100, 400])
+        #expect(plan.accountExpenseTransfers.first?.expenseNames == ["Rent", "Food"])
+    }
+
+    // MARK: - Identity
+
+    @Test func `Plan rows keep their ids across recalculation`() {
+        let joint = AccountEntry.joint()
+        let accounts = [AccountEntry.primary(), joint, .emergency(multiplier: 3), .savings()]
+        let expenses = [Fixture.expense("Rent", 2000, linkedTo: joint)]
+
+        let first = Fixture.plan(income: 8500, expenses: expenses, accounts: accounts)
+        let second = Fixture.plan(income: 9000, expenses: expenses, accounts: accounts)
+
+        #expect(first.accountAllocations.map(\.id) == second.accountAllocations.map(\.id))
+        #expect(first.accountExpenseTransfers.map(\.id) == [joint.id])
+        #expect(second.accountExpenseTransfers.map(\.id) == [joint.id])
+    }
+
+    @Test func `An emergency account flagged as primary savings is never allocated twice`() {
+        let emergency = AccountEntry(
+            name: "Emergency", accountType: .emergency, isPrimarySavings: true, emergencyMultiplier: 3,
+            currentBalance: 30_000
+        )
+        let savings = AccountEntry.savings(isPrimarySavings: false)
+        let plan = Fixture.plan(income: 10_000, accounts: [.primary(), emergency, savings])
+
+        #expect(Set(plan.accountAllocations.map(\.id)).count == plan.accountAllocations.count)
+        #expect(plan.savingsAllocation?.accountId == savings.id)
+        #expect(plan.savingsAllocation?.amount == 2500)
+    }
+
+    // MARK: - Invariant
+
+    static let awkwardIncomes: [Decimal] = [
+        Decimal(string: "0.01")!, Decimal(string: "0.03")!, Decimal(string: "0.10")!,
+        Decimal(string: "100.01")!, 8500
+    ]
+
+    static let awkwardAllocations: [SavingsAllocationEntry] = [
+        Fixture.prioritized(0.07),
+        Fixture.prioritized(0.13, boost: true),
+        Fixture.split(emergency: 1, savings: 2),                    // 1/3 : 2/3 once over-subscribed
+        Fixture.split(emergency: Decimal(string: "333.33")!, savings: Decimal(string: "666.67")!),
+        SavingsAllocationEntry(savingsInputMode: .fixedAmount, fixedAmount: Decimal(string: "0.02")!)
+    ]
+
+    /// Rounding residue must land in one defined place (remaining money), never drift.
+    @Test(arguments: awkwardIncomes, awkwardAllocations)
+    func `Awkward incomes and thirds still add up to the cent`(
+        income: Decimal,
+        allocation: SavingsAllocationEntry
+    ) {
+        let plan = Fixture.plan(
+            income: income,
+            allocation: allocation,
+            accounts: [.primary(), .emergency(multiplier: 3), .savings()]
+        )
+
+        #expect(plan.sumOfParts == income)
+        #expect(plan.totalSavings <= plan.availableIncome)
+        #expect(plan.allAmounts.allSatisfy { $0 >= 0 && $0.isWholeCents }, "\(plan.allAmounts)")
+    }
+
+    static let incomes: [Decimal] = [0, 1, Decimal(string: "999.99")!, Decimal(string: "4321.57")!, 8500, 123_456]
+
+    static let allocations: [SavingsAllocationEntry] = [
+        Fixture.prioritized(0.07),
+        Fixture.prioritized(0.13, boost: true),
+        SavingsAllocationEntry(savingsInputMode: .fixedAmount, fixedAmount: Decimal(string: "777.77")!),
+        Fixture.split(emergency: Decimal(string: "333.33")!, savings: Decimal(string: "1111.11")!),
+        SavingsAllocationEntry(
+            allocationMode: .split,
+            splitEmergencyInputMode: .percentage,
+            splitEmergencyPercentage: 0.07,
+            splitSavingsInputMode: .percentage,
+            splitSavingsPercentage: 0.11
+        )
+    ]
+
+    @Test(arguments: incomes, allocations)
+    func `Every unit of income is accounted for in whole cents`(
+        income: Decimal,
+        allocation: SavingsAllocationEntry
+    ) {
+        let joint = AccountEntry.joint()
+        let plan = Fixture.plan(
+            income: income,
+            expenses: [
+                Fixture.expense("Rent", Decimal(string: "1234.56")!, linkedTo: joint),
+                Fixture.expense("Insurance", 1000, .annual),
+                Fixture.expense("Food", 500)
+            ],
+            allocation: allocation,
+            accounts: [
+                .primary(),
+                joint,
+                .emergency(multiplier: 3.5, hardCap: 20_000, currentBalance: 1000),
+                .savings()
             ]
+        )
 
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: [],
-                allocation: allocation(
-                    savingsInputMode: .fixedAmount,
-                    fixedAmount: 2000
-                ),
-                accounts: accounts,
-                remainingDestination: .primary
-            )
-
-            // Emergency gets 1500 (what it needs), savings gets 500
-            #expect(plan.emergencyAllocation?.amount == 1500)
-            #expect(plan.emergencyAllocation?.isComplete == true)
-            #expect(plan.savingsAllocation?.amount == 500)
-            #expect(plan.totalSavings == 2000)
-            #expect(plan.isBalanced)
-        }
-
-        @Test("Fixed amount zero means no savings")
-        func fixedAmountZero() {
-            let plan = TransferCalculator.calculate(
-                income: testIncome,
-                expenses: [],
-                allocation: allocation(
-                    savingsInputMode: .fixedAmount,
-                    fixedAmount: 0
-                ),
-                accounts: [.primary(), .savings()],
-                remainingDestination: .primary
-            )
-
-            #expect(plan.totalSavings == 0)
-            #expect(plan.remainingMoney == testIncome)
-            #expect(plan.isBalanced)
-        }
+        #expect(plan.allAmounts.allSatisfy { $0 >= 0 && $0.isWholeCents }, "\(plan.allAmounts)")
+        #expect(plan.totalSavings == plan.totalAccountAllocations)
+        #expect(plan.sumOfParts == income, "Even short months never plan more money than there is")
+        #expect(plan.shortfall == max(0, plan.totalExpenses - income))
+        #expect(plan.isBalanced == (plan.shortfall == 0))
     }
 }

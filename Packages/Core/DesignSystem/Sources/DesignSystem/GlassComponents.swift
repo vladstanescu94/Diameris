@@ -13,7 +13,6 @@ import SwiftUI
 
 // MARK: - Glass Card Modifier
 
-/// A view modifier that applies consistent glass card styling
 public struct GlassCardModifier: ViewModifier {
     let cornerRadius: CGFloat
     let isInteractive: Bool
@@ -41,12 +40,10 @@ public extension View {
         modifier(GlassCardModifier())
     }
 
-    /// Apply glass card styling with custom corner radius
     func glassCard(cornerRadius: CGFloat) -> some View {
         modifier(GlassCardModifier(cornerRadius: cornerRadius))
     }
 
-    /// Apply interactive glass card styling
     func glassCardInteractive() -> some View {
         modifier(GlassCardModifier(isInteractive: true))
     }

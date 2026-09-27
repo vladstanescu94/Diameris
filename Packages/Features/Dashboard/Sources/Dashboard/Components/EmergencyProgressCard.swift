@@ -3,7 +3,6 @@ import DesignSystem
 import SharedUI
 import Utilities
 
-/// Card displaying emergency fund progress.
 struct EmergencyProgressCard: View {
     let currentBalance: Decimal
     let target: Decimal
@@ -12,12 +11,22 @@ struct EmergencyProgressCard: View {
     let emergencyHardCap: Decimal?
     let currency: Currency
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    /// Stacks the ring above the text at accessibility sizes so the text keeps its width.
+    private var layout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.md))
+            : AnyLayout(HStackLayout(spacing: Spacing.md))
+    }
+
     var body: some View {
-        HStack(spacing: Spacing.md) {
+        layout {
             progressRing
             fundInfo
-            Spacer()
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
         .glassCard()
     }
 }
@@ -49,7 +58,7 @@ private extension EmergencyProgressCard {
 
             Text(targetText)
                 .font(.caption)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(.secondary)
         }
     }
 

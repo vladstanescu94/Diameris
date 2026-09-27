@@ -8,28 +8,31 @@ import UIKit
 public enum DiamerisColors {
     // MARK: Primary Accent - Magenta/Fuchsia
 
-    /// Primary brand accent color (Magenta/Fuchsia)
-    /// Automatically adapts: Light #D946EF (Fuchsia-500), Dark #E879F9 (Fuchsia-400)
+    /// Light #A21CAF (Fuchsia-700), Dark #E879F9 (Fuchsia-400). Mostly used as text/icon tint, so
+    /// light is the 700 shade: 6.3:1 on white vs 3.5:1 for Fuchsia-500 (WCAG AA needs 4.5:1).
     public static let accentPrimary = Color(
-        light: Color(hex: 0xD946EF),
+        light: Color(hex: 0xA21CAF),
         dark: Color(hex: 0xE879F9)
     )
 
+    /// Fill for prominent buttons and other surfaces under white text: #A21CAF in both
+    /// appearances (6.3:1 with white). The dark accent #E879F9 is only 2.5:1 under white.
+    public static let accentPrimaryFill = Color(hex: 0xA21CAF)
+
     /// Primary accent fixed values (for cases where you need non-adaptive colors)
-    public static let accentPrimaryLight = Color(hex: 0xD946EF)
+    public static let accentPrimaryLight = Color(hex: 0xA21CAF)
     public static let accentPrimaryDark = Color(hex: 0xE879F9)
 
     // MARK: Secondary Accent - Teal/Cyan
 
-    /// Secondary brand accent color (Teal/Cyan)
-    /// Automatically adapts: Light #06B6D4 (Cyan-500), Dark #22D3EE (Cyan-400)
+    /// Light #0E7490 (Cyan-700), Dark #22D3EE (Cyan-400). Cyan-700 is 5.4:1 on white; Cyan-500 was 2.4:1.
     public static let accentSecondary = Color(
-        light: Color(hex: 0x06B6D4),
+        light: Color(hex: 0x0E7490),
         dark: Color(hex: 0x22D3EE)
     )
 
     /// Secondary accent fixed values (for cases where you need non-adaptive colors)
-    public static let accentSecondaryLight = Color(hex: 0x06B6D4)
+    public static let accentSecondaryLight = Color(hex: 0x0E7490)
     public static let accentSecondaryDark = Color(hex: 0x22D3EE)
 }
 
@@ -61,7 +64,6 @@ public extension Color {
     }
 
     /// Initialize an adaptive Color with separate light and dark mode values.
-    /// Uses UIColor's dynamic provider for proper system integration.
     init(light: Color, dark: Color) {
         self.init(UIColor { traitCollection in
             switch traitCollection.userInterfaceStyle {
@@ -77,12 +79,10 @@ public extension Color {
 // MARK: - View Extension for Brand Colors
 
 public extension View {
-    /// Apply the primary brand accent as foreground color
     func accentPrimaryForeground() -> some View {
         foregroundStyle(DiamerisColors.accentPrimary)
     }
 
-    /// Apply the secondary brand accent as foreground color
     func accentSecondaryForeground() -> some View {
         foregroundStyle(DiamerisColors.accentSecondary)
     }

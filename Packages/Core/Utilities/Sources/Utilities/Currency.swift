@@ -1,6 +1,5 @@
 import Foundation
 
-/// Supported currencies for the app.
 public enum Currency: String, CaseIterable, Identifiable, Sendable {
     case ron = "RON"
     case eur = "EUR"
@@ -16,16 +15,24 @@ public enum Currency: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    /// Currency name in the user's language plus its code, e.g. "Romanian Leu (RON)" /
+    /// "leu românesc (RON)".
     public var displayName: String {
-        switch self {
-        case .ron: return "Romanian Leu (RON)"
-        case .eur: return "Euro (EUR)"
-        case .usd: return "US Dollar (USD)"
-        }
+        displayName(locale: .current)
+    }
+
+    public func displayName(locale: Locale) -> String {
+        let name = locale.localizedString(forCurrencyCode: rawValue) ?? rawValue
+        return "\(name) (\(rawValue))"
     }
 
     public static func fromLocale() -> Currency {
-        guard let code = Locale.current.currency?.identifier else { return .ron }
+        fromLocale(.current)
+    }
+
+    /// The locale's currency if supported, otherwise RON.
+    public static func fromLocale(_ locale: Locale) -> Currency {
+        guard let code = locale.currency?.identifier else { return .ron }
         return Currency(rawValue: code) ?? .ron
     }
 }

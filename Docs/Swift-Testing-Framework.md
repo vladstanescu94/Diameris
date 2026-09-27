@@ -400,7 +400,7 @@ Decimal(string: "abc12")  // Returns nil
 ```bash
 # Run all tests in package
 cd Packages/Features/Onboarding
-xcodebuild test -scheme Onboarding -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
+xcodebuild test -scheme Onboarding -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5'
 
 # Note: `swift test` doesn't work for iOS packages (no UIKit on macOS)
 ```

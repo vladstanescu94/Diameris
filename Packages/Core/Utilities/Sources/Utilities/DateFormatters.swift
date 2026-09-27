@@ -1,19 +1,19 @@
 import Foundation
 
-/// Cached DateFormatter instances for common date formatting needs.
-/// DateFormatters are expensive to create, so we cache them here.
+/// Cached because DateFormatters are expensive to create. Month/year use localized templates so
+/// each locale gets its own field order rather than a hardcoded English pattern.
 public enum DateFormatters {
     /// Formats dates as "December 2025" (full month name + year)
     public static let monthYear: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM yyyy"
+        formatter.setLocalizedDateFormatFromTemplate("MMMMyyyy")
         return formatter
     }()
 
     /// Formats dates as "Dec 2025" (abbreviated month + year)
     public static let shortMonthYear: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.dateFormat = "MMM yyyy"
+        formatter.setLocalizedDateFormatFromTemplate("MMMyyyy")
         return formatter
     }()
 

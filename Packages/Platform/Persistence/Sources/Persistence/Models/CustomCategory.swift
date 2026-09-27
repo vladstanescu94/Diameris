@@ -2,11 +2,10 @@ import Foundation
 import SwiftData
 import Domain
 
-/// Type alias to disambiguate from objc_category
+/// Disambiguates `Domain.Category` from the Objective-C `Category` type.
 public typealias ExpenseCategory = Domain.Category
 
-/// SwiftData entity for user-created custom categories
-/// Default categories from Domain.Category.defaults are NOT persisted.
+/// A user-created category. The built-in `Category.defaults` are never persisted.
 @Model
 public final class CustomCategory {
     @Attribute(.unique) public var id: UUID
@@ -33,7 +32,6 @@ public final class CustomCategory {
 
     // MARK: - Conversion
 
-    /// Convert to Domain Category
     public func toCategory() -> ExpenseCategory {
         ExpenseCategory.custom(
             id: id,
@@ -44,7 +42,6 @@ public final class CustomCategory {
         )
     }
 
-    /// Create from Domain Category (for custom categories only)
     public convenience init(from category: ExpenseCategory) {
         self.init(
             name: category.name,

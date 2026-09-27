@@ -2,7 +2,6 @@ import Foundation
 import SwiftData
 import Domain
 
-/// SwiftData entity for persisted income sources
 @Model
 public final class Income {
     @Attribute(.unique) public var id: UUID
@@ -27,22 +26,15 @@ public final class Income {
 
     // MARK: - Computed Properties
 
-    /// Type-safe frequency access
     public var frequency: Frequency {
         get { Frequency(rawValue: frequencyRaw) ?? .monthly }
         set { frequencyRaw = newValue.rawValue }
     }
 
-    /// Monthly equivalent amount.
-    /// Note: Uses Domain's Frequency.monthlyMultiplier directly as Income is a simple
-    /// data model without complex business logic requiring a separate Domain entity.
     public var monthlyAmount: Decimal {
-        amount * frequency.monthlyMultiplier
+        frequency.monthlyEquivalent(of: amount)
     }
 
-    /// Annual equivalent amount.
-    /// Note: Uses Domain's Frequency.annualMultiplier directly as Income is a simple
-    /// data model without complex business logic requiring a separate Domain entity.
     public var annualAmount: Decimal {
         amount * frequency.annualMultiplier
     }

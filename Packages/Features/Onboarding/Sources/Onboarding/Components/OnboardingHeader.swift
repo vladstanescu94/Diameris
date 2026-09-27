@@ -1,8 +1,7 @@
 import SwiftUI
 import DesignSystem
 
-/// Reusable header component for onboarding screens
-/// Displays an icon, title, and optional subtitle with staggered entrance animations
+/// Icon, title and optional subtitle with a staggered entrance.
 struct OnboardingHeader: View {
     let icon: String
     let iconColor: Color
@@ -33,35 +32,31 @@ struct OnboardingHeader: View {
 
     var body: some View {
         VStack(spacing: Spacing.md) {
-            // Icon with bounce animation
             Image(systemName: icon)
                 .modifier(IconSizeModifier(useHero: useHeroIcon))
                 .foregroundStyle(iconColor)
-                .scaleEffect(iconAppeared ? 1.0 : Opacity.subtle)
-                .opacity(iconAppeared ? 1.0 : 0)
+                .entrance(iconAppeared, scale: Opacity.subtle)
                 .symbolEffect(.bounce, value: iconAppeared)
+                .accessibilityHidden(true)
 
-            // Title with slide up animation
             Text(title)
                 .font(useHeroIcon ? .largeTitle : .title)
                 .fontWeight(.bold)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
-                .offset(y: titleAppeared ? 0 : SlideOffset.small)
-                .opacity(titleAppeared ? 1.0 : 0)
+                .entrance(titleAppeared, y: SlideOffset.small)
 
-            // Subtitle with fade in animation
             if let subtitle {
                 Text(subtitle)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
-                    .offset(y: subtitleAppeared ? 0 : SlideOffset.subtle)
-                    .opacity(subtitleAppeared ? 1.0 : 0)
+                    .entrance(subtitleAppeared, y: SlideOffset.subtle)
             }
         }
         .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
         .onAppear {
             guard animate else {
                 iconAppeared = true
@@ -74,24 +69,20 @@ struct OnboardingHeader: View {
     }
 
     private func triggerStaggeredAnimations() {
-        // Icon bounces in first
         withAnimation(SpringPreset.bouncy) {
             iconAppeared = true
         }
 
-        // Title slides up
         withAnimation(SpringPreset.responsive.delay(StaggerDelay.standard)) {
             titleAppeared = true
         }
 
-        // Subtitle fades in last
         withAnimation(SpringPreset.smooth.delay(AnimationDuration.fast)) {
             subtitleAppeared = true
         }
     }
 }
 
-/// Helper modifier for icon sizing
 private struct IconSizeModifier: ViewModifier {
     let useHero: Bool
 

@@ -1,6 +1,7 @@
 #if DEBUG
 import SwiftUI
 import SwiftData
+import os
 import Onboarding
 import Domain
 import Persistence
@@ -10,6 +11,7 @@ struct DevDebugView: View {
     @Environment(\.modelContext) private var modelContext
 
     @State private var showingResetConfirmation = false
+    @State private var showingRestartOnboardingConfirmation = false
     @State private var importResult: ImportResult?
 
     var body: some View {
@@ -18,12 +20,37 @@ struct DevDebugView: View {
                 Section("Onboarding") {
                     LabeledContent("Completed", value: onboardingCompleted ? "Yes" : "No")
 
-                    Button("Reset Onboarding Flag") {
-                        onboardingCompleted = false
+                    // Finishing onboarding replaces all stored data, so this needs a confirmation.
+                    Button("Reset Onboarding Flag", role: .destructive) {
+                        showingRestartOnboardingConfirmation = true
+                    }
+                    .confirmationDialog(
+                        "Restart onboarding?",
+                        isPresented: $showingRestartOnboardingConfirmation,
+                        titleVisibility: .visible
+                    ) {
+                        Button("Restart Onboarding", role: .destructive) {
+                            onboardingCompleted = false
+                        }
+                        Button("Cancel", role: .cancel) {}
+                    } message: {
+                        Text("Finishing onboarding will replace all your current data.")
                     }
 
                     Button("Clear All Data & Reset", role: .destructive) {
                         showingResetConfirmation = true
+                    }
+                    .confirmationDialog(
+                        "Reset All Data?",
+                        isPresented: $showingResetConfirmation,
+                        titleVisibility: .visible
+                    ) {
+                        Button("Reset Everything", role: .destructive) {
+                            clearAllData()
+                        }
+                        Button("Cancel", role: .cancel) {}
+                    } message: {
+                        Text("This will delete all your data and show onboarding again. This cannot be undone.")
                     }
                 }
 
@@ -48,18 +75,6 @@ struct DevDebugView: View {
                 }
             }
             .navigationTitle("Developer")
-            .confirmationDialog(
-                "Reset All Data?",
-                isPresented: $showingResetConfirmation,
-                titleVisibility: .visible
-            ) {
-                Button("Reset Everything", role: .destructive) {
-                    clearAllData()
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("This will delete all your data and show onboarding again. This cannot be undone.")
-            }
             .alert(
                 importResult?.isSuccess == true ? "Import Successful" : "Import Failed",
                 isPresented: .init(
@@ -76,14 +91,9 @@ struct DevDebugView: View {
 
     private func clearAllData() {
         do {
-            try modelContext.delete(model: UserProfile.self)
-            try modelContext.delete(model: Income.self)
-            try modelContext.delete(model: Expense.self)
-            try modelContext.delete(model: Account.self)
-            try modelContext.delete(model: SavingsAllocation.self)
-            try modelContext.save()
+            try modelContext.deleteAllData()
         } catch {
-            print("Failed to clear data: \(error)")
+            Logger.persistence.error("Clearing all data failed: \(error)")
         }
 
         onboardingCompleted = false
@@ -99,10 +109,8 @@ struct DevDebugView: View {
             let data = try Data(contentsOf: url)
             let importData = try ExpenseImportData.parse(from: data)
 
-            // Delete existing expenses first
             try modelContext.delete(model: Expense.self)
 
-            // Import all expenses
             var importedExpenses = 0
             for (index, expenseData) in importData.expenses.enumerated() {
                 let entry = expenseData.toExpenseEntry()
@@ -111,26 +119,22 @@ struct DevDebugView: View {
                 importedExpenses += 1
             }
 
-            // Import accounts if present
             var importedAccounts = 0
             var updatedAccounts = 0
             if let accountsData = importData.accounts {
-                // Fetch existing accounts
                 let existingAccounts = try modelContext.fetch(FetchDescriptor<Account>())
 
                 for (index, accountData) in accountsData.enumerated() {
                     let accountType = accountData.accountTypeEnum
 
-                    // Try to find existing account by type (most account types are unique)
+                    // Match by type: most types occur once.
                     if let existingAccount = existingAccounts.first(where: { $0.accountType == accountType }) {
-                        // Update existing account
                         existingAccount.name = accountData.name
                         existingAccount.isPrimarySavings = accountData.isPrimarySavings
                         existingAccount.emergencyMultiplier = accountData.emergencyMultiplier
                         existingAccount.currentBalance = accountData.currentBalance
                         updatedAccounts += 1
                     } else {
-                        // Create new account
                         let entry = accountData.toAccountEntry()
                         let account = Account(from: entry, sortOrder: index)
                         modelContext.insert(account)
@@ -139,17 +143,14 @@ struct DevDebugView: View {
                 }
             }
 
-            // Import savings allocation
             var savingsUpdated = false
             let existingSavings = try modelContext.fetch(FetchDescriptor<SavingsAllocation>())
             if let existingSavingsAllocation = existingSavings.first {
-                // Update existing
                 existingSavingsAllocation.percentage = importData.savings.percentage
                 existingSavingsAllocation.boostEnabled = importData.savings.boostEnabled
                 existingSavingsAllocation.boostMultiplier = Double(importData.savings.boostMultiplier)
                 savingsUpdated = true
             } else {
-                // Create new
                 let savingsAllocation = SavingsAllocation(
                     percentage: importData.savings.percentage,
                     boostEnabled: importData.savings.boostEnabled,
@@ -212,7 +213,7 @@ private struct DataInspectorView: View {
     var body: some View {
         List {
             Section("User Profiles (\(profiles.count))") {
-                ForEach(profiles, id: \.name) { profile in
+                ForEach(profiles) { profile in
                     VStack(alignment: .leading) {
                         Text(profile.name)
                             .font(.headline)
@@ -224,7 +225,7 @@ private struct DataInspectorView: View {
             }
 
             Section("Incomes (\(incomes.count))") {
-                ForEach(incomes, id: \.id) { income in
+                ForEach(incomes) { income in
                     VStack(alignment: .leading) {
                         Text(income.name)
                             .font(.headline)
@@ -236,7 +237,7 @@ private struct DataInspectorView: View {
             }
 
             Section("Expenses (\(expenses.count))") {
-                ForEach(expenses, id: \.id) { expense in
+                ForEach(expenses) { expense in
                     HStack {
                         Image(systemName: expense.icon)
                         VStack(alignment: .leading) {
@@ -256,7 +257,7 @@ private struct DataInspectorView: View {
             }
 
             Section("Accounts (\(accounts.count))") {
-                ForEach(accounts, id: \.id) { account in
+                ForEach(accounts) { account in
                     VStack(alignment: .leading) {
                         HStack {
                             Text(account.name)
@@ -285,6 +286,6 @@ private struct DataInspectorView: View {
 
 #Preview {
     DevDebugView()
-        .modelContainer(for: [UserProfile.self, Income.self, Expense.self, Account.self, SavingsAllocation.self], inMemory: true)
+        .modelContainer(for: PersistenceSchema.models, inMemory: true)
 }
 #endif

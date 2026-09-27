@@ -41,6 +41,7 @@ Before implementing features, **read the relevant API documentation**:
 | `Swift-Charts-3D-Visualization.md` | Data visualization - `Chart3D`, `SurfacePlot` |
 | `FoundationModels-Using-on-device-LLM.md` | AI features - on-device LLM, `@Generable`, guided generation |
 | `Diameris-AI-Features.md` | Pre-MVP AI feature ideas (brainstorming) |
+| `Audit-2026-09-27.md` | Before tackling audit follow-ups, or touching money logic, persistence or Settings — bug ledger + open follow-ups |
 
 **Important:** This project targets iOS 26+ with Liquid Glass design. Always use the new APIs documented above rather than deprecated patterns.
 
@@ -114,12 +115,18 @@ CI or when the MCP server is unavailable.
 xcodebuild -project Diameris.xcodeproj -scheme Diameris -configuration Debug build
 
 # Run unit tests (SPM packages - preferred)
-cd Packages/Features/Onboarding && xcodebuild test -scheme Onboarding -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
-cd Packages/Core/Utilities && xcodebuild test -scheme Utilities -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
+cd Packages/Core/Domain && swift test          # Domain and Utilities also build on macOS
+cd Packages/Features/Onboarding && xcodebuild test -scheme Onboarding -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5'
 
 # Run UI tests
-xcodebuild -project Diameris.xcodeproj -scheme Diameris -configuration Debug test -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:DiamerisUITests
+xcodebuild -project Diameris.xcodeproj -scheme Diameris -configuration Debug test -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' -only-testing:DiamerisUITests
 ```
+
+- **Always pin `OS=`** (or use `id=<udid>` from `xcrun simctl list devices`). A name alone resolves
+  to `OS:latest`; with Xcode 27 installed that is iOS 27, where only iPhone 18 simulators exist, so
+  `name=iPhone 17 Pro` fails with exit 70 ("Unable to find a device matching…").
+- **Parallel runs** (e.g. several agents): give each its own simulator and its own
+  `-derivedDataPath`, otherwise builds of the same package collide on "database is locked".
 
 ## Architecture
 

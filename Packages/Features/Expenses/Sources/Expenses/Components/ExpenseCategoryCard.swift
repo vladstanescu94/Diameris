@@ -2,7 +2,6 @@ import SwiftUI
 import Domain
 import DesignSystem
 import Utilities
-/// Expandable card showing expenses grouped by category
 public struct ExpenseCategoryCard: View {
     let group: ExpenseGroup
     let displayFrequency: Frequency
@@ -11,6 +10,9 @@ public struct ExpenseCategoryCard: View {
     var onExpenseTap: ((ExpenseDisplayItem) -> Void)?
     var onExpenseToggle: ((ExpenseDisplayItem, Bool) -> Void)?
     var onExpenseDelete: ((ExpenseDisplayItem) -> Void)?
+
+    @ScaledMetric(relativeTo: .title2) private var iconSize = IconSize.lg
+    @ScaledMetric(relativeTo: .title3) private var rowIconSize = IconSize.md
 
     public init(
         group: ExpenseGroup,
@@ -31,7 +33,7 @@ public struct ExpenseCategoryCard: View {
     }
 
     private var displayTotal: Decimal {
-        displayFrequency == .monthly ? group.totalMonthly : group.totalAnnual
+        group.total(for: displayFrequency)
     }
 
     private var categoryName: String {
@@ -51,7 +53,6 @@ public struct ExpenseCategoryCard: View {
 
     public var body: some View {
         VStack(spacing: 0) {
-            // Header
             Button {
                 HapticManager.lightTap()
                 withAnimation(SpringPreset.snappy) {
@@ -59,42 +60,40 @@ public struct ExpenseCategoryCard: View {
                 }
             } label: {
                 HStack(spacing: Spacing.sm) {
-                    // Category icon
                     Image(systemName: categoryIcon)
                         .font(.title2)
                         .foregroundStyle(categoryColor)
-                        .frame(width: IconSize.lg, height: IconSize.lg)
+                        .frame(width: iconSize, height: iconSize)
+                        .accessibilityHidden(true)
 
-                    // Category name and count
                     VStack(alignment: .leading, spacing: Spacing.xxs) {
                         Text(categoryName)
                             .font(.headline)
                             .foregroundStyle(.primary)
 
-                        Text("\(group.enabledCount)/\(group.expenses.count) " + "enabled".localized)
+                        Text(String(localized: "\(group.enabledCount)/\(group.expenses.count) enabled", bundle: .module))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
 
                     Spacer()
 
-                    // Total amount
                     Text(AmountFormatter.formatForDisplay(displayTotal, currency: currency))
                         .font(.headline.monospacedDigit())
                         .foregroundStyle(.primary)
 
-                    // Chevron
                     Image(systemName: "chevron.right")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                        .accessibilityHidden(true)
                 }
                 .padding(Spacing.md)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityValue(isExpanded ? "Expanded".localized : "Collapsed".localized)
 
-            // Expanded content
             if isExpanded {
                 Divider()
                     .padding(.horizontal, Spacing.md)
@@ -119,7 +118,7 @@ public struct ExpenseCategoryCard: View {
 
                         if expense.id != group.expenses.last?.id {
                             Divider()
-                                .padding(.leading, Spacing.md + IconSize.md + Spacing.sm)
+                                .padding(.leading, Spacing.md + rowIconSize + Spacing.sm)
                         }
                     }
                 }
@@ -130,7 +129,6 @@ public struct ExpenseCategoryCard: View {
     }
 }
 
-// Color extension for hex parsing
 extension Color {
     init?(hex: String) {
         var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)

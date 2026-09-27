@@ -1,7 +1,6 @@
 import Foundation
 
-/// Temporary savings allocation entry used during onboarding flow.
-/// Not persisted - converted to SavingsAllocation model on completion.
+/// The user's savings settings (Persistence's `SavingsAllocation` maps to this).
 public struct SavingsAllocationEntry: Identifiable, Sendable {
     public let id: UUID
 
@@ -18,10 +17,8 @@ public struct SavingsAllocationEntry: Identifiable, Sendable {
 
     // MARK: - Allocation Strategy
 
-    /// How savings are distributed between emergency and savings accounts
     public var allocationMode: AllocationMode
 
-    /// How the total savings amount is determined (percentage vs fixed amount)
     public var savingsInputMode: SavingsInputMode
 
     /// Total savings amount when savingsInputMode == .fixedAmount
@@ -29,7 +26,6 @@ public struct SavingsAllocationEntry: Identifiable, Sendable {
 
     // MARK: - Split Mode Fields
 
-    /// Input mode for emergency allocation in split mode
     public var splitEmergencyInputMode: SavingsInputMode
 
     /// Monthly emergency fund contribution as fixed amount (used when splitEmergencyInputMode == .fixedAmount)
@@ -38,7 +34,6 @@ public struct SavingsAllocationEntry: Identifiable, Sendable {
     /// Emergency fund contribution as percentage of available income (used when splitEmergencyInputMode == .percentage)
     public var splitEmergencyPercentage: Double
 
-    /// Input mode for savings allocation in split mode
     public var splitSavingsInputMode: SavingsInputMode
 
     /// Monthly savings contribution as fixed amount (used when splitSavingsInputMode == .fixedAmount)
@@ -87,38 +82,57 @@ public struct SavingsAllocationEntry: Identifiable, Sendable {
         return min(1.0, percentage * boostMultiplier)
     }
 
-    /// Calculate the total savings amount from available income.
-    /// In percentage mode: uses effective percentage of available income.
-    /// In fixed amount mode: returns the fixed amount, capped at available income.
+    /// Percentage mode: the effective percentage of available income. Fixed mode: the fixed
+    /// amount, capped at available income. Always whole cents and never negative.
     public func calculateSavings(availableIncome: Decimal) -> Decimal {
+        let available = max(0, availableIncome)
         switch savingsInputMode {
         case .percentage:
-            return availableIncome * Decimal(effectivePercentage)
+            return Self.share(effectivePercentage, of: available)
         case .fixedAmount:
-            return min(fixedAmount, max(0, availableIncome))
+            return min(max(0, fixedAmount), available)
         }
     }
 
-    /// Resolved emergency amount in split mode, accounting for input mode.
     public func resolvedSplitEmergencyAmount(availableIncome: Decimal) -> Decimal {
         switch splitEmergencyInputMode {
-        case .percentage: return availableIncome * Decimal(splitEmergencyPercentage)
-        case .fixedAmount: return splitEmergencyAmount
+        case .percentage: return Self.share(splitEmergencyPercentage, of: max(0, availableIncome))
+        case .fixedAmount: return max(0, splitEmergencyAmount)
         }
     }
 
-    /// Resolved savings amount in split mode, accounting for input mode.
     public func resolvedSplitSavingsAmount(availableIncome: Decimal) -> Decimal {
         switch splitSavingsInputMode {
-        case .percentage: return availableIncome * Decimal(splitSavingsPercentage)
-        case .fixedAmount: return splitSavingsAmount
+        case .percentage: return Self.share(splitSavingsPercentage, of: max(0, availableIncome))
+        case .fixedAmount: return max(0, splitSavingsAmount)
         }
     }
 
-    /// Total intended allocation in split mode, resolved against available income.
+    /// `percentage` (clamped to 0–100%) of `amount`, in whole cents.
+    private static func share(_ percentage: Double, of amount: Decimal) -> Decimal {
+        let rate = Decimal(rate: min(1, max(0, percentage)))
+        return (amount * rate).roundedToCents
+    }
+
     public func splitTotal(availableIncome: Decimal) -> Decimal {
         resolvedSplitEmergencyAmount(availableIncome: availableIncome) +
         resolvedSplitSavingsAmount(availableIncome: availableIncome)
+    }
+
+    /// Whether boost may be switched on: it must be applicable, and the boosted rate must not
+    /// exceed 100% of available income (so 3× is allowed up to a 33.3% base rate).
+    public var canEnableBoost: Bool {
+        isBoostApplicable && Decimal(rate: percentage) * Decimal(rate: boostMultiplier) <= 1
+    }
+
+    /// A copy with boost switched off when it applies but the boosted rate would exceed 100%.
+    /// Inapplicable boost (fixed amounts, split mode) is kept for when the user switches back.
+    public var withSafeBoost: SavingsAllocationEntry {
+        var entry = self
+        if isBoostApplicable && boostEnabled && !canEnableBoost {
+            entry.boostEnabled = false
+        }
+        return entry
     }
 
     /// Whether boost is applicable (only in percentage + prioritized mode)
@@ -128,28 +142,24 @@ public struct SavingsAllocationEntry: Identifiable, Sendable {
 
     /// Format percentage for display (e.g., "25%")
     public var percentageDisplay: String {
-        "\(Int(percentage * 100))%"
+        percentage.wholePercentText
     }
 
     /// Format effective percentage for display (e.g., "75%" when boosted)
     public var effectivePercentageDisplay: String {
-        "\(Int(effectivePercentage * 100))%"
+        effectivePercentage.wholePercentText
     }
 }
 
 // MARK: - Validation
 
 extension SavingsAllocationEntry {
-    /// Minimum allowed savings percentage
-    public static let minimumPercentage: Double = 0.05  // 5%
+    public static let minimumPercentage: Double = 0.05
 
-    /// Maximum allowed savings percentage
-    public static let maximumPercentage: Double = 0.50  // 50%
+    public static let maximumPercentage: Double = 0.50
 
-    /// Common percentage presets for quick selection
     public static let presets: [Double] = [0.10, 0.15, 0.20, 0.25, 0.30]
 
-    /// Check if the current configuration is valid
     public var isValid: Bool {
         switch allocationMode {
         case .prioritized:
@@ -174,10 +184,8 @@ extension SavingsAllocationEntry {
 // MARK: - Recommendations
 
 extension SavingsAllocationEntry {
-    /// Recommended percentage based on financial advice
-    public static let recommendedPercentage: Double = 0.25  // 25%
+    public static let recommendedPercentage: Double = 0.25
 
-    /// Description of the recommendation
     public static var recommendationText: String {
         String(localized: "Financial experts recommend saving 20-30% of your income", bundle: .module)
     }

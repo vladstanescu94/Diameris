@@ -3,9 +3,10 @@ import DesignSystem
 import Utilities
 import Domain
 
-/// Sheet for adding a new account during onboarding.
 struct AddAccountSheet: View {
     @Binding var isPresented: Bool
+    /// False once an emergency account exists (only one is allowed).
+    let canAddEmergency: Bool
     @State private var accountName = ""
     @State private var accountType: AccountType = .other
 
@@ -29,7 +30,7 @@ struct AddAccountSheet: View {
                 addButton
             }
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.medium, .large])
     }
 }
 
@@ -38,7 +39,7 @@ struct AddAccountSheet: View {
 private extension AddAccountSheet {
     var nameField: some View {
         OnboardingTextField(
-            "Account Name".localized,
+            "Account name".localized,
             text: $accountName,
             prompt: "e.g., Joint Account".localized
         )
@@ -47,7 +48,9 @@ private extension AddAccountSheet {
     var typeSelector: some View {
         AccountTypeSelector(
             selectedType: $accountType,
-            compact: false
+            types: OnboardingViewModel.assignableAccountTypes,
+            compact: false,
+            disableEmergency: !canAddEmergency
         )
     }
 
@@ -57,21 +60,32 @@ private extension AddAccountSheet {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            HStack(spacing: Spacing.sm) {
-                SuggestionChip(title: "Joint", type: .joint) { name, type in
-                    accountName = name
-                    accountType = type
-                }
-                SuggestionChip(title: "Emergency", type: .savings) { name, type in
-                    accountName = name
-                    accountType = type
-                }
-                SuggestionChip(title: "Travel", type: .savings) { name, type in
-                    accountName = name
-                    accountType = type
-                }
+            // Stack the chips vertically when they don't fit (large Dynamic Type sizes).
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: Spacing.sm) { suggestionChips }
+                VStack(alignment: .leading, spacing: Spacing.sm) { suggestionChips }
             }
         }
+    }
+}
+
+private extension AddAccountSheet {
+    var suggestionChips: some View {
+        ForEach(Self.suggestions(canAddEmergency: canAddEmergency), id: \.type) { suggestion in
+            SuggestionChip(title: suggestion.name, type: suggestion.type, onTap: applySuggestion)
+        }
+    }
+}
+
+extension AddAccountSheet {
+    /// Name and type each quick-suggestion chip fills in; Emergency is offered only while none exists.
+    static func suggestions(canAddEmergency: Bool) -> [(name: String, type: AccountType)] {
+        var suggestions: [(name: String, type: AccountType)] = [("Joint".localized, .joint)]
+        if canAddEmergency {
+            suggestions.append(("Emergency".localized, .emergency))
+        }
+        suggestions.append(("Travel".localized, .savings))
+        return suggestions
     }
 }
 
@@ -88,13 +102,12 @@ private extension AddAccountSheet {
 
     var addButton: some ToolbarContent {
         ToolbarItem(placement: .confirmationAction) {
-            Button {
+            Button("Add".localized, systemImage: "plus") {
                 addAccount()
-            } label: {
-                Image(systemName: "plus")
             }
+            .labelStyle(.iconOnly)
             .buttonStyle(.glassProminent)
-            .tint(DiamerisColors.accentPrimary)
+            .tint(DiamerisColors.accentPrimaryFill)
             .disabled(trimmedName.isEmpty)
         }
     }
@@ -103,6 +116,11 @@ private extension AddAccountSheet {
 // MARK: - Actions
 
 private extension AddAccountSheet {
+    func applySuggestion(name: String, type: AccountType) {
+        accountName = name
+        accountType = type
+    }
+
     var trimmedName: String {
         accountName.trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -141,6 +159,7 @@ private struct SuggestionChip: View {
 
 #Preview {
     AddAccountSheet(
-        isPresented: .constant(true)
+        isPresented: .constant(true),
+        canAddEmergency: true
     ) { _, _ in }
 }

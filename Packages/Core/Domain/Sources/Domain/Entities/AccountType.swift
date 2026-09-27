@@ -10,12 +10,12 @@ import Foundation
 /// - `joint`: For linked shared expenses
 /// - `other`: No special behavior
 public enum AccountType: String, CaseIterable, Identifiable, Codable, Sendable {
-    case primary    // Where salary lands (renamed from checking)
-    case emergency  // Fills first, has income multiplier target
-    case savings    // Regular savings, fills after emergency
-    case personal   // Gets remaining money
-    case joint      // Shared expenses
-    case other      // No special behavior
+    case primary
+    case emergency
+    case savings
+    case personal
+    case joint
+    case other
 
     public var id: String { rawValue }
 
@@ -41,7 +41,6 @@ public enum AccountType: String, CaseIterable, Identifiable, Codable, Sendable {
         }
     }
 
-    /// Short description of what this account type means.
     public var description: String {
         switch self {
         case .primary: return "Where your salary lands".localized
@@ -64,7 +63,7 @@ public enum AccountType: String, CaseIterable, Identifiable, Codable, Sendable {
     /// Whether only one account of this type is allowed.
     public var isUnique: Bool {
         switch self {
-        case .emergency: return true  // Only one emergency account allowed
+        case .emergency: return true
         case .primary, .savings, .personal, .joint, .other: return false
         }
     }

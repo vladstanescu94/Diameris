@@ -1,499 +1,388 @@
 import Foundation
 import Testing
 @testable import Onboarding
-import Utilities
 import Domain
 
-/// Tests for OnboardingViewModel - validates the 7-screen onboarding flow,
-/// state management, and computed properties.
-///
-/// Note: All nested suites must be @MainActor since OnboardingViewModel is MainActor-isolated.
-@Suite("OnboardingViewModel Tests")
+/// A view model that advances immediately and never touches UIKit.
+@MainActor
+private func makeViewModel() -> OnboardingViewModel {
+    OnboardingViewModel(keyboardDismissDelay: .zero, keyboardDismisser: {})
+}
+
+/// Scenario tests for OnboardingViewModel: step gating, navigation guards,
+/// account rules, and the savings/remaining-money choices the flow hands off.
+/// Transfer math itself is covered by Domain's TransferCalculator tests.
 @MainActor
 struct OnboardingViewModelTests {
 
-    // MARK: - Initial State
+    // MARK: - Step Gating
 
-    @Suite("Initial State")
     @MainActor
-    struct InitialState {
-
-        @Test("Initial step is welcome")
-        func initialStepIsWelcome() {
-            let viewModel = OnboardingViewModel()
-            #expect(viewModel.currentStep == .welcome)
+    struct StepGating {
+        @Test(arguments: [
+            ("", false),
+            ("   ", false),
+            ("A", true),
+            ("  Vlad  ", true),
+            ("Ștefan Ionescu", true),
+            (String(repeating: "a", count: 50), true),
+            (String(repeating: "a", count: 51), false),
+        ])
+        func `Name step requires 1–50 trimmed characters`(name: String, isValid: Bool) {
+            let viewModel = makeViewModel()
+            viewModel.currentStep = .name
+            viewModel.name = name
+            #expect(viewModel.canAdvance == isValid)
         }
 
-        @Test("Initial name is empty")
-        func initialNameEmpty() {
-            let viewModel = OnboardingViewModel()
-            #expect(viewModel.name == "")
+        @Test(arguments: [(Decimal(-1), false), (0, false), (1, true), (14303, true)])
+        func `Income step requires a positive amount`(income: Decimal, isValid: Bool) {
+            let viewModel = makeViewModel()
+            viewModel.currentStep = .income
+            viewModel.monthlyIncome = income
+            #expect(viewModel.canAdvance == isValid)
         }
 
-        @Test("Initial income is zero")
-        func initialIncomeZero() {
-            let viewModel = OnboardingViewModel()
-            #expect(viewModel.monthlyIncome == 0)
+        @Test func `Accounts step requires a primary account`() {
+            let viewModel = makeViewModel()
+            viewModel.currentStep = .accounts
+            #expect(viewModel.canAdvance)
+
+            viewModel.accounts = [.savings()]
+            #expect(!viewModel.canAdvance)
         }
 
-        @Test("Initial expenses has 4 default categories")
-        func initialExpensesHasDefaults() {
-            let viewModel = OnboardingViewModel()
-            #expect(viewModel.expenses.count == 4)
-        }
-
-        @Test("Initial accounts has primary account")
-        func initialAccountsHasPrimary() {
-            let viewModel = OnboardingViewModel()
-            #expect(viewModel.accounts.count == 1)
-            #expect(viewModel.primaryAccount != nil)
-        }
-
-        @Test("Initial savings allocation at 25%")
-        func initialSavingsAt25Percent() {
-            let viewModel = OnboardingViewModel()
-            #expect(viewModel.savingsAllocation.percentage == 0.25)
-        }
-
-        @Test("Initial remaining destination is primary savings")
-        func initialRemainingDestination() {
-            let viewModel = OnboardingViewModel()
-            #expect(viewModel.remainingMoneyDestination == .primarySavings)
-        }
-
-        @Test("Currency detects from locale")
-        func currencyFromLocale() {
-            let viewModel = OnboardingViewModel()
-            #expect(Currency.allCases.contains(viewModel.currency))
+        @Test(arguments: [
+            OnboardingViewModel.OnboardingStep.welcome, .expenses, .savings, .transferPlan,
+        ])
+        func `Optional steps never block`(step: OnboardingViewModel.OnboardingStep) {
+            let viewModel = makeViewModel()
+            viewModel.currentStep = step
+            #expect(viewModel.canAdvance)
         }
     }
 
-    // MARK: - Step Navigation
+    // MARK: - Navigation
 
-    @Suite("Step Navigation")
     @MainActor
-    struct StepNavigation {
-
-        @Test("7 steps in onboarding flow")
-        func sevenStepsInFlow() {
-            #expect(OnboardingViewModel.OnboardingStep.allCases.count == 7)
-        }
-
-        @Test("Steps in correct order")
-        func stepsInCorrectOrder() {
-            let steps = OnboardingViewModel.OnboardingStep.allCases
-
-            #expect(steps[0] == .welcome)
-            #expect(steps[1] == .name)
-            #expect(steps[2] == .income)
-            #expect(steps[3] == .accounts)
-            #expect(steps[4] == .expenses)
-            #expect(steps[5] == .savings)
-            #expect(steps[6] == .transferPlan)
-        }
-
-        @Test("Can always advance from welcome")
-        func canAdvanceFromWelcome() {
-            let viewModel = OnboardingViewModel()
-            #expect(viewModel.currentStep == .welcome)
-            #expect(viewModel.canAdvance == true)
-        }
-    }
-
-    // MARK: - Name Step Validation
-
-    @Suite("Name Step Validation")
-    @MainActor
-    struct NameStepValidation {
-
-        @Test("Cannot advance with empty name")
-        func cannotAdvanceEmptyName() {
-            let viewModel = OnboardingViewModel()
-            viewModel.currentStep = .name
-            viewModel.name = ""
-
-            #expect(viewModel.canAdvance == false)
-        }
-
-        @Test("Cannot advance with whitespace-only name")
-        func cannotAdvanceWhitespaceName() {
-            let viewModel = OnboardingViewModel()
-            viewModel.currentStep = .name
-            viewModel.name = "   "
-
-            #expect(viewModel.canAdvance == false)
-        }
-
-        @Test("Can advance with valid name")
-        func canAdvanceValidName() {
-            let viewModel = OnboardingViewModel()
-            viewModel.currentStep = .name
+    struct Navigation {
+        @Test func `Valid input walks the whole flow in order`() async {
+            let viewModel = makeViewModel()
             viewModel.name = "Vlad"
-
-            #expect(viewModel.canAdvance == true)
-        }
-
-        @Test("Trimmed name removes whitespace")
-        func trimmedNameRemovesWhitespace() {
-            let viewModel = OnboardingViewModel()
-            viewModel.name = "  Vlad  "
-
-            #expect(viewModel.trimmedName == "Vlad")
-        }
-
-        @Test("Name length limit of 50 characters")
-        func nameLengthLimit() {
-            let viewModel = OnboardingViewModel()
-            viewModel.currentStep = .name
-            viewModel.name = String(repeating: "a", count: 51)
-
-            #expect(viewModel.canAdvance == false)
-
-            viewModel.name = String(repeating: "a", count: 50)
-            #expect(viewModel.canAdvance == true)
-        }
-
-        @Test("Single character name is valid")
-        func singleCharNameValid() {
-            let viewModel = OnboardingViewModel()
-            viewModel.currentStep = .name
-            viewModel.name = "A"
-
-            #expect(viewModel.canAdvance == true)
-        }
-
-        @Test("Romanian diacritics in name")
-        func romanianDiacriticsHandling() {
-            let viewModel = OnboardingViewModel()
-            viewModel.currentStep = .name
-            viewModel.name = "Ștefan Ionescu"
-
-            #expect(viewModel.canAdvance == true)
-            #expect(viewModel.trimmedName == "Ștefan Ionescu")
-        }
-    }
-
-    // MARK: - Income Step Validation
-
-    @Suite("Income Step Validation")
-    @MainActor
-    struct IncomeStepValidation {
-
-        @Test("Cannot advance with zero income")
-        func cannotAdvanceZeroIncome() {
-            let viewModel = OnboardingViewModel()
-            viewModel.currentStep = .income
-            viewModel.monthlyIncome = 0
-
-            #expect(viewModel.canAdvance == false)
-        }
-
-        @Test("Can advance with positive income")
-        func canAdvancePositiveIncome() {
-            let viewModel = OnboardingViewModel()
-            viewModel.currentStep = .income
-            viewModel.monthlyIncome = 1
-
-            #expect(viewModel.canAdvance == true)
-        }
-
-        @Test("Can advance with typical salary")
-        func canAdvanceTypicalSalary() {
-            let viewModel = OnboardingViewModel()
-            viewModel.currentStep = .income
             viewModel.monthlyIncome = 14303
 
-            #expect(viewModel.canAdvance == true)
-        }
-    }
+            var visited = [viewModel.currentStep]
+            while let transition = viewModel.advance() {
+                await transition.value
+                visited.append(viewModel.currentStep)
+            }
 
-    // MARK: - Accounts Step Validation
-
-    @Suite("Accounts Step Validation")
-    @MainActor
-    struct AccountsStepValidation {
-
-        @Test("Can advance when primary account exists")
-        func canAdvanceWithPrimary() {
-            let viewModel = OnboardingViewModel()
-            viewModel.currentStep = .accounts
-
-            // Default has primary account
-            #expect(viewModel.canAdvance == true)
+            #expect(visited == OnboardingViewModel.OnboardingStep.allCases)
         }
 
-        @Test("Cannot advance without primary account")
-        func cannotAdvanceWithoutPrimary() {
-            let viewModel = OnboardingViewModel()
-            viewModel.currentStep = .accounts
-            viewModel.accounts = [.savings()] // No primary
-
-            #expect(viewModel.canAdvance == false)
-        }
-    }
-
-    // MARK: - Optional Steps
-
-    @Suite("Optional Steps")
-    @MainActor
-    struct OptionalSteps {
-
-        @Test("Can always advance from expenses")
-        func canAlwaysAdvanceFromExpenses() {
-            let viewModel = OnboardingViewModel()
-            viewModel.currentStep = .expenses
-            #expect(viewModel.canAdvance == true)
-        }
-
-        @Test("Can always advance from savings")
-        func canAlwaysAdvanceFromSavings() {
-            let viewModel = OnboardingViewModel()
-            viewModel.currentStep = .savings
-            #expect(viewModel.canAdvance == true)
-        }
-
-        @Test("Can always advance from transfer plan")
-        func canAlwaysAdvanceFromTransferPlan() {
-            let viewModel = OnboardingViewModel()
-            viewModel.currentStep = .transferPlan
-            #expect(viewModel.canAdvance == true)
-        }
-    }
-
-    // MARK: - Account Computed Properties
-
-    @Suite("Account Computed Properties")
-    @MainActor
-    struct AccountComputedProperties {
-
-        @Test("Primary account returns first primary")
-        func primaryAccountReturnsFirst() {
-            let viewModel = OnboardingViewModel()
-
-            #expect(viewModel.primaryAccount != nil)
-            #expect(viewModel.primaryAccount?.isPrimary == true)
-        }
-
-        @Test("Emergency account returns emergency type")
-        func emergencyAccountReturnsCorrectType() {
-            let viewModel = OnboardingViewModel()
-            viewModel.accounts.append(.emergency())
-
-            #expect(viewModel.emergencyAccount != nil)
-            #expect(viewModel.emergencyAccount?.accountType == .emergency)
-        }
-
-        @Test("Has emergency account flag")
-        func hasEmergencyAccountFlag() {
-            let viewModel = OnboardingViewModel()
-            #expect(viewModel.hasEmergencyAccount == false)
-
-            viewModel.accounts.append(.emergency())
-            #expect(viewModel.hasEmergencyAccount == true)
-        }
-
-        @Test("Primary savings account returns correct account")
-        func primarySavingsAccountCorrect() {
-            let viewModel = OnboardingViewModel()
-            #expect(viewModel.primarySavingsAccount == nil)
-
-            viewModel.accounts.append(.savings(isPrimarySavings: true))
-            #expect(viewModel.primarySavingsAccount != nil)
-            #expect(viewModel.primarySavingsAccount?.isPrimarySavings == true)
-        }
-
-        @Test("Has primary savings flag")
-        func hasPrimarySavingsFlag() {
-            let viewModel = OnboardingViewModel()
-            #expect(viewModel.hasPrimarySavingsAccount == false)
-
-            viewModel.accounts.append(.savings(isPrimarySavings: true))
-            #expect(viewModel.hasPrimarySavingsAccount == true)
-        }
-
-        @Test("Personal account returns personal type")
-        func personalAccountReturnsCorrectType() {
-            let viewModel = OnboardingViewModel()
-            viewModel.accounts.append(.personal())
-
-            #expect(viewModel.personalAccount != nil)
-            #expect(viewModel.personalAccount?.accountType == .personal)
-        }
-
-        @Test("All accounts returns accounts array")
-        func allAccountsReturnsArray() {
-            let viewModel = OnboardingViewModel()
-            viewModel.accounts.append(.emergency())
-            viewModel.accounts.append(.savings())
-
-            #expect(viewModel.allAccounts.count == 3)
-        }
-    }
-
-    // MARK: - Progress Tracking
-
-    @Suite("Progress Tracking")
-    @MainActor
-    struct ProgressTracking {
-
-        @Test("Total steps is 7")
-        func totalStepsIs7() {
-            let viewModel = OnboardingViewModel()
-            #expect(viewModel.totalSteps == 7)
-        }
-
-        @Test("Current step index matches step")
-        func currentStepIndexMatches() {
-            let viewModel = OnboardingViewModel()
-
-            viewModel.currentStep = .welcome
-            #expect(viewModel.currentStepIndex == 0)
-
+        @Test func `Advance is ignored while the current step is invalid`() {
+            let viewModel = makeViewModel()
             viewModel.currentStep = .name
-            #expect(viewModel.currentStepIndex == 1)
+            viewModel.name = "  "
 
-            viewModel.currentStep = .transferPlan
-            #expect(viewModel.currentStepIndex == 6)
+            #expect(viewModel.advance() == nil)
+            #expect(viewModel.currentStep == .name)
         }
 
-        @Test("Progress at welcome is 0")
-        func progressAtWelcome() {
-            let viewModel = OnboardingViewModel()
-            viewModel.currentStep = .welcome
-            #expect(viewModel.progress == 0.0)
+        @Test func `A double tap advances only one step`() async {
+            let viewModel = makeViewModel()
+
+            let first = viewModel.advance()
+            let second = viewModel.advance()
+            await first?.value
+
+            #expect(second == nil)
+            #expect(viewModel.currentStep == .name)
         }
 
-        @Test("Progress at transfer plan is 1")
-        func progressAtTransferPlan() {
-            let viewModel = OnboardingViewModel()
-            viewModel.currentStep = .transferPlan
-            #expect(viewModel.progress == 1.0)
+        @Test func `Advance dismisses the keyboard`() async {
+            let counter = DismissCounter()
+            let viewModel = OnboardingViewModel(keyboardDismissDelay: .zero) { counter.count += 1 }
+
+            await viewModel.advance()?.value
+
+            #expect(counter.count == 1)
+        }
+
+        @MainActor
+        final class DismissCounter {
+            var count = 0
         }
     }
 
-    // MARK: - Transfer Plan Integration
+    // MARK: - Remaining Money Destination
 
-    @Suite("Transfer Plan Integration")
     @MainActor
-    struct TransferPlanIntegration {
-
-        @Test("Transfer plan uses current values")
-        func transferPlanUsesCurrentValues() {
-            let viewModel = OnboardingViewModel()
-            viewModel.monthlyIncome = 10000
-            viewModel.expenses = [ExpenseEntry(name: "Rent", amount: 3000, icon: "house")]
-            viewModel.savingsAllocation.percentage = 0.20
-
-            let plan = viewModel.transferPlan
-
-            #expect(plan.income == 10000)
-            #expect(plan.totalExpenses == 3000)
-            #expect(plan.availableIncome == 7000)
+    struct RemainingMoneyDestinationTests {
+        @Test(arguments: [
+            ([AccountEntry.primary()], [RemainingMoneyDestination.primary]),
+            ([.primary(), .savings()], [.primarySavings, .primary]),
+            ([.primary(), .personal()], [.primary, .personal]),
+            ([.primary(), .savings(), .personal()], [.primarySavings, .primary, .personal]),
+        ])
+        func `Only destinations backed by an account are offered`(
+            accounts: [AccountEntry],
+            expected: [RemainingMoneyDestination]
+        ) {
+            let viewModel = makeViewModel()
+            viewModel.accounts = accounts
+            #expect(viewModel.availableRemainingDestinations == expected)
         }
 
-        @Test("Transfer plan reflects account changes")
-        func transferPlanReflectsAccountChanges() {
-            let viewModel = OnboardingViewModel()
-            viewModel.monthlyIncome = 10000
-            viewModel.accounts.append(.savings(isPrimarySavings: true))
+        @Test func `Reaching the plan without a savings account keeps leftovers in Primary`() async {
+            let viewModel = makeViewModel()
+            viewModel.currentStep = .savings
+            #expect(viewModel.remainingMoneyDestination == .primarySavings)
 
-            let plan = viewModel.transferPlan
+            await viewModel.advance()?.value
 
-            #expect(plan.savingsAllocation != nil)
+            #expect(viewModel.currentStep == .transferPlan)
+            #expect(viewModel.remainingMoneyDestination == .primary)
         }
 
-        @Test("Transfer plan uses remaining destination")
-        func transferPlanUsesRemainingDestination() {
-            let viewModel = OnboardingViewModel()
+        @Test func `A valid destination choice is kept`() async {
+            let viewModel = makeViewModel()
+            viewModel.accounts.append(.personal())
             viewModel.remainingMoneyDestination = .personal
+            viewModel.currentStep = .savings
 
-            let plan = viewModel.transferPlan
+            await viewModel.advance()?.value
 
-            #expect(plan.remainingDestination == .personal)
+            #expect(viewModel.remainingMoneyDestination == .personal)
+            #expect(viewModel.transferPlan.remainingDestination == .personal)
         }
     }
 
-    // MARK: - Default Expense Categories
+    // MARK: - Adding Accounts
 
-    @Suite("Default Expense Categories")
     @MainActor
-    struct DefaultExpenseCategories {
+    struct AddingAccounts {
+        @Test func `Only one emergency account can exist`() {
+            let viewModel = makeViewModel()
 
-        @Test("Default expenses have zero amounts")
-        func defaultExpensesZeroAmounts() {
-            let viewModel = OnboardingViewModel()
+            viewModel.addEmergencyAccount()
+            viewModel.addEmergencyAccount()
+            #expect(viewModel.addAccount(name: "Backup", type: .emergency) == false)
 
-            for expense in viewModel.expenses {
-                #expect(expense.amount == 0)
-            }
+            #expect(viewModel.accounts.count(where: { $0.accountType == .emergency }) == 1)
         }
 
-        @Test("Default expenses have icons")
-        func defaultExpensesHaveIcons() {
-            let viewModel = OnboardingViewModel()
+        @Test func `The primary role can't be added a second time`() {
+            let viewModel = makeViewModel()
 
-            for expense in viewModel.expenses {
-                #expect(expense.icon.isEmpty == false)
-            }
+            #expect(viewModel.addAccount(name: "Second salary", type: .primary) == false)
+            #expect(viewModel.accounts.count == 1)
         }
 
-        @Test("Default expenses are unlinked")
-        func defaultExpensesUnlinked() {
-            let viewModel = OnboardingViewModel()
+        @Test func `Blank names are rejected and names are trimmed`() throws {
+            let viewModel = makeViewModel()
 
-            for expense in viewModel.expenses {
-                #expect(expense.linkedAccountId == nil)
-            }
+            #expect(viewModel.addAccount(name: "   ", type: .joint) == false)
+            #expect(viewModel.addAccount(name: "  Joint  ", type: .joint))
+
+            let added = try #require(viewModel.accounts.last)
+            #expect(added.name == "Joint")
+        }
+
+        @Test func `A new emergency account gets a default target multiplier`() throws {
+            let viewModel = makeViewModel()
+            viewModel.addAccount(name: "Rainy day", type: .emergency)
+
+            let emergency = try #require(viewModel.emergencyAccount)
+            #expect(emergency.emergencyMultiplier != nil)
+        }
+
+        @Test func `The Emergency suggestion creates an emergency account and is hidden once one exists`() {
+            let offered = AddAccountSheet.suggestions(canAddEmergency: true)
+            #expect(offered.first { $0.name == "Emergency" }?.type == .emergency)
+
+            let afterEmergency = AddAccountSheet.suggestions(canAddEmergency: false)
+            #expect(!afterEmergency.contains { $0.type == .emergency })
+        }
+
+        @Test func `Only the first savings account becomes auto-save`() {
+            let viewModel = makeViewModel()
+            viewModel.addAccount(name: "Savings", type: .savings)
+            viewModel.addAccount(name: "Travel", type: .savings)
+
+            #expect(viewModel.accounts.filter(\.isPrimarySavings).map(\.name) == ["Savings"])
         }
     }
 
-    // MARK: - Edge Cases
+    // MARK: - Editing Accounts
 
-    @Suite("Edge Cases")
     @MainActor
-    struct EdgeCases {
+    struct EditingAccounts {
+        @Test func `The primary account can't be deleted or retyped`() throws {
+            let viewModel = makeViewModel()
+            let primary = try #require(viewModel.primaryAccount)
 
-        @Test("Multiple operations don't corrupt state")
-        func multipleOperationsSafe() {
-            let viewModel = OnboardingViewModel()
+            viewModel.deleteAccount(id: primary.id)
+            viewModel.changeAccountType(id: primary.id, to: .savings)
 
-            // Simulate user flow
-            viewModel.name = "Test User"
-            viewModel.monthlyIncome = 5000
-            viewModel.expenses[0].amount = 1000
-            viewModel.accounts.append(.emergency())
-            viewModel.accounts.append(.savings())
+            #expect(viewModel.accounts.count == 1)
+            #expect(viewModel.primaryAccount?.accountType == .primary)
+            #expect(viewModel.primaryAccount?.isPrimarySavings == false)
+        }
+
+        @Test func `Other accounts can't be retyped to Primary or a second Emergency`() throws {
+            let viewModel = makeViewModel()
+            viewModel.addEmergencyAccount()
+            viewModel.addAccount(name: "Joint", type: .joint)
+            let joint = try #require(viewModel.accounts.last)
+
+            viewModel.changeAccountType(id: joint.id, to: .primary)
+            viewModel.changeAccountType(id: joint.id, to: .emergency)
+
+            #expect(viewModel.accounts.last?.accountType == .joint)
+        }
+
+        @Test func `Deleting an account sends its linked expenses back to Primary`() throws {
+            let viewModel = makeViewModel()
+            viewModel.addAccount(name: "Joint", type: .joint)
+            let joint = try #require(viewModel.accounts.last)
+            viewModel.expenses[1].amount = 2000
+            viewModel.expenses[1].linkedAccountId = joint.id
+
+            viewModel.deleteAccount(id: joint.id)
+
+            #expect(viewModel.expenses.allSatisfy { $0.linkedAccountId == nil })
+            #expect(viewModel.transferPlan.accountExpenseTransfers.isEmpty)
+        }
+
+        @Test func `Losing the auto-save account hands the role to another savings account`() throws {
+            let viewModel = makeViewModel()
+            viewModel.addAccount(name: "Savings", type: .savings)
+            viewModel.addAccount(name: "Travel", type: .savings)
+            let savings = try #require(viewModel.primarySavingsAccount)
+
+            viewModel.deleteAccount(id: savings.id)
+
+            #expect(viewModel.primarySavingsAccount?.name == "Travel")
+        }
+
+        @Test func `Retyping the auto-save account hands the role on`() throws {
+            let viewModel = makeViewModel()
+            viewModel.addAccount(name: "Savings", type: .savings)
+            viewModel.addAccount(name: "Travel", type: .savings)
+            let savings = try #require(viewModel.primarySavingsAccount)
+
+            viewModel.changeAccountType(id: savings.id, to: .joint)
+
+            #expect(viewModel.primarySavingsAccount?.name == "Travel")
+        }
+
+        @Test func `Retyping an account to Savings makes it auto-save when none exists`() throws {
+            let viewModel = makeViewModel()
+            viewModel.addAccount(name: "Joint", type: .joint)
+            let joint = try #require(viewModel.accounts.last)
+
+            viewModel.changeAccountType(id: joint.id, to: .savings)
+
+            #expect(viewModel.primarySavingsAccount?.id == joint.id)
+        }
+
+        @Test func `Leaving the emergency type clears its target settings`() throws {
+            let viewModel = makeViewModel()
+            viewModel.accounts.append(.emergency(multiplier: 6, hardCap: 50_000))
+            let emergency = try #require(viewModel.emergencyAccount)
+
+            viewModel.changeAccountType(id: emergency.id, to: .other)
+
+            let account = try #require(viewModel.accounts.last)
+            #expect(account.emergencyMultiplier == nil)
+            #expect(account.emergencyHardCap == nil)
+        }
+
+        @Test func `Auto-save moves between savings accounts and never to other types`() throws {
+            let viewModel = makeViewModel()
+            viewModel.addAccount(name: "Savings", type: .savings)
+            viewModel.addAccount(name: "Travel", type: .savings)
+            viewModel.addAccount(name: "Joint", type: .joint)
+            let travel = viewModel.accounts[2]
+            let joint = viewModel.accounts[3]
+
+            viewModel.setPrimarySavings(id: travel.id)
+            viewModel.setPrimarySavings(id: joint.id)
+
+            #expect(viewModel.accounts.filter(\.isPrimarySavings).map(\.name) == ["Travel"])
+        }
+
+        @Test func `Renaming trims and ignores blank names`() throws {
+            let viewModel = makeViewModel()
+            let primary = try #require(viewModel.primaryAccount)
+
+            viewModel.renameAccount(id: primary.id, to: "  ING  ")
+            viewModel.renameAccount(id: primary.id, to: "  ")
+
+            #expect(viewModel.primaryAccount?.name == "ING")
+        }
+    }
+
+    // MARK: - Savings Boost
+
+    @MainActor
+    struct SavingsBoost {
+        @Test(arguments: [(0.25, true), (0.33, true), (0.34, false), (0.50, false)])
+        func `Boost is allowed only while the boosted rate stays within income`(
+            percentage: Double,
+            canEnable: Bool
+        ) {
+            let viewModel = makeViewModel()
+            viewModel.savingsAllocation.percentage = percentage
+
+            viewModel.isBoostEnabled = true
+
+            #expect(viewModel.canEnableBoost == canEnable)
+            #expect(viewModel.isBoostEnabled == canEnable)
+        }
+
+        /// 0.1627 along the 5–50% track is 12.32%, 0.9067 is 45.8%.
+        @Test(arguments: [(0.0, 5), (0.1627, 12), (0.9067, 46), (1.0, 50)])
+        func `Dragging stores whole percents`(fraction: Double, percent: Int) {
+            #expect(SavingsSlider.percentage(atFraction: fraction) == Double(percent) / 100)
+        }
+
+        @Test(arguments: 5...50)
+        func `Only rates one point from a snap value snap to it`(percent: Int) {
+            let snapped = [10, 15, 20, 25, 30, 35, 40].first { abs($0 - percent) <= 1 } ?? percent
+            let minimum = SavingsAllocationEntry.minimumPercentage
+            let fraction = (Double(percent) / 100 - minimum) / (SavingsAllocationEntry.maximumPercentage - minimum)
+
+            #expect(SavingsSlider.percentage(atFraction: fraction) == Double(snapped) / 100)
+        }
+
+        @Test func `Raising the rate past the threshold switches boost off`() {
+            let viewModel = makeViewModel()
             viewModel.savingsAllocation.percentage = 0.30
-            viewModel.savingsAllocation.boostEnabled = true
-            viewModel.remainingMoneyDestination = .personal
+            viewModel.isBoostEnabled = true
 
-            // Verify state is consistent
-            #expect(viewModel.trimmedName == "Test User")
-            #expect(viewModel.hasEmergencyAccount == true)
-            #expect(viewModel.hasPrimarySavingsAccount == true)
-            #expect(viewModel.transferPlan.isBalanced)
+            viewModel.savingsAllocation.percentage = 0.40
+            viewModel.disableBoostIfUnsafe()
+
+            #expect(!viewModel.isBoostEnabled)
         }
+    }
 
-        @Test("Empty accounts array handled")
-        func emptyAccountsArrayHandled() {
-            let viewModel = OnboardingViewModel()
-            viewModel.currentStep = .accounts
-            viewModel.accounts = []
+    // MARK: - Transfer Plan Inputs
 
-            #expect(viewModel.primaryAccount == nil)
-            #expect(viewModel.emergencyAccount == nil)
-            #expect(viewModel.hasEmergencyAccount == false)
-            #expect(viewModel.canAdvance == false)
-        }
+    @Test func `The transfer plan reflects what the user entered`() {
+        let viewModel = makeViewModel()
+        viewModel.monthlyIncome = 10_000
+        viewModel.expenses[0].amount = 3000
+        viewModel.addSavingsAccount()
 
-        @Test("Very large income values")
-        func veryLargeIncomeValues() {
-            let viewModel = OnboardingViewModel()
-            viewModel.currentStep = .income
-            viewModel.monthlyIncome = Decimal(string: "999999999999")!
+        let plan = viewModel.transferPlan
 
-            #expect(viewModel.canAdvance == true)
-            #expect(viewModel.transferPlan.isBalanced)
-        }
+        #expect(plan.income == 10_000)
+        #expect(plan.totalExpenses == 3000)
+        #expect(viewModel.availableIncome == 7000)
+        #expect(plan.savingsAllocation != nil)
+        #expect(plan.isBalanced)
     }
 }

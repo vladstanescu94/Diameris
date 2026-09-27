@@ -3,18 +3,20 @@ import DesignSystem
 import Utilities
 import Domain
 
-/// Selector for choosing account type.
 public struct AccountTypeSelector: View {
     @Binding var selectedType: AccountType
+    let types: [AccountType]
     let compact: Bool
     let disableEmergency: Bool
 
     public init(
         selectedType: Binding<AccountType>,
+        types: [AccountType] = AccountType.allCases,
         compact: Bool = true,
         disableEmergency: Bool = false
     ) {
         self._selectedType = selectedType
+        self.types = types
         self.compact = compact
         self.disableEmergency = disableEmergency
     }
@@ -29,13 +31,13 @@ public struct AccountTypeSelector: View {
 
     private var compactPicker: some View {
         Menu {
-            ForEach(AccountType.allCases) { type in
+            ForEach(types) { type in
                 if type == .emergency && disableEmergency {
-                    // Show disabled state for emergency when one exists
-                    Button {
-                        // No-op
-                    } label: {
-                        Label("\(type.displayName) (only one allowed)", systemImage: type.icon)
+                    Button {} label: {
+                        Label(
+                            String(localized: "\(type.displayName) (only one allowed)", bundle: .module),
+                            systemImage: type.icon
+                        )
                     }
                     .disabled(true)
                 } else {
@@ -56,8 +58,6 @@ public struct AccountTypeSelector: View {
                 Text(selectedType.displayName)
                     .font(.caption)
                     .foregroundStyle(.primary)
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
 
                 Image(systemName: "chevron.up.chevron.down")
                     .font(.caption2)
@@ -67,7 +67,7 @@ public struct AccountTypeSelector: View {
             .padding(.vertical, Spacing.xs)
             .background {
                 Capsule()
-                    .fill(Color.secondary.opacity(0.1))
+                    .fill(Color.secondary.opacity(Opacity.faint))
             }
         }
         .buttonStyle(.plain)
@@ -85,7 +85,7 @@ public struct AccountTypeSelector: View {
                 GridItem(.flexible()),
                 GridItem(.flexible())
             ], spacing: Spacing.sm) {
-                ForEach(AccountType.allCases) { type in
+                ForEach(types) { type in
                     let isDisabled = type == .emergency && disableEmergency
 
                     AccountTypeButton(
@@ -103,7 +103,6 @@ public struct AccountTypeSelector: View {
     }
 }
 
-/// Button for a single account type option.
 private struct AccountTypeButton: View {
     let type: AccountType
     let isSelected: Bool
@@ -133,8 +132,9 @@ private struct AccountTypeButton: View {
             .background {
                 RoundedRectangle(cornerRadius: CornerRadius.medium)
                     .fill(backgroundColor)
+                    .stroke(isSelected ? DiamerisColors.accentSecondary : .clear)
             }
-            .opacity(isDisabled ? 0.5 : 1.0)
+            .opacity(isDisabled ? Opacity.half : 1.0)
         }
         .buttonStyle(.plain)
         .disabled(isDisabled)
@@ -143,16 +143,18 @@ private struct AccountTypeButton: View {
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
+    // Selection is shown by a tinted fill + border rather than white-on-cyan text,
+    // which falls below 4.5:1 contrast in light mode.
     private var foregroundColor: Color {
-        isSelected ? .white : DiamerisColors.accentSecondary
+        .primary
     }
 
     private var descriptionColor: Color {
-        isSelected ? .white.opacity(0.8) : .secondary
+        .secondary
     }
 
     private var backgroundColor: Color {
-        isSelected ? DiamerisColors.accentSecondary : Color.secondary.opacity(0.1)
+        isSelected ? DiamerisColors.accentSecondary.opacity(Opacity.light) : Color.secondary.opacity(Opacity.faint)
     }
 }
 

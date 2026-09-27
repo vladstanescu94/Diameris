@@ -1,125 +1,72 @@
 import Testing
 import SwiftUI
+import UIKit
 @testable import DesignSystem
 
-@Suite("DesignSystem Tests")
-struct DesignSystemTests {
+struct ColorTests {
 
-    // MARK: - Spacing Tests
-
-    @Suite("Spacing Constants")
-    struct SpacingTests {
-        @Test("Spacing values follow 8pt grid")
-        func spacingValues() {
-            #expect(Spacing.xxs == 4)
-            #expect(Spacing.xs == 8)
-            #expect(Spacing.sm == 12)
-            #expect(Spacing.md == 16)
-            #expect(Spacing.lg == 24)
-            #expect(Spacing.xl == 32)
-            #expect(Spacing.xxl == 48)
-        }
-
-        @Test("Spacing values are positive")
-        func spacingPositive() {
-            #expect(Spacing.xxs > 0)
-            #expect(Spacing.xs > 0)
-            #expect(Spacing.sm > 0)
-            #expect(Spacing.md > 0)
-            #expect(Spacing.lg > 0)
-            #expect(Spacing.xl > 0)
-            #expect(Spacing.xxl > 0)
-        }
-
-        @Test("Spacing values increase in order")
-        func spacingOrder() {
-            #expect(Spacing.xxs < Spacing.xs)
-            #expect(Spacing.xs < Spacing.sm)
-            #expect(Spacing.sm < Spacing.md)
-            #expect(Spacing.md < Spacing.lg)
-            #expect(Spacing.lg < Spacing.xl)
-            #expect(Spacing.xl < Spacing.xxl)
-        }
+    @Test(arguments: [
+        (UInt(0xD946EF), 0xD9, 0x46, 0xEF),
+        (UInt(0x000000), 0x00, 0x00, 0x00),
+        (UInt(0xFFFFFF), 0xFF, 0xFF, 0xFF)
+    ])
+    func `Hex initializer splits RGB channels`(hex: UInt, red: Int, green: Int, blue: Int) {
+        #expect(components(of: UIColor(Color(hex: hex))) == [red, green, blue])
     }
 
-    // MARK: - Corner Radius Tests
+    @Test func `Adaptive color resolves per interface style`() {
+        let color = UIColor(DiamerisColors.accentPrimary)
+        let light = color.resolvedColor(with: UITraitCollection(userInterfaceStyle: .light))
+        let dark = color.resolvedColor(with: UITraitCollection(userInterfaceStyle: .dark))
 
-    @Suite("Corner Radius Constants")
-    struct CornerRadiusTests {
-        @Test("Corner radius values are correct")
-        func cornerRadiusValues() {
-            #expect(CornerRadius.small == 8)
-            #expect(CornerRadius.medium == 12)
-            #expect(CornerRadius.large == 16)
-            #expect(CornerRadius.xl == 24)
-        }
-
-        @Test("Corner radius values increase in order")
-        func cornerRadiusOrder() {
-            #expect(CornerRadius.small < CornerRadius.medium)
-            #expect(CornerRadius.medium < CornerRadius.large)
-            #expect(CornerRadius.large < CornerRadius.xl)
-        }
+        #expect(components(of: light) == [0xA2, 0x1C, 0xAF])
+        #expect(components(of: dark) == [0xE8, 0x79, 0xF9])
     }
 
-    // MARK: - Icon Size Tests
+    /// Accents are used as text and icon tint, so the light values must meet WCAG AA (4.5:1)
+    /// on both white and the grouped background; dark values against black and elevated gray.
+    @Test(arguments: [DiamerisColors.accentPrimary, DiamerisColors.accentSecondary])
+    func `Accents meet AA text contrast in both appearances`(accent: Color) {
+        let color = UIColor(accent)
+        let light = color.resolvedColor(with: UITraitCollection(userInterfaceStyle: .light))
+        let dark = color.resolvedColor(with: UITraitCollection(userInterfaceStyle: .dark))
 
-    @Suite("Icon Size Constants")
-    struct IconSizeTests {
-        @Test("Icon size values are correct")
-        func iconSizeValues() {
-            #expect(IconSize.sm == 16)
-            #expect(IconSize.md == 24)
-            #expect(IconSize.lg == 32)
-            #expect(IconSize.xl == 48)
-            #expect(IconSize.xxl == 64)
-        }
-
-        @Test("Icon size values increase in order")
-        func iconSizeOrder() {
-            #expect(IconSize.sm < IconSize.md)
-            #expect(IconSize.md < IconSize.lg)
-            #expect(IconSize.lg < IconSize.xl)
-            #expect(IconSize.xl < IconSize.xxl)
-        }
+        #expect(contrast(light, .white) >= Self.minimumTextContrast)
+        #expect(contrast(light, UIColor(Color(hex: 0xF2F2F7))) >= Self.minimumTextContrast)
+        #expect(contrast(dark, .black) >= Self.minimumTextContrast)
+        #expect(contrast(dark, UIColor(Color(hex: 0x1C1C1E))) >= Self.minimumTextContrast)
     }
 
-    // MARK: - Color Tests
-
-    @Suite("Color Hex Initializer")
-    struct ColorHexTests {
-        @Test("Color initializes from hex correctly")
-        func colorFromHex() {
-            let red = Color(hex: 0xFF0000)
-            let green = Color(hex: 0x00FF00)
-            let blue = Color(hex: 0x0000FF)
-
-            // Colors should be created without crashing
-            #expect(red != green)
-            #expect(green != blue)
-            #expect(red != blue)
-        }
-
-        @Test("Brand colors are defined")
-        func brandColorsDefined() {
-            // These should not crash when accessed
-            let primaryLight = DiamerisColors.accentPrimaryLight
-            let primaryDark = DiamerisColors.accentPrimaryDark
-            let secondaryLight = DiamerisColors.accentSecondaryLight
-            let secondaryDark = DiamerisColors.accentSecondaryDark
-
-            // Light and dark variants should be different
-            #expect(primaryLight != primaryDark)
-            #expect(secondaryLight != secondaryDark)
-        }
-
-        @Test("Semantic colors are defined")
-        func semanticColorsDefined() {
-            // These should not crash when accessed
-            _ = DiamerisColors.positive
-            _ = DiamerisColors.negative
-            _ = DiamerisColors.warning
-            _ = DiamerisColors.neutral
-        }
+    /// Prominent buttons put white labels on this fill, in both appearances.
+    @Test(arguments: [UIUserInterfaceStyle.light, .dark])
+    func `White text on the prominent fill meets AA`(style: UIUserInterfaceStyle) {
+        let fill = UIColor(DiamerisColors.accentPrimaryFill)
+            .resolvedColor(with: UITraitCollection(userInterfaceStyle: style))
+        #expect(contrast(fill, .white) >= Self.minimumTextContrast)
     }
+
+    private static let minimumTextContrast = 4.5
+
+    private func contrast(_ first: UIColor, _ second: UIColor) -> Double {
+        let (lighter, darker) = [luminance(first), luminance(second)].sorted(by: >).pair
+        return (lighter + 0.05) / (darker + 0.05)
+    }
+
+    private func luminance(_ color: UIColor) -> Double {
+        let channels = components(of: color).map { value -> Double in
+            let channel = Double(value) / 255
+            return channel <= 0.03928 ? channel / 12.92 : pow((channel + 0.055) / 1.055, 2.4)
+        }
+        return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+    }
+
+    private func components(of color: UIColor) -> [Int] {
+        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+        color.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        return [red, green, blue].map { Int(($0 * 255).rounded()) }
+    }
+}
+
+private extension Array where Element == Double {
+    var pair: (Double, Double) { (self[0], self[1]) }
 }

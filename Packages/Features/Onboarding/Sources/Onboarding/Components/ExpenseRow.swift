@@ -12,6 +12,7 @@ public struct ExpenseRow: View {
     let accounts: [AccountEntry]
 
     @State private var amountText: String = ""
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     public init(
         icon: String,
@@ -29,7 +30,6 @@ public struct ExpenseRow: View {
         self.accounts = accounts
     }
 
-    /// The currently selected account name
     private var selectedAccountName: String {
         if let accountId = linkedAccountId,
            let account = accounts.first(where: { $0.id == accountId }) {
@@ -47,23 +47,33 @@ public struct ExpenseRow: View {
         }
         .padding(Spacing.md)
         .glassEffect(in: .rect(cornerRadius: CornerRadius.medium))
-        .accessibilityElement(children: .combine)
+        // .contain, not .combine: the amount field and account menu must stay separately operable.
+        .accessibilityElement(children: .contain)
+    }
+
+    /// Stacks name above the amount at accessibility sizes so neither clips.
+    private var mainRowLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.xs))
+            : AnyLayout(HStackLayout(spacing: Spacing.md))
     }
 
     private var mainRow: some View {
-        HStack(spacing: Spacing.md) {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundStyle(.secondary)
-                .frame(width: ComponentSize.iconContainer)
-                .accessibilityHidden(true)
+        mainRowLayout {
+            HStack(spacing: Spacing.md) {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+                    .frame(width: ComponentSize.iconContainer)
+                    .accessibilityHidden(true)
 
-            Text(name)
-                .font(.body)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+                Text(name)
+                    .font(.body)
+            }
 
-            Spacer(minLength: Spacing.sm)
+            if !dynamicTypeSize.isAccessibilitySize {
+                Spacer(minLength: Spacing.sm)
+            }
 
             HStack(spacing: Spacing.xs) {
                 Text(currency.rawValue)
@@ -75,7 +85,7 @@ public struct ExpenseRow: View {
                     .fontWeight(.medium)
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
-                    .frame(width: ComponentSize.amountInputWidth)
+                    .frame(width: dynamicTypeSize.isAccessibilitySize ? nil : ComponentSize.amountInputWidth)
                     .onChange(of: amountText) { _, newValue in
                         amount = AmountFormatter.parse(newValue)
                     }
@@ -106,7 +116,6 @@ public struct ExpenseRow: View {
 
                 Divider()
 
-                // Other accounts
                 ForEach(accounts.filter { !$0.isPrimary }) { account in
                     Button {
                         linkedAccountId = account.id

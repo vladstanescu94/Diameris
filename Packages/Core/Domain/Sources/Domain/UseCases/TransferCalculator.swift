@@ -1,21 +1,13 @@
 import Foundation
 
-/// Calculator for generating transfer plans based on account types.
+/// Builds the month's transfer plan.
 ///
-/// Supports two allocation modes:
-///
-/// **Prioritized** (default):
-/// 1. Emergency account fills first (until target reached)
-/// 2. Primary Savings account fills with remaining savings
-/// 3. Remaining money goes to user's chosen destination
-///
-/// **Split**:
-/// 1. Emergency and savings each get independent fixed amounts
-/// 2. If emergency target is reached, overflow redirects to savings
-/// 3. Remaining money goes to user's chosen destination
+/// **Prioritized**: the savings pool fills the emergency account up to its target, the rest goes
+/// to savings. **Split**: emergency and savings get independent amounts; emergency overflow past
+/// its target goes to savings. Either way, what's left is `remainingMoney` for the chosen
+/// destination, and all amounts are whole cents that add up exactly to income.
 public enum TransferCalculator {
 
-    /// Calculate the transfer plan based on income, expenses, accounts, and allocation settings.
     public static func calculate(
         income: Decimal,
         expenses: [ExpenseEntry],
@@ -23,13 +15,24 @@ public enum TransferCalculator {
         accounts: [AccountEntry],
         remainingDestination: RemainingMoneyDestination
     ) -> TransferPlan {
-        // 1. Calculate total expenses
-        let totalExpenses = expenses.reduce(0) { $0 + $1.amount }
+        // Enabled, positive expenses at their monthly equivalent, whatever frequency is passed.
+        let plannedExpenses = expenses.filter { $0.isEnabled && $0.monthlyAmount > 0 }
+        var (remainsInPrimary, accountExpenseTransfers) = distributeExpenses(
+            expenses: plannedExpenses,
+            accounts: accounts
+        )
+        let totalExpenses = remainsInPrimary + accountExpenseTransfers.reduce(0) { $0 + $1.amount }
 
-        // 2. Calculate available income after expenses
+        // A short month can only move the salary that exists; `shortfall` reports the rest.
+        if totalExpenses > income {
+            (remainsInPrimary, accountExpenseTransfers) = payWithinIncome(
+                max(0, income),
+                transfers: accountExpenseTransfers
+            )
+        }
+
         let availableIncome = max(0, income - totalExpenses)
 
-        // 3-4. Calculate savings and distribute based on allocation mode
         let accountAllocations: [TransferPlan.AccountAllocation]
         let allocatedSavings: Decimal
 
@@ -55,20 +58,12 @@ public enum TransferCalculator {
             allocatedSavings = result.1
         }
 
-        // 5. Calculate remaining money after expenses and savings
         let remainingMoney = availableIncome - allocatedSavings
 
-        // 6. Distribute expenses to accounts
-        let (remainsInPrimary, accountExpenseTransfers) = distributeExpenses(
-            expenses: expenses,
-            accounts: accounts
-        )
-
-        // 7. Verify balance
         let totalAllocated = accountAllocations.reduce(0) { $0 + $1.amount }
         let totalExpenseTransfers = accountExpenseTransfers.reduce(0) { $0 + $1.amount }
         let total = remainsInPrimary + totalExpenseTransfers + totalAllocated + remainingMoney
-        let isBalanced = abs(total - income) < 0.01  // Allow small rounding error
+        let isBalanced = abs(total - income) < 0.01 && totalExpenses <= income  // Allow small rounding error
 
         return TransferPlan(
             income: income,
@@ -89,7 +84,6 @@ public enum TransferCalculator {
 
 private extension TransferCalculator {
 
-    /// Distribute savings to accounts based on type priority.
     /// Returns: (allocations, totalAllocated)
     static func distributeToAccounts(
         totalSavings: Decimal,
@@ -99,8 +93,7 @@ private extension TransferCalculator {
         var remainingSavings = totalSavings
         var allocations: [TransferPlan.AccountAllocation] = []
 
-        // Step 1: Fill Emergency account first (if exists and not complete)
-        if let emergencyAccount = accounts.first(where: { $0.accountType == .emergency }) {
+        if let emergencyAccount = accounts.emergencyAccount {
             let allocation = calculateEmergencyAllocation(
                 account: emergencyAccount,
                 availableSavings: remainingSavings,
@@ -112,26 +105,9 @@ private extension TransferCalculator {
             }
         }
 
-        // Step 2: Fill Primary Savings account with remaining savings
-        if let savingsAccount = accounts.first(where: { $0.isPrimarySavings }) {
-            if remainingSavings > 0 {
-                let allocation = TransferPlan.AccountAllocation(
-                    account: savingsAccount,
-                    amount: remainingSavings
-                )
-                allocations.append(allocation)
-                remainingSavings = 0
-            }
-        } else if let savingsAccount = accounts.first(where: { $0.accountType == .savings }) {
-            // Fallback: use first savings-type account if no primary savings
-            if remainingSavings > 0 {
-                let allocation = TransferPlan.AccountAllocation(
-                    account: savingsAccount,
-                    amount: remainingSavings
-                )
-                allocations.append(allocation)
-                remainingSavings = 0
-            }
+        if let savingsAccount = accounts.savingsDestination, remainingSavings > 0 {
+            allocations.append(TransferPlan.AccountAllocation(account: savingsAccount, amount: remainingSavings))
+            remainingSavings = 0
         }
 
         let totalAllocated = totalSavings - remainingSavings
@@ -143,7 +119,6 @@ private extension TransferCalculator {
 
 private extension TransferCalculator {
 
-    /// Distribute independent fixed amounts to emergency and savings accounts.
     /// Returns: (allocations, totalAllocated)
     static func distributeSplitToAccounts(
         allocation: SavingsAllocationEntry,
@@ -154,30 +129,31 @@ private extension TransferCalculator {
         var allocations: [TransferPlan.AccountAllocation] = []
         var totalAllocated: Decimal = 0
 
-        let requestedTotal = allocation.splitTotal(availableIncome: availableIncome)
+        var requestedEmergency = allocation.resolvedSplitEmergencyAmount(availableIncome: availableIncome)
+        var requestedSavings = allocation.resolvedSplitSavingsAmount(availableIncome: availableIncome)
+        let requestedTotal = requestedEmergency + requestedSavings
         guard requestedTotal > 0 else { return (allocations, totalAllocated) }
 
-        // Proportional reduction if total exceeds available income
-        let ratio: Decimal = requestedTotal > availableIncome
-            ? availableIncome / requestedTotal
-            : 1
+        // Proportional reduction if total exceeds available income. Emergency's share is rounded to
+        // cents and savings takes the exact remainder, so the two still add up to what's available
+        // (a raw ratio leaves 666.66…67 + 333.33…33 = 999.99…99).
+        if requestedTotal > availableIncome {
+            requestedEmergency = (availableIncome * requestedEmergency / requestedTotal).roundedToCents
+            requestedSavings = availableIncome - requestedEmergency
+        }
 
         var emergencyOverflow: Decimal = 0
 
-        // Emergency allocation
-        if let emergencyAccount = accounts.first(where: { $0.accountType == .emergency }) {
-            let requestedAmount = allocation.resolvedSplitEmergencyAmount(availableIncome: availableIncome) * ratio
+        if let emergencyAccount = accounts.emergencyAccount {
+            let requestedAmount = requestedEmergency
 
             if requestedAmount > 0 {
-                // Check if emergency target is already reached
                 if let target = emergencyAccount.emergencyTarget(monthlyIncome: monthlyIncome) {
                     let remaining = max(0, target - emergencyAccount.currentBalance)
 
                     if remaining <= 0 {
-                        // Target reached — redirect everything to savings
                         emergencyOverflow = requestedAmount
                     } else {
-                        // Allocate up to what's needed, overflow the rest
                         let actualAmount = min(requestedAmount, remaining)
                         emergencyOverflow = requestedAmount - actualAmount
 
@@ -203,13 +179,8 @@ private extension TransferCalculator {
             }
         }
 
-        // Savings allocation (including any emergency overflow)
-        let savingsAccount = accounts.first(where: { $0.isPrimarySavings })
-            ?? accounts.first(where: { $0.accountType == .savings })
-
-        if let savingsAccount {
-            let requestedAmount = allocation.resolvedSplitSavingsAmount(availableIncome: availableIncome) * ratio
-            let savingsTotal = requestedAmount + emergencyOverflow
+        if let savingsAccount = accounts.savingsDestination {
+            let savingsTotal = requestedSavings + emergencyOverflow
 
             if savingsTotal > 0 {
                 let savingsAlloc = TransferPlan.AccountAllocation(
@@ -229,7 +200,6 @@ private extension TransferCalculator {
 
 private extension TransferCalculator {
 
-    /// Calculate allocation for an emergency account with progress tracking.
     static func calculateEmergencyAllocation(
         account: AccountEntry,
         availableSavings: Decimal,
@@ -243,19 +213,15 @@ private extension TransferCalculator {
             )
         }
 
-        // Calculate how much is still needed
         let currentBalance = account.currentBalance
         let remaining = max(0, target - currentBalance)
 
-        // Allocate the minimum of what's needed and what's available
         let amountToAllocate = min(remaining, availableSavings)
 
-        // Calculate progress before and after
         let progressBefore = account.emergencyProgress(monthlyIncome: monthlyIncome) ?? 0
         let newBalance = currentBalance + amountToAllocate
         let progressAfter = target > 0 ? min(1.0, Double(truncating: (newBalance / target) as NSNumber)) : 0
 
-        // Check if this allocation completes the target
         let isComplete = newBalance >= target
 
         return TransferPlan.AccountAllocation(
@@ -268,46 +234,66 @@ private extension TransferCalculator {
         )
     }
 
-    /// Distribute expenses to accounts based on linkedAccountId.
+    /// Linked-account transfers are paid first (the bills are due there), scaled proportionally if
+    /// they alone exceed `income`; primary keeps what is left. Cents-rounded, remainder to the last.
+    /// Returns: (remainsInPrimary, accountExpenseTransfers)
+    static func payWithinIncome(
+        _ income: Decimal,
+        transfers: [TransferPlan.AccountExpenseTransfer]
+    ) -> (Decimal, [TransferPlan.AccountExpenseTransfer]) {
+        let transferTotal = transfers.reduce(0) { $0 + $1.amount }
+        guard transferTotal > income else { return (income - transferTotal, transfers) }
+
+        var paidSoFar: Decimal = 0
+        let scaled = transfers.enumerated().map { index, transfer in
+            let amount = index == transfers.count - 1
+                ? income - paidSoFar
+                : (income * transfer.amount / transferTotal).roundedToCents
+            paidSoFar += amount
+            return TransferPlan.AccountExpenseTransfer(
+                accountId: transfer.accountId,
+                accountName: transfer.accountName,
+                amount: amount,
+                expenseNames: transfer.expenseNames
+            )
+        }
+        return (0, scaled)
+    }
+
+    /// An expense stays in primary when it is unlinked, linked to the primary account itself, or
+    /// linked to an account that no longer exists (links are loose UUIDs with no referential
+    /// integrity). Moving money to a missing account would make it vanish; moving it to primary
+    /// would be wiped when the reconciler resets primary to `remainsInPrimary`.
+    ///
+    /// Transfers are ordered like `accounts`, so the plan reads the same on every launch.
     /// Returns: (remainsInPrimary, accountExpenseTransfers)
     static func distributeExpenses(
         expenses: [ExpenseEntry],
         accounts: [AccountEntry]
     ) -> (Decimal, [TransferPlan.AccountExpenseTransfer]) {
-        // Group expenses by linkedAccountId (nil = primary account)
-        let expensesByAccount = Dictionary(grouping: expenses.filter { $0.amount > 0 }) { expense in
-            expense.linkedAccountId
-        }
+        let transferTargets = accounts.filter { !$0.isPrimary }
+        let transferTargetIds = Set(transferTargets.map(\.id))
 
-        // Calculate what stays in primary (nil linkedAccountId)
-        let primaryExpenses = expensesByAccount[nil] ?? []
-        let remainsInPrimary = primaryExpenses.reduce(0) { $0 + $1.amount }
-
-        // Create transfers for linked accounts
-        var transfers: [TransferPlan.AccountExpenseTransfer] = []
-
-        for (accountId, linkedExpenses) in expensesByAccount {
-            // Skip primary account (nil)
-            guard let accountId = accountId else { continue }
-
-            // Find the account name
-            let accountName = accounts.first { $0.id == accountId }?.name ?? "Unknown"
-
-            let amount = linkedExpenses.reduce(0) { $0 + $1.amount }
-            let expenseNames = linkedExpenses.map { $0.name }
-
-            if amount > 0 {
-                transfers.append(
-                    TransferPlan.AccountExpenseTransfer(
-                        accountId: accountId,
-                        accountName: accountName,
-                        amount: amount,
-                        expenseNames: expenseNames
-                    )
-                )
+        var remainsInPrimary: Decimal = 0
+        var expensesByAccount: [UUID: [ExpenseEntry]] = [:]
+        for expense in expenses {
+            if let accountId = expense.linkedAccountId, transferTargetIds.contains(accountId) {
+                expensesByAccount[accountId, default: []].append(expense)
+            } else {
+                remainsInPrimary += expense.monthlyAmount
             }
         }
 
-        return (remainsInPrimary, transfers)
+        let transfers = transferTargets.compactMap { account -> TransferPlan.AccountExpenseTransfer? in
+            guard let linkedExpenses = expensesByAccount.removeValue(forKey: account.id) else { return nil }
+            return TransferPlan.AccountExpenseTransfer(
+                accountId: account.id,
+                accountName: account.name,
+                amount: linkedExpenses.reduce(0) { $0 + $1.monthlyAmount }.roundedToCents,
+                expenseNames: linkedExpenses.map(\.name)
+            )
+        }
+
+        return (remainsInPrimary.roundedToCents, transfers)
     }
 }

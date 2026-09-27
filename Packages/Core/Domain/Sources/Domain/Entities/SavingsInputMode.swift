@@ -5,8 +5,8 @@ import Foundation
 /// - `percentage`: A percentage of available income (5-50%), the existing slider behavior.
 /// - `fixedAmount`: An exact currency amount per month (e.g., "1000 RON").
 public enum SavingsInputMode: String, CaseIterable, Identifiable, Codable, Sendable {
-    case percentage    // Percentage of available income (default)
-    case fixedAmount   // Exact currency amount per month
+    case percentage
+    case fixedAmount
 
     public var id: String { rawValue }
 

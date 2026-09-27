@@ -4,7 +4,7 @@ import SharedUI
 import Utilities
 import Domain
 
-/// The payoff screen - shows the user's personalized transfer plan.
+/// Final step: the first month's personalized transfer plan.
 struct TransferPlanScreen: View {
     @Bindable var viewModel: OnboardingViewModel
     let onComplete: () -> Void
@@ -15,6 +15,7 @@ struct TransferPlanScreen: View {
     @State private var transfersAppeared = false
     @State private var remainingAppeared = false
     @State private var verificationAppeared = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var transferPlan: TransferPlan {
         viewModel.transferPlan
@@ -39,6 +40,7 @@ private extension TransferPlanScreen {
             VStack(spacing: Spacing.lg) {
                 headerSection
                 incomeHeroCard
+                shortfallWarning
                 transferCardsSection
                 remainingMoneySection
                 verificationRow
@@ -52,7 +54,8 @@ private extension TransferPlanScreen {
 
     @ViewBuilder
     var celebrationOverlay: some View {
-        if showCelebration {
+        // Confetti and expanding rings are large motion; skip them with Reduce Motion.
+        if showCelebration && !reduceMotion {
             CompletionCelebration()
                 .allowsHitTesting(false)
         }
@@ -65,21 +68,19 @@ private extension TransferPlanScreen {
     var headerSection: some View {
         VStack(spacing: Spacing.md) {
             AnimatedCheckmark()
-                .opacity(headerAppeared ? 1 : 0)
-                .scaleEffect(headerAppeared ? 1 : 0.5)
+                .entrance(headerAppeared, scale: 0.5)
 
             Text("Your First Month".localized)
                 .font(.largeTitle)
                 .fontWeight(.bold)
-                .opacity(headerAppeared ? 1 : 0)
-                .offset(y: headerAppeared ? 0 : SlideOffset.small)
+                .accessibilityAddTraits(.isHeader)
+                .entrance(headerAppeared, y: SlideOffset.small)
 
             Text(String(localized: "Here's your personalized transfer plan, \(viewModel.trimmedName)!", bundle: .module))
                 .font(.title3)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-                .opacity(headerAppeared ? 1 : 0)
-                .offset(y: headerAppeared ? 0 : SlideOffset.subtle)
+                .entrance(headerAppeared, y: SlideOffset.subtle)
         }
         .padding(.top, Spacing.lg)
     }
@@ -103,8 +104,41 @@ private extension TransferPlanScreen {
         .frame(maxWidth: .infinity)
         .padding(Spacing.lg)
         .glassCard()
-        .opacity(incomeAppeared ? 1 : 0)
-        .scaleEffect(incomeAppeared ? 1 : 0.95)
+        .entrance(incomeAppeared, scale: 0.95)
+    }
+}
+
+// MARK: - Shortfall Warning
+
+private extension TransferPlanScreen {
+    @ViewBuilder
+    var shortfallWarning: some View {
+        if transferPlan.shortfall > 0 {
+            HStack(alignment: .top, spacing: Spacing.sm) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    Text(String(
+                        localized: "Your expenses are \(AmountFormatter.formatForDisplay(transferPlan.shortfall, currency: viewModel.currency.rawValue)) more than your income",
+                        bundle: .module
+                    ))
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+
+                    Text("No savings can be planned until expenses fit. You can adjust them anytime in the Expenses tab.".localized)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.orange.opacity(Opacity.faint))
+            .clipShape(.rect(cornerRadius: CornerRadius.medium))
+            .accessibilityElement(children: .combine)
+            .entrance(incomeAppeared, scale: ScaleEffect.pressed)
+        }
     }
 }
 
@@ -125,18 +159,18 @@ private extension TransferPlanScreen {
     var sectionHeader: some View {
         Text("Your Transfers".localized)
             .font(.headline)
+            .accessibilityAddTraits(.isHeader)
             .frame(maxWidth: .infinity, alignment: .leading)
             .opacity(transfersAppeared ? 1 : 0)
     }
 
     var accountAllocationCards: some View {
-        ForEach(Array(transferPlan.accountAllocations.enumerated()), id: \.element.id) { index, allocation in
+        ForEach(transferPlan.accountAllocations.enumerated(), id: \.element.accountId) { index, allocation in
             AccountAllocationCard(
                 allocation: allocation,
                 currency: viewModel.currency.rawValue
             )
-            .opacity(transfersAppeared ? 1 : 0)
-            .offset(x: transfersAppeared ? 0 : SlideOffset.standard)
+            .entrance(transfersAppeared, x: SlideOffset.standard)
             .animation(
                 SpringPreset.responsive.delay(Double(index) * StaggerDelay.standard),
                 value: transfersAppeared
@@ -145,13 +179,12 @@ private extension TransferPlanScreen {
     }
 
     var expenseTransferCards: some View {
-        ForEach(Array(transferPlan.accountExpenseTransfers.enumerated()), id: \.element.id) { index, transfer in
+        ForEach(transferPlan.accountExpenseTransfers.enumerated(), id: \.element.accountId) { index, transfer in
             ExpenseTransferCard(
                 transfer: transfer,
                 currency: viewModel.currency.rawValue
             )
-            .opacity(transfersAppeared ? 1 : 0)
-            .offset(x: transfersAppeared ? 0 : SlideOffset.standard)
+            .entrance(transfersAppeared, x: SlideOffset.standard)
             .animation(
                 SpringPreset.responsive.delay(Double(transferPlan.accountAllocations.count + index) * StaggerDelay.standard),
                 value: transfersAppeared
@@ -166,6 +199,7 @@ private extension TransferPlanScreen {
             HStack {
                 Image(systemName: "building.columns.fill")
                     .foregroundStyle(DiamerisColors.accentPrimary)
+                    .accessibilityHidden(true)
 
                 Text("Stays in Primary".localized)
                     .font(.subheadline)
@@ -184,8 +218,8 @@ private extension TransferPlanScreen {
         }
         .padding(Spacing.md)
         .glassCard()
-        .opacity(transfersAppeared ? 1 : 0)
-        .offset(x: transfersAppeared ? 0 : SlideOffset.standard)
+        .accessibilityElement(children: .combine)
+        .entrance(transfersAppeared, x: SlideOffset.standard)
         .animation(
             SpringPreset.responsive.delay(Double(cardIndex) * StaggerDelay.standard),
             value: transfersAppeared
@@ -203,14 +237,14 @@ private extension TransferPlanScreen {
                 VStack(spacing: Spacing.md) {
                     Text("Remaining Money".localized)
                         .font(.headline)
+                        .accessibilityAddTraits(.isHeader)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                     remainingMoneyCard
                     remainingDestinationPicker
                 }
             }
-            .opacity(remainingAppeared ? 1 : 0)
-            .offset(y: remainingAppeared ? 0 : SlideOffset.small)
+            .entrance(remainingAppeared, y: SlideOffset.small)
         }
     }
 
@@ -219,6 +253,7 @@ private extension TransferPlanScreen {
             HStack {
                 Image(systemName: "dollarsign.circle.fill")
                     .foregroundStyle(.green)
+                    .accessibilityHidden(true)
 
                 Text("Available after savings".localized)
                     .font(.subheadline)
@@ -229,11 +264,11 @@ private extension TransferPlanScreen {
                 Text(AmountFormatter.formatForDisplay(transferPlan.remainingMoney, currency: viewModel.currency.rawValue))
                     .font(.headline)
                     .fontWeight(.bold)
-                    .foregroundStyle(.green)
             }
         }
         .padding(Spacing.md)
         .glassCard()
+        .accessibilityElement(children: .combine)
     }
 
     var remainingDestinationPicker: some View {
@@ -244,8 +279,7 @@ private extension TransferPlanScreen {
 
             RemainingMoneyPicker(
                 selectedDestination: $viewModel.remainingMoneyDestination,
-                hasSavingsAccount: viewModel.hasPrimarySavingsAccount,
-                hasPersonalAccount: viewModel.personalAccount != nil
+                destinations: viewModel.availableRemainingDestinations
             )
         }
     }
@@ -258,6 +292,8 @@ private extension TransferPlanScreen {
         HStack(spacing: Spacing.sm) {
             Image(systemName: transferPlan.isBalanced ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                 .foregroundStyle(transferPlan.isBalanced ? .green : .orange)
+                .accessibilityLabel(transferPlan.isBalanced ? "" : "Totals don't match".localized)
+                .accessibilityHidden(transferPlan.isBalanced)
 
             Text(String(localized: "Total: \(AmountFormatter.formatForDisplay(transferPlan.income, currency: viewModel.currency.rawValue))", bundle: .module))
                 .font(.subheadline)
@@ -270,23 +306,25 @@ private extension TransferPlanScreen {
                     .transition(.opacity.animation(.easeOut(duration: AnimationDuration.appear)))
             }
         }
+        .accessibilityElement(children: .combine)
         .padding(Spacing.md)
         .frame(maxWidth: .infinity)
         .background(transferPlan.isBalanced ? Color.green.opacity(Opacity.faint) : Color.orange.opacity(Opacity.faint))
         .clipShape(RoundedRectangle(cornerRadius: CornerRadius.medium))
-        .opacity(verificationAppeared ? 1 : 0)
-        .scaleEffect(verificationAppeared ? 1 : 0.95)
+        .entrance(verificationAppeared, scale: 0.95)
     }
 
     var tipRow: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: "lightbulb.fill")
                 .foregroundStyle(.yellow)
+                .accessibilityHidden(true)
 
             Text("Tip: Do these transfers right after payday for best results!".localized)
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
+        .accessibilityElement(children: .combine)
         .padding(Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
         .opacity(verificationAppeared ? 1 : 0)
@@ -297,7 +335,8 @@ private extension TransferPlanScreen {
 
 private extension TransferPlanScreen {
     var completeButton: some View {
-        OnboardingButton("Start Using Diameris".localized, isEnabled: true) {
+        OnboardingButton("Start Using Diameris".localized, isEnabled: !viewModel.hasCompleted) {
+            guard !viewModel.hasCompleted else { return }
             HapticManager.success()
             onComplete()
         }
@@ -309,16 +348,15 @@ private extension TransferPlanScreen {
 // MARK: - Animations
 
 private extension TransferPlanScreen {
-    /// Total number of transfer cards for animation timing
     private var totalTransferCards: Int {
         transferPlan.accountAllocations.count +
         transferPlan.accountExpenseTransfers.count +
-        1 // Primary account card
+        1 // "Stays in Primary" card
     }
 
     func triggerAnimations() {
+        // CompletionCelebration plays the success haptic itself.
         showCelebration = true
-        HapticManager.success()
 
         withAnimation(SpringPreset.bouncy.delay(StaggerDelay.initial)) {
             headerAppeared = true
@@ -353,6 +391,7 @@ private struct AccountAllocationCard: View {
             HStack {
                 Image(systemName: allocation.icon)
                     .foregroundStyle(allocation.accountType.color)
+                    .accessibilityHidden(true)
 
                 Text(allocation.accountName)
                     .font(.subheadline)
@@ -369,7 +408,7 @@ private struct AccountAllocationCard: View {
                 HStack {
                     Text(progressDisplay)
                         .font(.caption)
-                        .foregroundStyle(allocation.isComplete ? .green : .orange)
+                        .foregroundStyle(.secondary)
                         .contentTransition(.numericText())
 
                     if allocation.isComplete {
@@ -377,10 +416,11 @@ private struct AccountAllocationCard: View {
                             Image(systemName: "checkmark.circle.fill")
                                 .font(.caption)
                                 .foregroundStyle(.green)
+                                .accessibilityHidden(true)
 
                             Text("Target reached!".localized)
                                 .font(.caption)
-                                .foregroundStyle(.green)
+                                .fontWeight(.medium)
                         }
                         .transition(.opacity.animation(.easeOut(duration: AnimationDuration.appear)))
                     }
@@ -400,6 +440,7 @@ private struct AccountAllocationCard: View {
         }
         .padding(Spacing.md)
         .glassCard()
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -414,6 +455,7 @@ private struct ExpenseTransferCard: View {
             HStack {
                 Image(systemName: "arrow.right.circle.fill")
                     .foregroundStyle(.purple)
+                    .accessibilityHidden(true)
 
                 Text(String.localized("Transfer to \(transfer.accountName)"))
                     .font(.subheadline)
@@ -426,12 +468,13 @@ private struct ExpenseTransferCard: View {
                     .fontWeight(.bold)
             }
 
-            Text(String.localized("for \(transfer.expenseNames.joined(separator: ", "))"))
+            Text(String.localized("for \(transfer.expenseNames.formatted(.list(type: .and)))"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
         .padding(Spacing.md)
         .glassCard()
+        .accessibilityElement(children: .combine)
     }
 }
 

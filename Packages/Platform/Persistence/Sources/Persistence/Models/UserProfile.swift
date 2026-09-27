@@ -2,13 +2,11 @@ import Foundation
 import SwiftData
 import Domain
 
-/// SwiftData entity for user profile settings
 @Model
 public final class UserProfile {
     public var name: String
     public var currencyCode: String
     public var createdAt: Date
-    /// Where remaining money after expenses and savings should go
     public var remainingMoneyDestinationRaw: String
 
     public init(
@@ -24,7 +22,6 @@ public final class UserProfile {
 
     // MARK: - Computed Properties
 
-    /// Computed property for type-safe access
     public var remainingMoneyDestination: RemainingMoneyDestination {
         get { RemainingMoneyDestination(rawValue: remainingMoneyDestinationRaw) ?? .primarySavings }
         set { remainingMoneyDestinationRaw = newValue.rawValue }

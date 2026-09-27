@@ -1,13 +1,27 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "" : {
-
+    "%lld/%lld enabled" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld/%2$lld enabled"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%1$lld/%2$lld active"
+          }
+        }
+      }
     },
     "(%@)" : {
 
     },
     "Account" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -18,6 +32,7 @@
       }
     },
     "Add" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -28,6 +43,7 @@
       }
     },
     "Add Expense" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -49,11 +65,23 @@
       }
     },
     "Add your first expense to start tracking your budget." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Adaugă prima cheltuială pentru a începe urmărirea bugetului."
+          }
+        }
+      }
+    },
+    "Amber" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Chihlimbar"
           }
         }
       }
@@ -70,6 +98,7 @@
       }
     },
     "Annual" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -80,6 +109,7 @@
       }
     },
     "Are you sure you want to delete this expense? This action cannot be undone." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -89,7 +119,19 @@
         }
       }
     },
+    "Blue" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Albastru"
+          }
+        }
+      }
+    },
     "Cancel" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -100,6 +142,7 @@
       }
     },
     "Categories" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -110,6 +153,7 @@
       }
     },
     "Category" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -120,6 +164,7 @@
       }
     },
     "Category Name" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -130,6 +175,7 @@
       }
     },
     "Choose which account this expense is paid from." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -140,6 +186,7 @@
       }
     },
     "Collapse All" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -149,7 +196,19 @@
         }
       }
     },
+    "Collapsed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Restrâns"
+          }
+        }
+      }
+    },
     "Color" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -160,6 +219,7 @@
       }
     },
     "Custom Categories" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -180,7 +240,19 @@
         }
       }
     },
+    "Cyan" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Turcoaz"
+          }
+        }
+      }
+    },
     "Default" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -191,21 +263,12 @@
       }
     },
     "Default Categories" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Categorii implicite"
-          }
-        }
-      }
-    },
-    "Default categories cannot be deleted." : {
-      "localizations" : {
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Categoriile implicite nu pot fi șterse."
           }
         }
       }
@@ -221,7 +284,19 @@
         }
       }
     },
+    "Default categories cannot be deleted." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Categoriile implicite nu pot fi șterse."
+          }
+        }
+      }
+    },
     "Delete" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -232,6 +307,7 @@
       }
     },
     "Delete Expense" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -242,6 +318,7 @@
       }
     },
     "Details" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -252,6 +329,7 @@
       }
     },
     "Disabled expenses won't be included in your budget calculations." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -262,6 +340,7 @@
       }
     },
     "Done" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -272,6 +351,7 @@
       }
     },
     "Edit" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -282,6 +362,7 @@
       }
     },
     "Edit Expense" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -291,17 +372,19 @@
         }
       }
     },
-    "enabled" : {
+    "Emerald" : {
+      "extractionState" : "manual",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "active"
+            "state" : "machine_translated",
+            "value" : "Smarald"
           }
         }
       }
     },
     "Enabled" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -312,6 +395,7 @@
       }
     },
     "Expand All" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -321,7 +405,19 @@
         }
       }
     },
+    "Expanded" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Extins"
+          }
+        }
+      }
+    },
     "Expenses" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -332,6 +428,7 @@
       }
     },
     "Frequency" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -341,7 +438,19 @@
         }
       }
     },
+    "Green" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Verde"
+          }
+        }
+      }
+    },
     "Icon" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -351,7 +460,19 @@
         }
       }
     },
+    "Indigo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Indigo"
+          }
+        }
+      }
+    },
     "Manage Categories" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -373,6 +494,7 @@
       }
     },
     "Monthly Equivalent" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -383,6 +505,7 @@
       }
     },
     "Name" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -393,6 +516,7 @@
       }
     },
     "New Category" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -403,6 +527,7 @@
       }
     },
     "New Category..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -424,6 +549,7 @@
       }
     },
     "No Expenses Yet" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -434,6 +560,7 @@
       }
     },
     "None" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -444,6 +571,7 @@
       }
     },
     "Notes" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -453,7 +581,30 @@
         }
       }
     },
+    "Options" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opțiuni"
+          }
+        }
+      }
+    },
+    "Orange" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Portocaliu"
+          }
+        }
+      }
+    },
     "Pay From" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -463,7 +614,19 @@
         }
       }
     },
+    "Pink" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Roz"
+          }
+        }
+      }
+    },
     "Preview" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -474,6 +637,7 @@
       }
     },
     "Primary" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -483,7 +647,30 @@
         }
       }
     },
+    "Purple" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mov"
+          }
+        }
+      }
+    },
+    "Red" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Roșu"
+          }
+        }
+      }
+    },
     "Save" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -494,22 +681,12 @@
       }
     },
     "Search expenses" : {
-      "localizations" : {
-        "ro" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Caută cheltuieli"
-          }
-        }
-      }
-    },
-    "subcategories" : {
       "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "subcategorii"
+            "value" : "Caută cheltuieli"
           }
         }
       }
@@ -525,17 +702,30 @@
         }
       }
     },
-    "Total %@ Expenses" : {
+    "Total Annual Expenses" : {
+      "extractionState" : "manual",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cheltuieli %@ totale"
+            "state" : "machine_translated",
+            "value" : "Cheltuieli anuale totale"
+          }
+        }
+      }
+    },
+    "Total Monthly Expenses" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Cheltuieli lunare totale"
           }
         }
       }
     },
     "Uncategorized" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ro" : {
           "stringUnit" : {
@@ -544,7 +734,18 @@
           }
         }
       }
+    },
+    "subcategories" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "subcategorii"
+          }
+        }
+      }
     }
   },
-  "version" : "1.0"
+  "version" : "1.3"
 }

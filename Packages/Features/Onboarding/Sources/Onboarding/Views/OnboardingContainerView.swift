@@ -1,16 +1,16 @@
 import SwiftUI
-import SwiftData
 import DesignSystem
 import Utilities
 import Domain
 
 public struct OnboardingContainerView: View {
     @State private var viewModel = OnboardingViewModel()
-    @Environment(\.modelContext) private var modelContext
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private let onComplete: () -> Void
+    /// Persists the result and returns whether it was saved.
+    private let onComplete: (OnboardingResult) -> Bool
 
-    public init(onComplete: @escaping () -> Void) {
+    public init(onComplete: @escaping (OnboardingResult) -> Bool) {
         self.onComplete = onComplete
     }
 
@@ -57,8 +57,9 @@ private extension OnboardingContainerView {
             ExpensesScreen(viewModel: viewModel)
         case .transferPlan:
             TransferPlanScreen(viewModel: viewModel) {
-                viewModel.save(context: modelContext)
-                onComplete()
+                if let result = viewModel.complete(), !onComplete(result) {
+                    viewModel.completionFailed()
+                }
             }
         }
     }
@@ -92,7 +93,9 @@ private extension OnboardingContainerView {
 
 private extension OnboardingContainerView {
     var screenTransition: AnyTransition {
-        .asymmetric(
+        // Reduce Motion: cross-fade instead of sliding and scaling screens.
+        guard !reduceMotion else { return .opacity }
+        return .asymmetric(
             insertion: .opacity
                 .combined(with: .scale(scale: ScaleEffect.pressed))
                 .combined(with: .offset(x: SlideOffset.large)),
@@ -104,12 +107,5 @@ private extension OnboardingContainerView {
 }
 
 #Preview {
-    OnboardingContainerView(onComplete: {})
-        .modelContainer(for: [
-            UserProfile.self,
-            Income.self,
-            Expense.self,
-            Account.self,
-            SavingsAllocation.self
-        ], inMemory: true)
+    OnboardingContainerView(onComplete: { _ in true })
 }

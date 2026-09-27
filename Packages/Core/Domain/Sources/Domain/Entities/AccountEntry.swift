@@ -1,7 +1,6 @@
 import Foundation
 
-/// Temporary account entry used during onboarding flow.
-/// Not persisted - converted to Account model on completion.
+/// A bank account as the transfer calculator sees it (Persistence's `Account` maps to this).
 public struct AccountEntry: Identifiable, Sendable {
     public let id: UUID
     public var name: String
@@ -23,7 +22,6 @@ public struct AccountEntry: Identifiable, Sendable {
     /// When set, target = min(monthlyIncome × emergencyMultiplier, emergencyHardCap)
     public var emergencyHardCap: Decimal?
 
-    /// Current balance in this account (for progress tracking).
     public var currentBalance: Decimal
 
     public init(
@@ -50,18 +48,24 @@ public struct AccountEntry: Identifiable, Sendable {
 
     // MARK: - Computed Properties
 
-    /// Calculates the emergency fund target based on monthly income.
-    /// When a hard cap is set, returns the minimum of calculated target and hard cap.
-    /// Returns nil if this is not an emergency account.
+    /// `uncappedEmergencyTarget`, limited by `emergencyHardCap` when one is set.
     public func emergencyTarget(monthlyIncome: Decimal) -> Decimal? {
-        guard accountType == .emergency, let multiplier = emergencyMultiplier else {
+        guard let calculatedTarget = uncappedEmergencyTarget(monthlyIncome: monthlyIncome) else {
             return nil
         }
-        let calculatedTarget = monthlyIncome * Decimal(multiplier)
         if let hardCap = emergencyHardCap {
             return min(calculatedTarget, hardCap)
         }
         return calculatedTarget
+    }
+
+    /// `monthlyIncome × emergencyMultiplier`, ignoring any hard cap (e.g. to show "capped at X
+    /// of Y"). Returns nil if this is not an emergency account or has no multiplier.
+    public func uncappedEmergencyTarget(monthlyIncome: Decimal) -> Decimal? {
+        guard accountType == .emergency, let multiplier = emergencyMultiplier else {
+            return nil
+        }
+        return (monthlyIncome * Decimal(rate: multiplier)).roundedToCents
     }
 
     /// Progress percentage toward emergency target (0.0 to 1.0).
@@ -74,7 +78,6 @@ public struct AccountEntry: Identifiable, Sendable {
         return min(1.0, max(0.0, progress))
     }
 
-    /// Whether this emergency account has reached its target.
     public func isEmergencyComplete(monthlyIncome: Decimal) -> Bool {
         guard let target = emergencyTarget(monthlyIncome: monthlyIncome) else {
             return false
@@ -86,7 +89,6 @@ public struct AccountEntry: Identifiable, Sendable {
 // MARK: - Smart Default Accounts
 
 extension AccountEntry {
-    /// Primary account where salary lands
     public static func primary(name: String? = nil) -> AccountEntry {
         AccountEntry(
             name: name ?? "Main Account".localized,
@@ -96,7 +98,6 @@ extension AccountEntry {
         )
     }
 
-    /// Emergency fund account with income multiplier target and optional hard cap
     public static func emergency(
         name: String? = nil,
         multiplier: Double = 3.0,
@@ -113,7 +114,6 @@ extension AccountEntry {
         )
     }
 
-    /// Savings account for regular savings (can be marked as primary savings)
     public static func savings(name: String? = nil, isPrimarySavings: Bool = true) -> AccountEntry {
         AccountEntry(
             name: name ?? "Savings".localized,
@@ -123,7 +123,6 @@ extension AccountEntry {
         )
     }
 
-    /// Personal account for flexible spending
     public static func personal(name: String? = nil) -> AccountEntry {
         AccountEntry(
             name: name ?? "Personal".localized,
@@ -132,7 +131,6 @@ extension AccountEntry {
         )
     }
 
-    /// Joint account for shared expenses
     public static func joint(name: String? = nil) -> AccountEntry {
         AccountEntry(
             name: name ?? "Joint".localized,
@@ -141,10 +139,52 @@ extension AccountEntry {
         )
     }
 
-    /// Smart default accounts for onboarding (minimal - just primary)
-    /// User will be prompted to add emergency and savings accounts.
+    /// Onboarding starts with only the primary account; the user adds the rest.
     public static var defaults: [AccountEntry] {
         [.primary()]
+    }
+}
+
+// MARK: - Account Roles
+
+extension Array where Element == AccountEntry {
+    /// The account that fills first with savings.
+    var emergencyAccount: AccountEntry? {
+        first { $0.accountType == .emergency }
+    }
+
+    /// The account that receives savings (and "Primary Savings" remaining money): the flagged
+    /// primary savings account, else the first savings-type account. Never the emergency account,
+    /// so a plan cannot allocate to the same account twice.
+    var savingsDestination: AccountEntry? {
+        first { $0.isPrimarySavings && $0.accountType != .emergency }
+            ?? first { $0.accountType == .savings }
+    }
+
+    /// Remaining-money destinations backed by an account the user has. `.primary` always is.
+    public var availableRemainingDestinations: [RemainingMoneyDestination] {
+        var destinations: [RemainingMoneyDestination] = []
+        if savingsDestination != nil { destinations.append(.primarySavings) }
+        destinations.append(.primary)
+        if contains(where: { $0.accountType == .personal }) { destinations.append(.personal) }
+        return destinations
+    }
+
+    /// `destination` if an account fills it, otherwise `.primary`, so leftover money is never
+    /// routed to an account that doesn't exist.
+    public func resolvedRemainingDestination(_ destination: RemainingMoneyDestination) -> RemainingMoneyDestination {
+        availableRemainingDestinations.contains(destination) ? destination : .primary
+    }
+
+    /// Whether the account with `id` (nil for a new account) may take `type`. The primary role
+    /// is fixed to the primary account, and unique types can't be duplicated.
+    public func canAssign(_ type: AccountType, toAccount id: UUID?) -> Bool {
+        if let id, first(where: { $0.id == id })?.isPrimary == true {
+            return type == .primary
+        }
+        guard type != .primary else { return false }
+        guard type.isUnique else { return true }
+        return !contains { $0.accountType == type && $0.id != id }
     }
 }
 

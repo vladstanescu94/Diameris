@@ -2,256 +2,70 @@ import Foundation
 import Testing
 @testable import Utilities
 
-/// Tests for AmountFormatter - validates display formatting,
-/// edit formatting, and parsing of monetary amounts.
-@Suite("AmountFormatter Tests")
 struct AmountFormatterTests {
 
-    // MARK: - Format for Display
+    static let english = Locale(identifier: "en_US")
+    static let romanian = Locale(identifier: "ro_RO")
 
-    @Suite("Format for Display")
-    struct FormatForDisplay {
-
-        @Test("Formats with thousands separator",
-              arguments: [
-                (amount: Decimal(1000), expected: "1,000"),
-                (amount: Decimal(10000), expected: "10,000"),
-                (amount: Decimal(100000), expected: "100,000"),
-                (amount: Decimal(1000000), expected: "1,000,000")
-              ])
-        func formatsWithThousandsSeparator(amount: Decimal, expected: String) {
-            let result = AmountFormatter.formatForDisplay(amount, currency: "RON")
-            #expect(result.hasPrefix(expected))
-        }
-
-        @Test("Appends currency code")
-        func appendsCurrencyCode() {
-            let result = AmountFormatter.formatForDisplay(1000, currency: "RON")
-            #expect(result == "1,000 RON")
-        }
-
-        @Test("Works with different currencies",
-              arguments: ["RON", "EUR", "USD"])
-        func worksWithDifferentCurrencies(currency: String) {
-            let result = AmountFormatter.formatForDisplay(5000, currency: currency)
-            #expect(result.hasSuffix(currency))
-        }
-
-        @Test("Zero amount displays correctly")
-        func zeroAmount() {
-            let result = AmountFormatter.formatForDisplay(0, currency: "RON")
-            #expect(result == "0 RON")
-        }
-
-        @Test("No decimal places in display")
-        func noDecimalPlaces() {
-            let result = AmountFormatter.formatForDisplay(Decimal(string: "1234.56")!, currency: "EUR")
-            #expect(result == "1,235 EUR") // Rounded
-        }
-
-        @Test("Large amounts format correctly")
-        func largeAmounts() {
-            let result = AmountFormatter.formatForDisplay(Decimal(string: "999999999")!, currency: "USD")
-            #expect(result == "999,999,999 USD")
-        }
-
-        @Test("Small amounts format correctly")
-        func smallAmounts() {
-            let result = AmountFormatter.formatForDisplay(1, currency: "RON")
-            #expect(result == "1 RON")
-        }
+    @Test(arguments: [
+        ("8500", Decimal(8500)),
+        ("1234.56", Decimal(string: "1234.56")!),
+        ("1234,56", Decimal(string: "1234.56")!),
+        ("1,234.56", Decimal(string: "1234.56")!),   // English with grouping
+        ("1.234,56", Decimal(string: "1234.56")!),   // Romanian with grouping
+        ("1.234.567", Decimal(1_234_567)),
+        ("12 500 lei", Decimal(12_500)),
+        (" 0,5 ", Decimal(string: "0.5")!),
+        ("", Decimal(0)),
+        ("abc", Decimal(0)),
+        ("-250", Decimal(-250))
+    ])
+    func `Parses money typed in either convention`(text: String, expected: Decimal) {
+        #expect(AmountFormatter.parse(text, locale: Self.english) == expected)
+        #expect(AmountFormatter.parse(text, locale: Self.romanian) == expected)
     }
 
-    // MARK: - Format for Editing
-
-    @Suite("Format for Editing")
-    struct FormatForEditing {
-
-        @Test("No grouping separator for editing")
-        func noGroupingSeparator() {
-            let result = AmountFormatter.formatForEditing(10000)
-            #expect(result == "10000")
-        }
-
-        @Test("Zero returns empty string")
-        func zeroReturnsEmpty() {
-            let result = AmountFormatter.formatForEditing(0)
-            #expect(result == "")
-        }
-
-        @Test("Preserves up to 2 decimal places")
-        func preservesDecimals() {
-            let result = AmountFormatter.formatForEditing(Decimal(string: "123.45")!)
-            // Result may use locale-specific separator
-            #expect(result.contains("123"))
-            #expect(result.contains("45"))
-        }
-
-        @Test("Removes unnecessary trailing zeros")
-        func removesTrailingZeros() {
-            let result = AmountFormatter.formatForEditing(Decimal(string: "123.40")!)
-            // Result should contain 123 and 4, with trailing zero removed
-            #expect(result.contains("123"))
-            #expect(result.contains("4"))
-            #expect(result.hasSuffix("0") == false)
-        }
-
-        @Test("Whole numbers have no decimals")
-        func wholeNumbersNoDecimals() {
-            let result = AmountFormatter.formatForEditing(500)
-            #expect(result == "500")
-        }
-
-        @Test("Negative amounts handled")
-        func negativeAmounts() {
-            // Zero check happens first, so only truly negative
-            let result = AmountFormatter.formatForEditing(-100)
-            // Implementation returns empty for <= 0
-            #expect(result == "")
-        }
+    @Test func `A lone three-digit group follows the locale's grouping separator`() {
+        #expect(AmountFormatter.parse("1.234", locale: Self.romanian) == 1234)
+        #expect(AmountFormatter.parse("1.234", locale: Self.english) == Decimal(string: "1.234"))
+        #expect(AmountFormatter.parse("1,234", locale: Self.english) == 1234)
+        #expect(AmountFormatter.parse("1,234", locale: Self.romanian) == Decimal(string: "1.234"))
     }
 
-    // MARK: - Parse
-
-    @Suite("Parse")
-    struct Parse {
-
-        @Test("Parses integer strings",
-              arguments: [
-                ("100", Decimal(100)),
-                ("1000", Decimal(1000)),
-                ("0", Decimal(0))
-              ])
-        func parsesIntegers(input: String, expected: Decimal) {
-            let result = AmountFormatter.parse(input)
-            #expect(result == expected)
-        }
-
-        @Test("Parses decimal with period")
-        func parsesDecimalPeriod() {
-            let result = AmountFormatter.parse("123.45")
-            #expect(result == Decimal(string: "123.45"))
-        }
-
-        @Test("Parses decimal with comma (European format)")
-        func parsesDecimalComma() {
-            let result = AmountFormatter.parse("123,45")
-            #expect(result == Decimal(string: "123.45"))
-        }
-
-        @Test("Empty string returns zero")
-        func emptyReturnsZero() {
-            let result = AmountFormatter.parse("")
-            #expect(result == 0)
-        }
-
-        @Test("Invalid string returns zero")
-        func invalidReturnsZero() {
-            let result = AmountFormatter.parse("abc")
-            #expect(result == 0)
-        }
-
-        @Test("Whitespace-only returns zero")
-        func whitespaceReturnsZero() {
-            let result = AmountFormatter.parse("   ")
-            #expect(result == 0)
-        }
-
-        @Test("Handles mixed valid/invalid")
-        func mixedValidInvalid() {
-            // Decimal(string:) may parse initial valid portion
-            // Just verify it doesn't crash and returns a value
-            let result = AmountFormatter.parse("12abc")
-            #expect(result >= 0)
-        }
-
-        @Test("Large numbers parse correctly")
-        func largeNumbers() {
-            let result = AmountFormatter.parse("999999999999")
-            #expect(result == Decimal(string: "999999999999"))
-        }
-
-        @Test("Decimal precision maintained")
-        func decimalPrecision() {
-            let result = AmountFormatter.parse("0.01")
-            #expect(result == Decimal(string: "0.01"))
-        }
+    @Test(arguments: [Self.english, Self.romanian], [Decimal(string: "1234.5")!, 14_303, Decimal(string: "0.01")!])
+    func `Editing text round-trips through parse`(locale: Locale, amount: Decimal) {
+        let text = AmountFormatter.formatForEditing(amount, locale: locale)
+        #expect(AmountFormatter.parse(text, locale: locale) == amount, "\(text)")
     }
 
-    // MARK: - Round Trip
-
-    @Suite("Round Trip")
-    struct RoundTrip {
-
-        @Test("Edit format then parse returns original",
-              arguments: [
-                Decimal(100),
-                Decimal(1000),
-                Decimal(12345),
-                Decimal(string: "99.99")!
-              ])
-        func editThenParse(original: Decimal) {
-            let formatted = AmountFormatter.formatForEditing(original)
-            let parsed = AmountFormatter.parse(formatted)
-            #expect(parsed == original)
-        }
-
-        @Test("Parse then edit format returns same",
-              arguments: ["100", "5000", "123.45"])
-        func parseThenEdit(input: String) {
-            let parsed = AmountFormatter.parse(input)
-            guard parsed > 0 else { return }
-            let formatted = AmountFormatter.formatForEditing(parsed)
-            let reparsed = AmountFormatter.parse(formatted)
-            #expect(reparsed == parsed)
-        }
+    @Test func `Editing uses the locale's decimal separator and leaves non-positive amounts blank`() {
+        #expect(AmountFormatter.formatForEditing(Decimal(string: "1234.5")!, locale: Self.romanian) == "1234,5")
+        #expect(AmountFormatter.formatForEditing(Decimal(string: "1234.567")!, locale: Self.english) == "1234.57")
+        #expect(AmountFormatter.formatForEditing(0, locale: Self.english) == "")
+        #expect(AmountFormatter.formatForEditing(-5, locale: Self.english) == "")
     }
 
-    // MARK: - Edge Cases
+    @Test(arguments: [
+        (Decimal(14_303), Self.english, "14,303 RON"),
+        (Decimal(14_303), Self.romanian, "14.303 RON"),
+        (Decimal(1_500_000), Self.romanian, "1.500.000 RON"),
+        (Decimal(string: "1234.56")!, Self.english, "1,235 RON"),
+        (Decimal(string: "104.5")!, Self.romanian, "105 RON"),   // half up, not half even
+        (Decimal(0), Self.english, "0 RON")
+    ])
+    func `Display groups thousands the locale's way and drops cents`(amount: Decimal, locale: Locale, expected: String) {
+        #expect(AmountFormatter.formatForDisplay(amount, currency: "RON", locale: locale) == expected)
+    }
 
-    @Suite("Edge Cases")
-    struct EdgeCases {
-
-        @Test("Very small decimal amounts")
-        func verySmallDecimals() {
-            let amount = Decimal(string: "0.01")!
-            let result = AmountFormatter.formatForEditing(amount)
-            // May use locale decimal separator
-            #expect(result.contains("0"))
-            #expect(result.contains("01"))
+    @Test(arguments: [Self.english, Self.romanian], ["1,500.50", "1.500,50", "1500", "0,5", "1.500"])
+    func `Pasted amounts parse per locale`(locale: Locale, text: String) {
+        let expected: Decimal = switch (text, locale.identifier) {
+        case ("0,5", _): Decimal(string: "0.5")!
+        case ("1500", _): 1500
+        case ("1.500", "ro_RO"): 1500                    // "." groups thousands in Romanian
+        case ("1.500", _): Decimal(string: "1.5")!
+        default: Decimal(string: "1500.5")!
         }
-
-        @Test("Negative zero treated as zero")
-        func negativeZero() {
-            let result = AmountFormatter.parse("-0")
-            #expect(result == 0)
-        }
-
-        @Test("Multiple decimal points parses first valid portion")
-        func multipleDecimalPoints() {
-            // Decimal(string:) parses what it can
-            let result = AmountFormatter.parse("12.34.56")
-            // May parse 12.34 or fail - just verify it handles it
-            #expect(result >= 0)
-        }
-
-        @Test("Currency symbols in input")
-        func currencySymbolsInInput() {
-            // Decimal(string:) may parse partial amounts
-            let result = AmountFormatter.parse("$100")
-            // Just verify no crash
-            #expect(result >= 0)
-
-            let result2 = AmountFormatter.parse("100€")
-            // May parse 100 before the symbol
-            #expect(result2 >= 0)
-        }
-
-        @Test("Spaces in number")
-        func spacesInNumber() {
-            // Verify behavior doesn't crash
-            let result = AmountFormatter.parse("1 000")
-            #expect(result >= 0)
-        }
+        #expect(AmountFormatter.parse(text, locale: locale) == expected)
     }
 }

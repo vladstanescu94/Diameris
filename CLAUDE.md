@@ -42,6 +42,7 @@ Before implementing features, **read the relevant API documentation**:
 | `FoundationModels-Using-on-device-LLM.md` | AI features - on-device LLM, `@Generable`, guided generation |
 | `Diameris-AI-Features.md` | Pre-MVP AI feature ideas (brainstorming) |
 | `Audit-2026-09-27.md` | Before tackling audit follow-ups, or touching money logic, persistence or Settings — bug ledger + open follow-ups |
+| `Performance-Audit-2026-09-27.md` | Performance or bundle-size work — benchmarks, measured sizes, Observation pitfalls, what was rejected |
 
 **Important:** This project targets iOS 26+ with Liquid Glass design. Always use the new APIs documented above rather than deprecated patterns.
 

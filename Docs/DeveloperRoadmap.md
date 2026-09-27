@@ -158,6 +158,7 @@ This document tracks implementation progress. **Update this file after completin
 | Accessibility & localization pass | 2026-09-27 | VoiceOver labels/grouping, Dynamic Type layouts, Reduce Motion, WCAG AA accents (light `#A21CAF` / `#0E7490`, `accentPrimaryFill` for filled buttons, enforced by `ColorTests`), missing Romanian strings added (machine-translated — needs review) |
 | Test suites rebuilt | 2026-09-27 | Tautological tests removed; real-scenario tests added (Domain invariant: every plan sums exactly to income across 55 cases; in-memory SwiftData scenarios in Persistence) |
 | Savings Boost visibility | 2026-09-27 | Active boost shown on Home (`SavingsBoostCard` with Turn Off) and as a toggle in New Month step 3 that recalculates the plan and saves with the month. Domain `isBoostActive`; Persistence `setSavingsBoostEnabled`, `applyNewMonth(savingsBoostEnabled:)`; tests in Persistence + `NewMonthFlowModelTests`. |
+| Performance audit | 2026-09-27 | `AmountFormatter` caches NumberFormatters per locale (11.7× faster formatting); onboarding `transferPlan` stored and refreshed from its inputs instead of recomputed per read; `SavingsSlider` skips same-value drag writes; `TransferPlan` Equatable; adaptive colors pre-converted; dev JSON excluded from Release. `-Osize` measured and rejected (speed first). See `Performance-Audit-2026-09-27.md`. |
 
 ### In Progress
 
@@ -237,6 +238,24 @@ Based on [Architecture.md](./Architecture.md)
 ---
 
 ## Session Notes
+
+### 2026-09-27 - Performance Audit
+
+**Focus:** Speed and bundle size without behaviour changes. Full record, benchmarks and sizes in
+[Performance-Audit-2026-09-27.md](./Performance-Audit-2026-09-27.md).
+
+**Key Learnings:**
+1. **Nested writes always notify.** `@Observable` skips equal top-level `Equatable` writes, but a write
+   through a struct property (`$vm.allocation.percentage`) notifies every time, so guard drag/timer writers.
+2. **Computed `@Observable` properties aren't cached.** Store expensive derived values and refresh them
+   from the inputs' `didSet`; test that every input refreshes them.
+3. **Measure size from an archive.** Plain Release builds carry coverage instrumentation (auto-created
+   test plan) and are unstripped.
+4. **Project build settings don't reach SPM packages.** `SWIFT_OPTIMIZATION_LEVEL` changed only the app module.
+
+**Files Modified:** `Utilities/AmountFormatter.swift`, `Domain/Entities/TransferPlan.swift`,
+`Onboarding/ViewModels/OnboardingViewModel.swift`, `Onboarding/Components/SavingsSlider.swift`,
+`DesignSystem/Colors.swift`, `OnboardingViewModelTests.swift`, `project.pbxproj` (Release exclusion).
 
 ### 2026-09-27 - Full App Audit
 

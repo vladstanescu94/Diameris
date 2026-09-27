@@ -65,12 +65,15 @@ public extension Color {
 
     /// Initialize an adaptive Color with separate light and dark mode values.
     init(light: Color, dark: Color) {
+        // Converted once here rather than on every trait resolution.
+        let lightColor = UIColor(light)
+        let darkColor = UIColor(dark)
         self.init(UIColor { traitCollection in
             switch traitCollection.userInterfaceStyle {
             case .dark:
-                return UIColor(dark)
+                return darkColor
             default:
-                return UIColor(light)
+                return lightColor
             }
         })
     }

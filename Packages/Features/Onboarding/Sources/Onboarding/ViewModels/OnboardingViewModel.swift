@@ -9,20 +9,36 @@ public final class OnboardingViewModel {
 
     public var name: String = ""
     public var currency: Currency = .fromLocale()
-    public var monthlyIncome: Decimal = 0
+    public var monthlyIncome: Decimal = 0 {
+        didSet { updateTransferPlan() }
+    }
 
     public var expenses: [ExpenseEntry] = [
         ExpenseEntry(name: "Food".localized, amount: 0, icon: "cart.fill", categoryId: Category.foodGroceries.id),
         ExpenseEntry(name: "Rent".localized, amount: 0, icon: "house.fill", categoryId: Category.housing.id),
         ExpenseEntry(name: "Gas".localized, amount: 0, icon: "fuelpump.fill", categoryId: Category.autoTransport.id),
         ExpenseEntry(name: "Streaming".localized, amount: 0, icon: "tv.fill", categoryId: Category.subscriptions.id)
-    ]
+    ] {
+        didSet { updateTransferPlan() }
+    }
 
-    public var accounts: [AccountEntry] = AccountEntry.defaults
+    public var accounts: [AccountEntry] = AccountEntry.defaults {
+        didSet { updateTransferPlan() }
+    }
 
-    public var savingsAllocation = SavingsAllocationEntry()
+    public var savingsAllocation = SavingsAllocationEntry() {
+        didSet { updateTransferPlan() }
+    }
 
-    public var remainingMoneyDestination: RemainingMoneyDestination = .primarySavings
+    public var remainingMoneyDestination: RemainingMoneyDestination = .primarySavings {
+        didSet { updateTransferPlan() }
+    }
+
+    /// The plan for the inputs above, kept up to date as they change. Stored rather than computed
+    /// because screens read it many times per body and a slider drag changes an input per frame.
+    public private(set) var transferPlan = TransferCalculator.calculate(
+        income: 0, expenses: [], allocation: SavingsAllocationEntry(), accounts: [], remainingDestination: .primarySavings
+    )
 
     // MARK: - Flow State
 
@@ -67,6 +83,7 @@ public final class OnboardingViewModel {
     ) {
         self.keyboardDismissDelay = keyboardDismissDelay
         self.keyboardDismisser = keyboardDismisser
+        updateTransferPlan()
     }
 
     // MARK: - Navigation
@@ -142,8 +159,8 @@ public final class OnboardingViewModel {
         primarySavingsAccount != nil
     }
 
-    public var transferPlan: TransferPlan {
-        TransferCalculator.calculate(
+    private func updateTransferPlan() {
+        transferPlan = TransferCalculator.calculate(
             income: monthlyIncome,
             expenses: expenses,
             allocation: savingsAllocation,

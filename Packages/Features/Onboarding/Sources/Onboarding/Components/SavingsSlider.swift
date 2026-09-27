@@ -192,11 +192,14 @@ private extension SavingsSlider {
                 }
                 guard isHorizontalDrag == true else { return }
 
-                isDragging = true
+                if !isDragging { isDragging = true }
                 let newPercentage = Self.percentage(atFraction: value.location.x / trackWidth)
-                // Only tick when the value actually lands on a new snap point,
-                // not on every drag event while it rests there.
-                if newPercentage != percentage && Self.snapValues.contains(newPercentage) {
+                // Most drag events land on the percent already shown. Writing it anyway would
+                // re-render the whole screen: the binding writes into a struct, which notifies
+                // observers even when the value is unchanged.
+                guard newPercentage != percentage else { return }
+                // Only tick when the value lands on a new snap point.
+                if Self.snapValues.contains(newPercentage) {
                     HapticManager.lightTap()
                 }
                 percentage = newPercentage

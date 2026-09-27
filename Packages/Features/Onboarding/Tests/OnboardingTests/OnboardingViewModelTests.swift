@@ -385,4 +385,48 @@ struct OnboardingViewModelTests {
         #expect(plan.savingsAllocation != nil)
         #expect(plan.isBalanced)
     }
+
+    /// The plan is stored, not computed, so every input must refresh it — including edits made
+    /// in place, the way bindings and the slider write them.
+    @Test func `The stored transfer plan follows every input change`() throws {
+        let viewModel = makeViewModel()
+        func expectFreshPlan(_ comment: Comment, sourceLocation: SourceLocation = #_sourceLocation) {
+            let fresh = TransferCalculator.calculate(
+                income: viewModel.monthlyIncome,
+                expenses: viewModel.expenses,
+                allocation: viewModel.savingsAllocation,
+                accounts: viewModel.accounts,
+                remainingDestination: viewModel.remainingMoneyDestination
+            )
+            #expect(viewModel.transferPlan == fresh, comment, sourceLocation: sourceLocation)
+        }
+
+        expectFreshPlan("initial")
+        viewModel.monthlyIncome = 10_000
+        expectFreshPlan("income")
+        viewModel.expenses[1].amount = 2500
+        expectFreshPlan("expense edited in place")
+        viewModel.expenses.append(ExpenseEntry(name: "Gym", amount: 1200, frequency: .annual, icon: "figure.run"))
+        expectFreshPlan("expense added")
+        viewModel.addEmergencyAccount()
+        viewModel.addSavingsAccount()
+        expectFreshPlan("accounts added")
+        let emergencyId = try #require(viewModel.emergencyAccount?.id)
+        viewModel.updateAccount(id: emergencyId) { $0.currentBalance = 4000 }
+        expectFreshPlan("account edited")
+        viewModel.expenses[1].linkedAccountId = emergencyId
+        expectFreshPlan("expense linked")
+        viewModel.savingsAllocation.percentage = 0.3
+        expectFreshPlan("savings rate")
+        viewModel.isBoostEnabled = true
+        expectFreshPlan("boost")
+        viewModel.savingsAllocation.allocationMode = .split
+        viewModel.savingsAllocation.splitSavingsAmount = 900
+        expectFreshPlan("split mode")
+        viewModel.remainingMoneyDestination = .primary
+        expectFreshPlan("remaining money destination")
+        viewModel.deleteAccount(id: emergencyId)
+        expectFreshPlan("account deleted")
+        #expect(viewModel.availableIncome == viewModel.transferPlan.availableIncome)
+    }
 }

@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 
 public enum AmountFormatter {
     /// Whole amount with the current locale's grouping: "14,303 RON" (English), "14.303 RON" (Romanian).
@@ -9,13 +10,7 @@ public enum AmountFormatter {
     /// Formats a Decimal for display using `locale`'s grouping separator. Halves round up
     /// (104.5 → 105), as people expect for money, rather than to even.
     public static func formatForDisplay(_ amount: Decimal, currency: String, locale: Locale) -> String {
-        let number = NSDecimalNumber(decimal: amount)
-        let formatter = NumberFormatter()
-        formatter.locale = locale
-        formatter.numberStyle = .decimal
-        formatter.maximumFractionDigits = 0
-        formatter.roundingMode = .halfUp
-        let formatted = formatter.string(from: number) ?? "0"
+        let formatted = displayFormatters.string(from: amount, locale: locale) ?? "0"
         return "\(formatted) \(currency)"
     }
 
@@ -27,14 +22,7 @@ public enum AmountFormatter {
     /// Formats a Decimal for editing with `locale`'s decimal separator ("1234,5" in Romanian).
     public static func formatForEditing(_ amount: Decimal, locale: Locale) -> String {
         guard amount > 0 else { return "" }
-        let number = NSDecimalNumber(decimal: amount)
-        let formatter = NumberFormatter()
-        formatter.locale = locale
-        formatter.numberStyle = .decimal
-        formatter.maximumFractionDigits = 2
-        formatter.minimumFractionDigits = 0
-        formatter.groupingSeparator = ""
-        return formatter.string(from: number) ?? "0"
+        return editingFormatters.string(from: amount, locale: locale) ?? "0"
     }
 
     /// `parse(_:locale:)` in the current locale.
@@ -64,6 +52,55 @@ public enum AmountFormatter {
         guard let value = Decimal(string: normalized, locale: posixLocale) else { return 0 }
         let isNegative = text.trimmingCharacters(in: .whitespaces).hasPrefix("-")
         return isNegative ? -value : value
+    }
+}
+
+// MARK: - Formatters
+
+private extension AmountFormatter {
+    static let displayFormatters = NumberFormatterCache { formatter in
+        formatter.numberStyle = .decimal
+        formatter.maximumFractionDigits = 0
+        formatter.roundingMode = .halfUp
+    }
+
+    static let editingFormatters = NumberFormatterCache { formatter in
+        formatter.numberStyle = .decimal
+        formatter.maximumFractionDigits = 2
+        formatter.minimumFractionDigits = 0
+        formatter.groupingSeparator = ""
+    }
+}
+
+/// One configured `NumberFormatter` per locale. Amounts are formatted inside view bodies, and
+/// creating a formatter costs over 10× as much as formatting with one.
+private final class NumberFormatterCache: Sendable {
+    /// Distinct locales in one session are the user's plus a few in tests; past this the cache
+    /// starts over rather than grow.
+    private static let capacity = 8
+
+    private let configure: @Sendable (NumberFormatter) -> Void
+    private let formatters = Mutex<[Locale: NumberFormatter]>([:])
+
+    init(configure: @escaping @Sendable (NumberFormatter) -> Void) {
+        self.configure = configure
+    }
+
+    /// Formats under the lock: `NumberFormatter` isn't `Sendable`, so it never leaves it.
+    func string(from amount: Decimal, locale: Locale) -> String? {
+        formatters.withLock { formatters in
+            let formatter: NumberFormatter
+            if let cached = formatters[locale] {
+                formatter = cached
+            } else {
+                if formatters.count >= Self.capacity { formatters.removeAll() }
+                formatter = NumberFormatter()
+                formatter.locale = locale
+                configure(formatter)
+                formatters[locale] = formatter
+            }
+            return formatter.string(from: NSDecimalNumber(decimal: amount))
+        }
     }
 }
 

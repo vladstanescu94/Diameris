@@ -1,7 +1,7 @@
 import Foundation
 
 /// How one month's income flows through the accounts.
-public struct TransferPlan: Sendable {
+public struct TransferPlan: Equatable, Sendable {
     public let income: Decimal
 
     public let totalExpenses: Decimal
@@ -58,7 +58,7 @@ public struct TransferPlan: Sendable {
 extension TransferPlan {
     /// Money allocated to one account. `id` is the account id: a plan allocates to each account
     /// at most once, so it is unique and stable across recalculations (no ForEach churn).
-    public struct AccountAllocation: Identifiable, Sendable {
+    public struct AccountAllocation: Identifiable, Equatable, Sendable {
         public let id: UUID
         public let accountId: UUID
         public let accountName: String
@@ -108,7 +108,7 @@ extension TransferPlan {
 
 extension TransferPlan {
     /// Expenses moved to one account. `id` is the account id (expenses are grouped per account).
-    public struct AccountExpenseTransfer: Identifiable, Sendable {
+    public struct AccountExpenseTransfer: Identifiable, Equatable, Sendable {
         public let id: UUID
         public let accountId: UUID
         public let accountName: String

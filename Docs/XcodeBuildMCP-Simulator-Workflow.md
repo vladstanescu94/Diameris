@@ -9,7 +9,8 @@
 |-------|--------|
 | MCP server | `.mcp.json` at the repo root registers `XcodeBuildMCP` (`npx -y xcodebuildmcp@latest mcp`) |
 | UI automation backend | [AXe](https://github.com/cameroncooke/AXe) — `brew tap cameroncooke/axe && brew install axe` |
-| Enabled workflows | `simulator`, `simulator-management`, `ui-automation`, `project-discovery`, `swift-package`, `coverage`, `utilities` |
+| Enabled workflows | `simulator`, `simulator-management`, `ui-automation`, `debugging` (LLDB), `device`, `project-discovery`, `session-management`, `swift-package`, `coverage`, `utilities`, `doctor` |
+| Xcode MCP bridge | `.mcp.json` also registers `xcode` → `xcrun mcpbridge` (Xcode's own MCP server: previews, per-file diagnostics, String Catalog edits, documentation search) |
 
 Session defaults are baked into `.mcp.json`, so most tools can be called without repeating them:
 
@@ -18,9 +19,40 @@ Session defaults are baked into `.mcp.json`, so most tools can be called without
 - Configuration: `Debug`
 - Simulator: `iPhone 17 Pro`, latest OS
 
-`device`, `macos`, `project-scaffolding`, `debugging` and `xcode-ide` workflows are deliberately
-disabled to keep the tool surface small. Add them to `XCODEBUILDMCP_ENABLED_WORKFLOWS` in `.mcp.json`
-if a task genuinely needs them.
+Every automation-relevant workflow is enabled. Only `macos` (Diameris is iOS-only),
+`project-scaffolding` (irrelevant) and `xcode-ide` (redundant — it proxies `xcrun mcpbridge`, which is
+registered directly as the `xcode` server) are left out. `XCODEBUILDMCP_ENABLED_WORKFLOWS` **replaces**
+the defaults rather than extending them, so the list must name every workflow in use.
+
+### Xcode MCP bridge (`xcrun mcpbridge`)
+
+Resolves inside the `xcode-select`ed Xcode, so it is unpinned and its tool set tracks the installed
+Xcode. It needs either a UI Xcode with the project open and external-agent access approved, or headless
+mode (`sudo xcrun mcp-server enable`) with this folder permitted
+(`sudo xcrun mcp-server allow-folder <repo path>`). Otherwise it exits with status 1 and no message.
+`xcrun mcp-server status` shows permission, permitted agents/folders and open workspaces.
+
+### Xcode skills plugin (`xcode-integration`)
+
+Xcode also packages Apple-authored skills as a Claude Code plugin. `xcrun agent plugin path
+--plugin-format claude` materialises it under
+`~/Library/Developer/Xcode/CodingAssistant/ExportedPlugins/<xcode-build>/claude`. It isn't vendored in
+the repo because it tracks the installed Xcode build. A `claude` shell function in `~/.zshrc` passes
+that path to `--plugin-dir` **only when launched inside a folder listed in
+`CLAUDE_XCODE_PLUGIN_PROJECTS`** (currently just this repo); everywhere else it runs plain `claude`.
+
+Skills (Xcode 27.0 RC, 27A266a): `swiftui-specialist`, `swiftui-whats-new-27`,
+`accessibility-{voiceover,dynamic-type,sufficient-contrast}-specialist`, `translation-coordinator`,
+`translation`, `modernize-tests`, `device-interaction`, `app-intents-specialist`,
+`app-intents-whats-new-27`, `building-document-based-swiftui-applications`, `uikit-app-modernization`,
+`adopt-c-bounds-safety`, `audit-xcode-security-settings`. When each must be used is in `CLAUDE.md`
+("Apple Skills & Official Docs").
+
+The plugin bundles its own `xcode` bridge server too, so with it loaded there are two bridge
+connections (project `.mcp.json` + plugin). Harmless, just redundant.
+
+Official docs: the bridge's `DocumentationSearch` tool does semantic search over Apple Developer
+Documentation (optionally scoped with `frameworks`). Use it before web search.
 
 ## Rules
 

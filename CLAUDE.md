@@ -67,6 +67,43 @@ Interaction tools: `snapshot_ui`, `wait_for_ui`, `tap`, `batch`, `swipe`, `drag`
 
 Requires AXe on `PATH` (`brew install axe` from the `cameroncooke/axe` tap) — already installed.
 
+Xcode's own MCP bridge (`xcrun mcpbridge`, the `xcode` server in `.mcp.json`) is also registered —
+use it for Xcode-only capabilities (SwiftUI previews, per-file diagnostics, String Catalog edits,
+documentation search). It needs a UI Xcode with the project open or headless mode with this folder
+permitted; `xcrun mcp-server status` says which.
+
+## Apple Skills & Official Docs (MANDATORY)
+
+Xcode ships Apple-authored skills as the `xcode-integration` plugin. The user's `claude` shell
+function loads it via `--plugin-dir "$(xcrun agent plugin path --plugin-format claude)"`, only when
+launched inside this repo (listed in `CLAUDE_XCODE_PLUGIN_PROJECTS` in `~/.zshrc`).
+**If no `xcode-integration:*` skills appear in your skill list, stop and tell the user to relaunch
+with the `claude` wrapper** — don't silently continue without them.
+
+### Invoke these skills before the matching work
+
+| Work | Skill(s) |
+|------|----------|
+| Writing or reviewing any SwiftUI code | `xcode-integration:swiftui-specialist` |
+| Using an API introduced in iOS 26/27, or asked "what's new" | `xcode-integration:swiftui-whats-new-27` |
+| New or changed screen (before calling UI done) | `xcode-integration:accessibility-voiceover-specialist`, `xcode-integration:accessibility-dynamic-type-specialist`, `xcode-integration:accessibility-sufficient-contrast-specialist` |
+| Adding/editing strings or `.xcstrings` (English + Romanian) | `xcode-integration:translation-coordinator` (it drives `translation`; the bridge's String Catalog tools refuse to run without it) |
+| Migrating or modernising **unit** tests | `xcode-integration:modernize-tests` (UI tests stay XCTest) |
+| App Intents / Shortcuts / widgets intents | `xcode-integration:app-intents-specialist` |
+| Verifying behaviour via the Xcode bridge's device tools | `xcode-integration:device-interaction` |
+
+Apple's skills are authoritative on **API correctness and platform behaviour**; they supersede
+training data and the older `swiftui-pro` / `swiftui-skills` guidance where they conflict. Project
+conventions below (DesignSystem constants, localization, layering) still govern **structure and style**.
+
+### Check official Apple docs — don't guess
+
+- Before using an Apple API you haven't seen used in this codebase, or whenever unsure of a
+  signature, availability, or behaviour, query **`DocumentationSearch`** on the `xcode` MCP server
+  (pass `frameworks`, e.g. `["SwiftUI"]`, to narrow results).
+- Prefer it over web search and over memory. Fall back to web search only if it returns nothing useful.
+- If it contradicts a file in `Docs/`, follow Apple's documentation and update the `Docs/` file.
+
 ## Build Commands
 
 Prefer the MCP tools above for anything simulator-related. These raw commands are a fallback for
@@ -133,7 +170,7 @@ Diameris/
 
 1. **Read `Docs/SwiftUI-Implementing-Liquid-Glass-Design.md`** - Contains patterns, troubleshooting, and examples
 2. **Use glass modifiers**: `.glassEffect()`, `.buttonStyle(.glass)`, `.buttonStyle(.glassProminent)`, `GlassEffectContainer`
-3. **Web search when unsure**: Search with terms like "iOS 26 SwiftUI", "late 2025 SwiftUI", "glassEffect iOS 26" to find latest patterns
+3. **Check Apple docs when unsure**: `DocumentationSearch` on the `xcode` MCP server first (e.g. "glassEffect GlassEffectContainer"); web search only as a fallback
 
 **Quick Reference:**
 - Buttons: `.buttonStyle(.glass)` or `.buttonStyle(.glassProminent)`

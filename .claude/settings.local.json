@@ -20,7 +20,8 @@
     ]
   },
   "enabledMcpjsonServers": [
-    "XcodeBuildMCP"
+    "XcodeBuildMCP",
+    "xcode"
   ],
   "enableAllProjectMcpServers": true
 }

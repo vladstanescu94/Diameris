@@ -4,7 +4,7 @@
       "command": "npx",
       "args": ["-y", "xcodebuildmcp@latest", "mcp"],
       "env": {
-        "XCODEBUILDMCP_ENABLED_WORKFLOWS": "simulator,simulator-management,ui-automation,project-discovery,swift-package,coverage,utilities",
+        "XCODEBUILDMCP_ENABLED_WORKFLOWS": "simulator,simulator-management,ui-automation,debugging,device,project-discovery,session-management,swift-package,coverage,utilities,doctor",
         "XCODEBUILDMCP_PROJECT_PATH": "Diameris.xcodeproj",
         "XCODEBUILDMCP_SCHEME": "Diameris",
         "XCODEBUILDMCP_CONFIGURATION": "Debug",
@@ -12,6 +12,12 @@
         "XCODEBUILDMCP_USE_LATEST_OS": "true",
         "XCODEBUILDMCP_SENTRY_DISABLED": "true"
       }
+    },
+    "xcode": {
+      "type": "stdio",
+      "command": "xcrun",
+      "args": ["mcpbridge"],
+      "env": {}
     }
   }
 }

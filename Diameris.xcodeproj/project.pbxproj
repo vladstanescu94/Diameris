@@ -26,13 +26,6 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		DE0EA2BA2EF963470037FB3A /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = DE0EA2A22EF963440037FB3A /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = DE0EA2A92EF963440037FB3A;
-			remoteInfo = Diameris;
-		};
 		DE0EA2C42EF963470037FB3A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = DE0EA2A22EF963440037FB3A /* Project object */;
@@ -44,7 +37,6 @@
 
 /* Begin PBXFileReference section */
 		DE0EA2AA2EF963440037FB3A /* Diameris.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Diameris.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		DE0EA2B92EF963470037FB3A /* DiamerisTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DiamerisTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DE0EA2C32EF963470037FB3A /* DiamerisUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DiamerisUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DEE6C4BC2F8F9F6E00FD6E9E /* Diameris QA.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Diameris QA.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -53,11 +45,6 @@
 		DE0EA2AC2EF963440037FB3A /* Diameris */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Diameris;
-			sourceTree = "<group>";
-		};
-		DE0EA2BC2EF963470037FB3A /* DiamerisTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = DiamerisTests;
 			sourceTree = "<group>";
 		};
 		DE0EA2C62EF963470037FB3A /* DiamerisUITests */ = {
@@ -80,13 +67,6 @@
 				DE0EA2DF2EF9882C0037FB3A /* DesignSystem in Frameworks */,
 				DE0EA2E82EF98E7C0037FB3A /* Onboarding in Frameworks */,
 				DE6CCDC22F018354005B3DFA /* Dashboard in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		DE0EA2B62EF963470037FB3A /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -119,9 +99,7 @@
 			isa = PBXGroup;
 			children = (
 				DE0EA2AC2EF963440037FB3A /* Diameris */,
-				DE0EA2BC2EF963470037FB3A /* DiamerisTests */,
 				DE0EA2C62EF963470037FB3A /* DiamerisUITests */,
-				DEE6C4EE2F8FA74E00FD6E9E /* Frameworks */,
 				DE0EA2AB2EF963440037FB3A /* Products */,
 			);
 			sourceTree = "<group>";
@@ -130,18 +108,10 @@
 			isa = PBXGroup;
 			children = (
 				DE0EA2AA2EF963440037FB3A /* Diameris.app */,
-				DE0EA2B92EF963470037FB3A /* DiamerisTests.xctest */,
 				DE0EA2C32EF963470037FB3A /* DiamerisUITests.xctest */,
 				DEE6C4BC2F8F9F6E00FD6E9E /* Diameris QA.app */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		DEE6C4EE2F8FA74E00FD6E9E /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -176,29 +146,6 @@
 			productName = Diameris;
 			productReference = DE0EA2AA2EF963440037FB3A /* Diameris.app */;
 			productType = "com.apple.product-type.application";
-		};
-		DE0EA2B82EF963470037FB3A /* DiamerisTests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = DE0EA2D02EF963470037FB3A /* Build configuration list for PBXNativeTarget "DiamerisTests" */;
-			buildPhases = (
-				DE0EA2B52EF963470037FB3A /* Sources */,
-				DE0EA2B62EF963470037FB3A /* Frameworks */,
-				DE0EA2B72EF963470037FB3A /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				DE0EA2BB2EF963470037FB3A /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				DE0EA2BC2EF963470037FB3A /* DiamerisTests */,
-			);
-			name = DiamerisTests;
-			packageProductDependencies = (
-			);
-			productName = DiamerisTests;
-			productReference = DE0EA2B92EF963470037FB3A /* DiamerisTests.xctest */;
-			productType = "com.apple.product-type.bundle.unit-test";
 		};
 		DE0EA2C22EF963470037FB3A /* DiamerisUITests */ = {
 			isa = PBXNativeTarget;
@@ -266,10 +213,6 @@
 					DE0EA2A92EF963440037FB3A = {
 						CreatedOnToolsVersion = 26.2;
 					};
-					DE0EA2B82EF963470037FB3A = {
-						CreatedOnToolsVersion = 26.2;
-						TestTargetID = DE0EA2A92EF963440037FB3A;
-					};
 					DE0EA2C22EF963470037FB3A = {
 						CreatedOnToolsVersion = 26.2;
 						TestTargetID = DE0EA2A92EF963440037FB3A;
@@ -305,7 +248,6 @@
 			projectRoot = "";
 			targets = (
 				DE0EA2A92EF963440037FB3A /* Diameris */,
-				DE0EA2B82EF963470037FB3A /* DiamerisTests */,
 				DE0EA2C22EF963470037FB3A /* DiamerisUITests */,
 				DEE6C4BB2F8F9F6E00FD6E9E /* Diameris QA */,
 			);
@@ -314,13 +256,6 @@
 
 /* Begin PBXResourcesBuildPhase section */
 		DE0EA2A82EF963440037FB3A /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		DE0EA2B72EF963470037FB3A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -351,13 +286,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		DE0EA2B52EF963470037FB3A /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		DE0EA2BF2EF963470037FB3A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -375,11 +303,6 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		DE0EA2BB2EF963470037FB3A /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = DE0EA2A92EF963440037FB3A /* Diameris */;
-			targetProxy = DE0EA2BA2EF963470037FB3A /* PBXContainerItemProxy */;
-		};
 		DE0EA2C52EF963470037FB3A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = DE0EA2A92EF963440037FB3A /* Diameris */;
@@ -584,50 +507,6 @@
 			};
 			name = Release;
 		};
-		DE0EA2D12EF963470037FB3A /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 5ZWZB58683;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = ro.svc.DiamerisTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Diameris.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Diameris";
-			};
-			name = Debug;
-		};
-		DE0EA2D22EF963470037FB3A /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 5ZWZB58683;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = ro.svc.DiamerisTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Diameris.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Diameris";
-			};
-			name = Release;
-		};
 		DE0EA2D42EF963470037FB3A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -752,15 +631,6 @@
 			buildConfigurations = (
 				DE0EA2CE2EF963470037FB3A /* Debug */,
 				DE0EA2CF2EF963470037FB3A /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		DE0EA2D02EF963470037FB3A /* Build configuration list for PBXNativeTarget "DiamerisTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				DE0EA2D12EF963470037FB3A /* Debug */,
-				DE0EA2D22EF963470037FB3A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

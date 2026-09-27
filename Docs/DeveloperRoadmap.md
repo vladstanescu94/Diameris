@@ -159,6 +159,7 @@ This document tracks implementation progress. **Update this file after completin
 | Test suites rebuilt | 2026-09-27 | Tautological tests removed; real-scenario tests added (Domain invariant: every plan sums exactly to income across 55 cases; in-memory SwiftData scenarios in Persistence) |
 | Savings Boost visibility | 2026-09-27 | Active boost shown on Home (`SavingsBoostCard` with Turn Off) and as a toggle in New Month step 3 that recalculates the plan and saves with the month. Domain `isBoostActive`; Persistence `setSavingsBoostEnabled`, `applyNewMonth(savingsBoostEnabled:)`; tests in Persistence + `NewMonthFlowModelTests`. |
 | Performance audit | 2026-09-27 | `AmountFormatter` caches NumberFormatters per locale (11.7× faster formatting); onboarding `transferPlan` stored and refreshed from its inputs instead of recomputed per read; `SavingsSlider` skips same-value drag writes; `TransferPlan` Equatable; adaptive colors pre-converted; dev JSON excluded from Release. `-Osize` measured and rejected (speed first). See `Performance-Audit-2026-09-27.md`. |
+| Xcode project cleanup | 2026-09-27 | Removed the orphaned `DiamerisTests` target (its folder was deleted in the audit; unit tests live in the SPM packages), its scheme testable, the empty `Frameworks` navigator group, and the empty `Diameris/Features/Home/` folder. App UI tests (`DiamerisUITests`) unchanged |
 
 ### In Progress
 

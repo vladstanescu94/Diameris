@@ -1,0 +1,188 @@
+/* New Month — PARITY-SPEC §7. Tokens only. */
+
+.nm {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.nm-header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+}
+.nm-header__title {
+  font-size: var(--font-headline-size);
+  font-weight: var(--font-headline-weight);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.nm-step {
+  display: grid;
+  gap: var(--space-lg); /* §7.2 VStack(spacing: 24) */
+}
+
+.nm-step__header {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-sm); /* VStack(spacing: 12) */
+  text-align: center;
+}
+.nm-step__header svg {
+  color: var(--accent-primary);
+}
+.nm-step__title {
+  font-size: var(--font-title2-size);
+  line-height: var(--font-title2-line);
+  font-weight: var(--font-headline-weight);
+}
+.nm-step__subtitle {
+  font-size: var(--font-subheadline-size);
+  color: var(--label-secondary);
+}
+.nm-step__hint {
+  font-size: var(--font-subheadline-size);
+  color: var(--label-secondary);
+  text-align: center;
+}
+
+/* --- §7.2 account cards -------------------------------------------- */
+
+.nm-account {
+  display: grid;
+  gap: var(--space-sm);
+}
+.nm-account__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+.nm-account__name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--font-headline-size);
+  font-weight: var(--font-headline-weight);
+}
+.nm-account__caption {
+  font-size: var(--font-caption-size);
+  color: var(--label-secondary);
+}
+.nm-account__was {
+  font-size: var(--font-caption-size);
+  color: var(--label-tertiary);
+}
+
+/* --- §7.3 plan ----------------------------------------------------- */
+
+.nm-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--accent-primary);
+  margin-bottom: var(--space-sm);
+}
+.nm-card__title {
+  font-size: var(--font-headline-size);
+  line-height: var(--font-headline-line);
+  font-weight: var(--font-headline-weight);
+  color: var(--label-primary);
+}
+
+.nm-summary {
+  display: grid;
+  gap: var(--space-sm);
+}
+.nm-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  font-size: var(--font-subheadline-size);
+}
+.nm-row__label {
+  color: var(--label-secondary);
+}
+.nm-row__value {
+  font-variant-numeric: tabular-nums;
+}
+.nm-row__value--negative {
+  color: var(--color-negative);
+}
+.nm-row--bold,
+.nm-row--bold .nm-row__label {
+  font-weight: 700;
+  color: var(--label-primary);
+}
+
+.nm-transfers {
+  display: grid;
+  gap: var(--space-md);
+  margin-top: var(--space-sm);
+}
+.nm-transfer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm); /* HStack(spacing: 12) */
+}
+.nm-transfer__icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--size-icon-container); /* 32pt frame */
+  color: var(--color-warning);
+}
+.nm-transfer__text {
+  display: grid;
+  gap: var(--space-xxs);
+  flex: 1;
+  min-width: 0;
+}
+.nm-transfer__title {
+  font-size: var(--font-subheadline-size);
+  font-weight: 700;
+}
+.nm-transfer__sub {
+  font-size: var(--font-caption-size);
+  color: var(--label-secondary);
+}
+.nm-transfer__amount {
+  font-size: var(--font-subheadline-size);
+  font-weight: 700;
+  color: var(--color-positive);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.nm-primary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.nm-primary svg {
+  color: var(--accent-primary);
+}
+.nm-primary__label {
+  flex: 1;
+  font-size: var(--font-subheadline-size);
+  color: var(--label-secondary);
+}
+.nm-primary__value {
+  font-size: var(--font-subheadline-size);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.nm-verify {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-green) 10%, transparent);
+  color: var(--color-green);
+  font-size: var(--font-subheadline-size);
+}

@@ -362,6 +362,14 @@ struct ExportData: Codable {
 
 ## Validation Rules
 
+**As built (2026-09-27):** the account editor only offers types allowed by Domain's
+`canAssign(_:toAccount:)` (the primary account's type can't be changed; no second Emergency), and the
+remaining-money picker only lists destinations backed by an account. The Savings Boost toggle can't
+be switched on above the safe rate and turns itself off if the rate is raised past it. Persistence
+enforces all of these again on save. Profile and savings edits are written on Save; account edits
+are saved from the account sheet. Income can't be edited here yet (follow-up).
+
+
 | Setting | Validation | Error Message |
 |---------|------------|---------------|
 | Name | 1-50 characters | "Name must be between 1 and 50 characters" |

@@ -4,7 +4,24 @@
       "WebSearch",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "WebFetch(domain:medium.com)"
+      "WebFetch(domain:medium.com)",
+      "Bash(cat:*)",
+      "Bash(swift build:*)",
+      "Bash(xcodebuild:*)",
+      "Bash(grep:*)",
+      "Bash(plutil:*)",
+      "Bash(ls:*)",
+      "Bash(xcrun simctl:*)",
+      "Bash(xargs cat:*)",
+      "Bash(swift test:*)",
+      "Bash(tree:*)",
+      "Bash(python3:*)",
+      "Bash(find:*)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "XcodeBuildMCP",
+    "xcode"
+  ],
+  "enableAllProjectMcpServers": true
 }

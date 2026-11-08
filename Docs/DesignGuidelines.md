@@ -33,7 +33,13 @@ This document establishes Diameris's visual identity and design standards. Diame
 
 ## 2. Liquid Glass Integration
 
-Liquid Glass is Apple's 2025 design language. See `SwiftUI-Implementing-Liquid-Glass-Design.md` for implementation details.
+Liquid Glass is Apple's 2025 design language - the most significant visual overhaul since iOS 7. See `SwiftUI-Implementing-Liquid-Glass-Design.md` for implementation details.
+
+> "Establish a clear visual hierarchy where controls and interface elements elevate and distinguish the content beneath them." — Apple Human Interface Guidelines (iOS 26)
+
+### Core Principle: Navigation Layer Only
+
+**Liquid Glass is exclusively for the navigation layer that floats above app content.** It should never be applied to content itself (lists, tables, media). This maintains clear visual hierarchy: content remains primary while controls provide functional overlay.
 
 ### When to Use
 
@@ -44,13 +50,71 @@ Liquid Glass is Apple's 2025 design language. See `SwiftUI-Implementing-Liquid-G
 | Secondary buttons | `.buttonStyle(.glass)` |
 | Grouped controls | `GlassEffectContainer` |
 | Interactive elements | `.glassEffect(.regular.interactive())` |
+| Concentric corners | `.rect(cornerRadius: .containerConcentric)` |
 
-### Best Practices
+### Glass Variants
+
+The system offers three appearance modes (light and dark):
+- **Regular** - Standard glass effect
+- **Clear** - More transparent variant
+- **Tinted** - Colored glass with `.tint(Color)`
+
+**Rule:** Never mix Regular and Clear variants in the same interface.
+
+### Corner Concentricity
+
+Controls should align perfectly within their containers. Use `.containerConcentric` for automatic alignment:
+
+```swift
+.glassEffect(in: .rect(cornerRadius: .containerConcentric))
+// or
+RoundedRectangle(cornerRadius: .containerConcentric, style: .continuous)
+```
+
+### Best Practices - DO
 
 - Use `GlassEffectContainer` when multiple glass elements are near each other
 - Apply `.glassEffectID()` with `@Namespace` for morphing transitions
 - Tint glass sparingly with accent colors for emphasis
 - Let glass blur create natural depth hierarchy
+- Enable `.interactive()` only on tappable surfaces
+- Verify accessibility settings (Increase Contrast, Reduce Transparency, Reduce Motion)
+- Test on lower-end devices (iPhone 11 minimum for iOS 26)
+
+### Best Practices - DON'T
+
+- **Never** apply glass to content (lists, tables, media) - only navigation chrome
+- **Never** add `.blur`, `.opacity`, or `.background` modifiers on a glassEffect
+- **Never** place solid fills (`Color.white`, `Color.black`) behind glass views
+- **Never** add your own `.background` or another `glassEffect` to toolbars (they already have built-in glass)
+- **Avoid** turning glass on for static labels or dense lists (increases GPU work)
+- **Avoid** stacking multiple nested glass elements (performance impact)
+
+### Opacity Guidelines for Content on Glass
+
+| Opacity | Use Case |
+|---------|----------|
+| **100%** | Vital content - main text, primary CTAs, logos |
+| **70%** | Supporting text, secondary buttons, navigation tabs |
+| **40%** | Decorative UI - dividers, outlines, icons |
+| **20%** | Subtle tints, background overlays, atmospheric effects |
+
+### Performance Considerations
+
+Liquid Glass uses real-time, GPU-accelerated blur effects. It's efficient for a few elements, but:
+- Avoid stacking many translucent views
+- Avoid animating glass elements excessively
+- Test on lower-end supported devices
+- Use `GlassEffectContainer` to optimize multiple glass elements
+
+### Accessibility Adaptations
+
+When users enable accessibility settings, Liquid Glass automatically adapts:
+- **Reduce Transparency**: Glass becomes more opaque
+- **Increase Contrast**: Enhanced borders and text contrast
+- **Reduce Motion**: Animations are minimized or removed
+
+If using custom elements, provide fallback experiences for these settings.
 
 ---
 
@@ -146,21 +210,28 @@ Only create custom symbols when SF Symbols lacks an appropriate option. Export s
 
 **Primary Accent - Magenta/Fuchsia**
 ```swift
-// Light mode
-Color(hex: "#D946EF") // Fuchsia-500
+// Light mode (darkened for text contrast: 6.3:1 on white)
+Color(hex: "#A21CAF") // Fuchsia-700
 
-// Dark mode (slightly brighter)
+// Dark mode (brighter, 8.5:1 on black)
 Color(hex: "#E879F9") // Fuchsia-400
 ```
 
 **Secondary Accent - Teal/Cyan**
 ```swift
-// Light mode
-Color(hex: "#06B6D4") // Cyan-500
+// Light mode (darkened for text contrast: 5.4:1 on white)
+Color(hex: "#0E7490") // Cyan-700
 
-// Dark mode (slightly brighter)
+// Dark mode (brighter)
 Color(hex: "#22D3EE") // Cyan-400
 ```
+
+**Filled buttons** (`.glassProminent`) tint with `DiamerisColors.accentPrimaryFill` (`#A21CAF` in
+both appearances, 6.3:1 under a white label). Never tint a filled control with the dark-mode
+accent: white on `#E879F9` is only 2.5:1.
+
+All accent pairs must meet WCAG AA (≥ 4.5:1 for normal text). `ColorTests` in DesignSystem
+enforces this for both appearances; update the test's expectations, not the rule, when adding a color.
 
 ### Semantic Colors
 
@@ -177,11 +248,11 @@ Define colors in Asset Catalog with both appearances:
 
 ```
 AccentPrimary
-├── Any Appearance: #D946EF
+├── Any Appearance: #A21CAF
 └── Dark: #E879F9
 
 AccentSecondary
-├── Any Appearance: #06B6D4
+├── Any Appearance: #0E7490
 └── Dark: #22D3EE
 ```
 

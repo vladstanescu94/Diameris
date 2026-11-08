@@ -318,6 +318,23 @@ Phase 2 could allow users to customize which expenses go to which accounts.
 
 ## Validation & Verification
 
+**As built (2026-09-27):**
+- All amounts are whole cents and the plan always sums exactly to income; any rounding residue
+  lands in `remainingMoney` (split mode: savings takes the exact remainder).
+- **Short month** (expenses > income): linked-account transfers (e.g. rent → Joint) are paid first,
+  capped at income (scaled proportionally if they alone exceed it); primary keeps the rest;
+  savings and remaining are 0; `TransferPlan.shortfall` reports the gap and `isBalanced` is false,
+  so New Month, the Dashboard and onboarding show "Expenses exceed income by X".
+- An expense linked to a deleted account, or to the primary account itself, stays in primary.
+- The savings destination is the flagged primary-savings account, else the first savings account —
+  never the emergency account. The calculator and `BalanceReconciler` share this rule.
+- **New Month** reconciles every non-primary account (Joint included), so pass-through accounts
+  don't accumulate. `BalanceReconciler` sets primary to `remainsInPrimary` plus any remaining money
+  that didn't leave it (destination "Keep in Primary", or a destination with no account — the
+  latter also reported as `unallocatedRemainingMoney`).
+- The salary entered in New Month becomes the stored income (intended; see the audit follow-ups
+  about basing the emergency target on an income average).
+
 ### Balance Check
 
 ```swift

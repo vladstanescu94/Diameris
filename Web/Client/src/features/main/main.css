@@ -1,0 +1,153 @@
+/* Main shell — PARITY-SPEC §3. */
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/*
+ * Large navigation title with the toolbar on its OWN ROW ABOVE it — that is how a
+ * SwiftUI large title lays out, and it is what `08-dashboard.jpg` shows: the gear/hammer
+ * capsule sits top-right, "August 2026" begins on the next line. Laying them out side by
+ * side (my first attempt) reads plausibly but is visibly wrong against the reference.
+ */
+.shell__bar {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-md);
+  padding-block: var(--space-xs) var(--space-xs);
+}
+.shell__toolbar {
+  order: -1;
+  justify-self: end;
+}
+.shell__title {
+  font-size: var(--font-large-title-size);
+  line-height: var(--font-large-title-line);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* The toolbar pair sits in one glass capsule, as iOS groups toolbar items. */
+.shell__toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm); /* HStack(spacing: 12) */
+  padding: var(--space-xxs) var(--space-sm);
+  border-radius: var(--radius-full);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+}
+.shell__toolbar-button {
+  display: grid;
+  place-items: center;
+  width: var(--size-icon-container);
+  height: var(--size-icon-container);
+  font-size: var(--icon-md);
+  color: var(--label-primary);
+}
+
+/* `.searchable` on the Expenses tab. */
+.shell__search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--fill-tertiary);
+  color: var(--label-secondary);
+}
+.shell__search-input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  outline: none;
+  font-size: var(--font-body-size);
+  color: var(--label-primary);
+}
+.shell__search-input::placeholder {
+  color: var(--label-secondary);
+}
+
+.shell__content {
+  flex: 1;
+  /* Clears the floating dock so the last card is never hidden behind it. */
+  padding-bottom: calc(var(--size-button-h) + var(--size-button-h-sm) + var(--space-xl));
+}
+
+.shell__dock {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+.shell__dock > * {
+  pointer-events: auto;
+}
+
+/* Dev Tools — dev-only tooling (R16), deliberately unstyled beyond being usable. */
+.devtools {
+  position: fixed;
+  inset-block-start: var(--space-md);
+  inset-inline-end: var(--space-md);
+  z-index: 200;
+  display: grid;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  background: var(--surface-row);
+  border: 1px solid var(--separator);
+}
+
+/*
+ * ⚠️ `.shell__toolbar` carries `backdrop-filter`, which **creates a stacking context** —
+ * so the dropdown's own `z-index: 200` was confined inside it, and the toolbar (no
+ * z-index) painted below the later `.shell__content`. The menu looked fine and was
+ * unclickable, with `.exp-summary` intercepting the pointer. Raising the stacking-context
+ * ROOT is what actually works; raising the child does nothing.
+ */
+.shell__toolbar--expenses {
+  position: relative;
+  z-index: 200;
+  align-self: end;
+  margin-block-end: var(--space-xs);
+}
+
+/* `…` Options menu — three items with a divider, per PARITY-SPEC §5 Toolbar. */
+/* The dropdown must out-paint the scrolling content below it: later siblings with no
+   z-index would otherwise win, and the menu items became unclickable after the list grew. */
+.shell__menu {
+  position: relative;
+  z-index: 200;
+}
+.shell__menu-items {
+  position: absolute;
+  inset-inline-end: 0;
+  top: calc(100% + var(--space-xs));
+  z-index: 150;
+  min-width: var(--size-progress-bar-w);
+  display: grid;
+  padding: var(--space-xs);
+  border-radius: var(--radius-md);
+  background: var(--surface-row);
+  border: 1px solid var(--separator);
+  box-shadow: var(--glass-shadow);
+}
+.shell__menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: var(--size-touch-min);
+  padding-inline: var(--space-sm);
+  border-radius: var(--radius-sm);
+  text-align: start;
+  color: var(--label-primary);
+  font-size: var(--font-body-size);
+}
+.shell__menu-item:hover {
+  background: var(--fill-tertiary);
+}

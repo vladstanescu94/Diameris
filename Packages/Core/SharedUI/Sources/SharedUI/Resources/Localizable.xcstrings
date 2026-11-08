@@ -1,0 +1,49 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Amount in %@" : {
+      "comment" : "VoiceOver label for an amount text field; the argument is a currency code like RON",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Sumă în %@"
+          }
+        }
+      }
+    },
+    "Currency: %@" : {
+      "comment" : "VoiceOver label for the currency picker; the argument is the currency name",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Monedă: %@"
+          }
+        }
+      }
+    },
+    "Double tap to change currency" : {
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Atinge de două ori pentru a schimba moneda"
+          }
+        }
+      }
+    },
+    "Progress" : {
+      "comment" : "VoiceOver label for a circular progress ring",
+      "localizations" : {
+        "ro" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Progres"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.3"
+}

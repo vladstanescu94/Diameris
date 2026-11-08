@@ -1,0 +1,171 @@
+/* Expenses tab — PARITY-SPEC §5. Tokens only. */
+
+.exp {
+  display: grid;
+  gap: var(--space-md); /* VStack(spacing: 16) */
+  padding-block: var(--space-sm);
+}
+
+/* --- §5.1 Summary header ------------------------------------------ */
+
+.exp-summary {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-sm); /* VStack(spacing: 12) */
+  text-align: center;
+  padding-block: var(--space-md); /* padding(.vertical, 16) */
+}
+.exp-summary__label {
+  font-size: var(--font-subheadline-size);
+  line-height: var(--font-subheadline-line);
+  color: var(--label-secondary);
+}
+.exp-summary__total {
+  font-family: var(--font-family-rounded); /* .system(.largeTitle, design: .rounded) */
+  font-size: var(--font-large-title-size);
+  line-height: var(--font-large-title-line);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- §5.2 Category card ------------------------------------------- */
+
+.exp-cat__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm); /* HStack(spacing: 12) */
+  width: 100%;
+  padding: var(--space-md);
+  text-align: start;
+  color: var(--label-primary);
+}
+.exp-cat__icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--size-icon-container); /* 32x32 frame */
+  height: var(--size-icon-container);
+  font-size: var(--font-title2-size); /* .title2 */
+}
+.exp-cat__text {
+  display: grid;
+  gap: var(--space-xxs); /* VStack(spacing: 4) */
+  flex: 1;
+  min-width: 0;
+}
+.exp-cat__name {
+  font-size: var(--font-headline-size);
+  line-height: var(--font-headline-line);
+  font-weight: var(--font-headline-weight);
+}
+.exp-cat__count {
+  font-size: var(--font-caption-size);
+  line-height: var(--font-caption-line);
+  color: var(--label-secondary);
+}
+.exp-cat__total {
+  font-size: var(--font-headline-size);
+  font-weight: var(--font-headline-weight);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.exp-cat__chevron {
+  flex: none;
+  display: grid;
+  place-items: center;
+  font-size: var(--font-caption-size);
+  font-weight: var(--font-headline-weight);
+  color: var(--label-secondary);
+  transition: transform var(--dur-fast) var(--ease-snappy);
+}
+/* Rotated 90° when expanded (§5.2). */
+.exp-cat__chevron--open {
+  transform: rotate(90deg);
+}
+
+.exp-cat__divider {
+  padding-inline: var(--space-md);
+}
+.exp-cat__rows {
+  padding-block: var(--space-sm); /* wrapper padding(.vertical, 12) */
+  padding-inline: var(--space-md);
+}
+
+/* --- ExpenseItemRow ------------------------------------------------ */
+
+.exp-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding-block: var(--space-xs); /* padding(.vertical, 8) */
+}
+.exp-row__main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex: 1;
+  min-width: 0;
+  text-align: start;
+  color: inherit;
+}
+.exp-row__icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--icon-md); /* 24x24 frame */
+  height: var(--icon-md);
+  font-size: var(--font-title3-size); /* .title3 */
+}
+.exp-row__name {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-body-size);
+  line-height: var(--font-body-line);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.exp-row__amounts {
+  display: grid;
+  justify-items: end;
+  gap: var(--space-xxs);
+  flex: none;
+}
+.exp-row__amount {
+  font-size: var(--font-body-size);
+  font-variant-numeric: tabular-nums;
+}
+.exp-row__caption {
+  font-size: var(--font-caption-size);
+  color: var(--label-secondary);
+}
+
+/* Disabled rows dim both glyph and name (§5.2). */
+.exp-row--disabled .exp-row__icon,
+.exp-row--disabled .exp-row__name {
+  color: var(--label-secondary);
+}
+
+/* Divider inset = Spacing.md + IconSize.md + Spacing.sm = 16 + 24 + 12 = 52pt. */
+.exp-row__divider {
+  padding-inline-start: calc(var(--space-md) + var(--icon-md) + var(--space-sm));
+}
+
+/* --- §5.2 Empty state --------------------------------------------- */
+
+.exp-empty {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-sm);
+  padding-block: var(--space-xxl); /* padding(.vertical, 48) */
+  text-align: center;
+  color: var(--label-secondary);
+}
+.exp-empty__title {
+  font-size: var(--font-title2-size);
+  font-weight: 700;
+  color: var(--label-primary);
+}
+.exp-empty__body {
+  font-size: var(--font-subheadline-size);
+}

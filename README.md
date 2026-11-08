@@ -93,8 +93,11 @@ Diameris adopts Apple's Liquid Glass design language introduced at WWDC 2025:
 
 | Color | Light | Dark |
 |-------|-------|------|
-| Primary (Magenta) | `#D946EF` | `#E879F9` |
-| Secondary (Teal) | `#06B6D4` | `#22D3EE` |
+| Primary (Magenta) | `#A21CAF` | `#E879F9` |
+| Secondary (Teal) | `#0E7490` | `#22D3EE` |
+| Filled buttons (white label) | `#A21CAF` | `#A21CAF` |
+
+All text/tint pairs meet WCAG AA (≥ 4.5:1); `ColorTests` in DesignSystem enforces it.
 
 ## Localization
 

@@ -1,0 +1,6 @@
+node_modules/
+output/.playwright/
+output/html-report/
+output/results.json
+output/*.png
+# output/REPORT.md is committed on purpose — it carries the recorded human verdicts.

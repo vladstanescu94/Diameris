@@ -1,0 +1,28 @@
+{
+  "name": "diameris-verify",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Parity verification harness for the Diameris web client (owned by Reviewer)",
+  "license": "ISC",
+  "type": "module",
+  "scripts": {
+    "parity": "playwright test",
+    "parity:contract": "playwright test parity/contract.spec.ts",
+    "parity:numbers": "playwright test parity/numbers.spec.ts",
+    "parity:content": "playwright test parity/content.spec.ts",
+    "parity:screens": "playwright test parity/screens.spec.ts",
+    "parity:golden": "playwright test parity/golden.spec.ts",
+    "parity:behaviour": "playwright test parity/behaviour.spec.ts",
+    "parity:locale": "playwright test parity/locale.spec.ts",
+    "parity:catalogues": "PARITY_OFFLINE=1 playwright test parity/locale.spec.ts --grep \"static integrity\"",
+    "parity:fixture": "PARITY_OFFLINE=1 playwright test parity/golden.spec.ts --grep \"fixture integrity|pure tables\"",
+    "parity:list": "playwright test --list",
+    "typecheck": "tsc --noEmit",
+    "show-report": "playwright show-report output/html-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@types/node": "^26.1.2",
+    "typescript": "^7.0.2"
+  }
+}

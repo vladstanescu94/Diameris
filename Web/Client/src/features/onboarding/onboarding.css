@@ -1,0 +1,1082 @@
+/*
+ * Onboarding-only styles. Everything reusable lives in `src/ui/ui.css`; this file holds
+ * the seven screens' own layout and the components that exist nowhere else (the 5-dot
+ * indicator, the hero glow, the account row, the split blocks).
+ *
+ * Same rules as the design system:
+ *  - **No magic numbers.** Every length/duration/colour is a token from
+ *    `src/styles/tokens.css`.
+ *  - **No dark-mode branch.** Dark is pure token substitution (PARITY-SPEC §0.3.1).
+ */
+
+/* ================================================================== *
+ * Screen scaffold — ScrollView + VStack(spacing: 32) + padding(24)
+ * ================================================================== */
+
+.ob-screen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  min-height: 100dvh;
+  padding-block: var(--space-lg);
+}
+
+/* Welcome / Name / Income are `Spacer → content → Spacer → CTA`. */
+.ob-screen--centered .ob-screen__body {
+  justify-content: center;
+}
+
+.ob-screen__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.ob-screen__footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding-top: var(--space-xl);
+}
+
+/* ================================================================== *
+ * Progress indicator — 280 x 24, track 4pt, 5 dots (§2.0.1)
+ * ================================================================== */
+
+.ob-progress {
+  position: relative;
+  width: var(--size-progress-bar-w);
+  height: var(--size-progress-indicator-h);
+  margin-inline: auto;
+  flex: none;
+}
+
+.ob-progress__track,
+.ob-progress__fill {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: var(--size-progress-track-h);
+  border-radius: var(--radius-full);
+  transform: translateY(-50%);
+}
+
+.ob-progress__track {
+  width: 100%;
+  background: var(--label-secondary);
+  opacity: var(--opacity-subtle);
+}
+
+/* width = 280 * (progress + 0.05); the +0.05 guarantees a sliver on step 1. */
+.ob-progress__fill {
+  width: calc(var(--size-progress-bar-w) * var(--ob-progress-fill));
+  background: var(--gradient-brand);
+  transition: width var(--dur-medium) var(--ease-responsive);
+}
+
+.ob-progress__dots {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ob-progress__dot {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--size-progress-dot-active);
+  height: var(--size-progress-dot-active);
+}
+
+.ob-progress__dot::before {
+  content: '';
+  width: var(--size-progress-dot);
+  height: var(--size-progress-dot);
+  border-radius: var(--radius-full);
+  background: var(--label-secondary);
+  opacity: var(--opacity-subtle);
+  transition:
+    width var(--dur-appear) var(--ease-snappy),
+    height var(--dur-appear) var(--ease-snappy),
+    background-color var(--dur-appear) var(--ease-out);
+}
+
+.ob-progress__dot--completed::before {
+  background: var(--accent-primary);
+  opacity: 1;
+}
+
+.ob-progress__dot--current::before {
+  width: var(--size-progress-dot-active);
+  height: var(--size-progress-dot-active);
+  transform: scale(var(--scale-prominent));
+}
+
+/* The 18pt ring around the current dot. */
+.ob-progress__dot--current::after {
+  content: '';
+  position: absolute;
+  width: var(--size-progress-ring);
+  height: var(--size-progress-ring);
+  border: 2px solid var(--accent-primary);
+  border-radius: var(--radius-full);
+  opacity: var(--opacity-half);
+}
+
+/* ================================================================== *
+ * Header — icon → title → subtitle (§2.0.2)
+ * ================================================================== */
+
+.ob-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  text-align: center;
+}
+
+.ob-header__icon {
+  color: var(--accent-primary);
+}
+
+.ob-header__title {
+  font-size: var(--font-title-size);
+  line-height: var(--font-title-line);
+  font-weight: 700;
+  color: var(--label-primary);
+}
+
+.ob-header__title--hero {
+  font-size: var(--font-large-title-size);
+  line-height: var(--font-large-title-line);
+}
+
+.ob-header__subtitle {
+  font-size: var(--font-subheadline-size);
+  line-height: var(--font-subheadline-line);
+  color: var(--label-secondary);
+}
+
+/* ================================================================== *
+ * Welcome
+ * ================================================================== */
+
+.ob-hero {
+  display: grid;
+  place-items: center;
+  position: relative;
+  height: 140px; /* the glow circle; DESIGN-TOKENS has no token for this one-off */
+}
+
+.ob-hero__glow {
+  position: absolute;
+  width: 140px;
+  height: 140px;
+  border-radius: var(--radius-full);
+  background: var(--accent-primary);
+  opacity: var(--opacity-faint);
+  filter: blur(20px);
+}
+
+.ob-hero__circle {
+  display: grid;
+  place-items: center;
+  width: 120px;
+  height: 120px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--accent-primary) 15%, transparent);
+  color: var(--accent-primary);
+}
+
+.ob-welcome__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding-inline: var(--space-md);
+  text-align: center;
+}
+
+.ob-welcome__title {
+  font-size: var(--font-large-title-size);
+  line-height: var(--font-large-title-line);
+  font-weight: 700;
+}
+
+.ob-welcome__subtitle {
+  font-size: var(--font-title3-size);
+  line-height: var(--font-title3-line);
+  color: var(--label-secondary);
+}
+
+.ob-bullets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding-inline: var(--space-lg);
+}
+
+.ob-bullet {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  font-size: var(--font-subheadline-size);
+  line-height: var(--font-subheadline-line);
+  color: var(--label-secondary);
+  text-align: left;
+}
+
+.ob-bullet__icon {
+  flex: none;
+  width: var(--font-body-size);
+  display: grid;
+  place-items: center;
+  padding-top: 2px;
+}
+
+/* ================================================================== *
+ * Generic bits reused by several screens
+ * ================================================================== */
+
+.ob-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.ob-section__title {
+  font-size: var(--font-headline-size);
+  line-height: var(--font-headline-line);
+  font-weight: var(--font-headline-weight);
+  color: var(--label-primary);
+}
+
+.ob-section__title--secondary {
+  color: var(--label-secondary);
+}
+
+.ob-caption {
+  font-size: var(--font-caption-size);
+  line-height: var(--font-caption-line);
+  color: var(--label-secondary);
+}
+
+.ob-helper {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  color: var(--label-secondary);
+  font-size: var(--font-caption-size);
+  line-height: var(--font-caption-line);
+}
+
+.ob-helper__icon {
+  color: var(--accent-secondary);
+  flex: none;
+}
+
+.ob-footnote {
+  font-size: var(--font-caption-size);
+  line-height: var(--font-caption-line);
+  color: var(--label-secondary);
+  text-align: center;
+}
+
+.ob-field-label {
+  font-size: var(--font-subheadline-size);
+  line-height: var(--font-subheadline-line);
+  color: var(--label-secondary);
+}
+
+/* `CurrencyAmountField` — currency menu (or code) + trailing-aligned amount (§2.3). */
+.ob-currency-field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+}
+
+.ob-currency-field__input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  text-align: right;
+  font-size: var(--font-title2-size);
+  font-weight: 600;
+  color: var(--label-primary);
+}
+
+/* ================================================================== *
+ * Accounts screen
+ * ================================================================== */
+
+.ob-account-row__main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  width: 100%;
+  padding: var(--space-md);
+  text-align: left;
+}
+
+.ob-account-row__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--size-touch-min);
+  height: var(--size-touch-min);
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--ob-account-color) 15%, transparent);
+  color: var(--ob-account-color);
+}
+
+.ob-account-row__content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-xxs);
+  min-width: 0;
+}
+
+.ob-account-row__name-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.ob-account-row__name {
+  font-size: var(--font-headline-size);
+  line-height: var(--font-headline-line);
+  font-weight: var(--font-headline-weight);
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--label-primary);
+  text-align: left;
+}
+
+.ob-account-row__name-input {
+  font-size: var(--font-headline-size);
+  font-weight: var(--font-headline-weight);
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--label-primary);
+  width: 100%;
+}
+
+.ob-account-row__trailing {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex: none;
+  color: var(--label-secondary);
+}
+
+.ob-icon-button {
+  display: grid;
+  place-items: center;
+  color: var(--label-secondary);
+  min-width: var(--size-touch-min);
+  min-height: var(--size-touch-min);
+}
+
+.ob-chevron {
+  transition: transform var(--dur-appear) var(--ease-out);
+}
+
+.ob-chevron--expanded {
+  transform: rotate(180deg);
+}
+
+.ob-account-row__expanded {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: 0 var(--space-md) var(--space-md);
+}
+
+.ob-boxed-input {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--fill-quaternary);
+}
+
+.ob-boxed-input__field {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  text-align: right;
+  font-size: var(--font-subheadline-size);
+  color: var(--label-primary);
+}
+
+.ob-boxed-input__currency {
+  font-size: var(--font-subheadline-size);
+  font-weight: 500;
+  color: var(--label-secondary);
+}
+
+/* Emergency multiplier picker (§2.4.2) */
+.ob-multipliers {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: var(--space-xs);
+}
+
+.ob-multiplier {
+  padding-block: var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-subheadline-size);
+  color: var(--label-primary);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.ob-multiplier[aria-pressed='true'] {
+  background: var(--color-orange);
+  color: var(--color-white);
+  font-weight: 600;
+}
+
+.ob-target-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--font-caption-size);
+  color: var(--label-secondary);
+}
+
+.ob-target-row__value {
+  font-weight: 500;
+  color: var(--color-orange);
+}
+
+.ob-target-row__struck {
+  text-decoration: line-through;
+}
+
+.ob-target-row__description {
+  margin-left: auto;
+  text-align: right;
+}
+
+.ob-progress-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--font-caption-size);
+  color: var(--label-secondary);
+}
+
+.ob-progress-row__value {
+  font-weight: 500;
+}
+
+/* Recommended prompt cards */
+.ob-prompt__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.ob-prompt__title {
+  font-size: var(--font-subheadline-size);
+  font-weight: 500;
+  color: var(--label-primary);
+}
+
+.ob-prompt__spacer {
+  flex: 1;
+}
+
+.ob-prompt__body {
+  margin-top: var(--space-sm);
+  font-size: var(--font-caption-size);
+  line-height: var(--font-caption-line);
+  color: var(--label-secondary);
+}
+
+.ob-stack-sm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.ob-stack-md {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.ob-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.ob-row--between {
+  justify-content: space-between;
+}
+
+/* Full `AccountTypeSelector` — 2-column grid inside AddAccountSheet (§2.4.3). */
+.ob-type-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-sm);
+}
+
+.ob-type-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  background: var(--fill-quaternary);
+  color: var(--accent-secondary);
+  text-align: center;
+}
+
+.ob-type-cell[aria-pressed='true'] {
+  background: var(--accent-secondary);
+  color: var(--color-white);
+}
+
+.ob-type-cell:disabled {
+  opacity: var(--opacity-half);
+}
+
+.ob-type-cell__name {
+  font-size: var(--font-caption-size);
+  font-weight: 500;
+  color: var(--label-primary);
+}
+
+.ob-type-cell__description {
+  font-size: var(--font-caption2-size);
+  line-height: var(--font-caption2-line);
+  color: var(--label-secondary);
+}
+
+.ob-type-cell[aria-pressed='true'] .ob-type-cell__name {
+  color: var(--color-white);
+}
+
+.ob-type-cell[aria-pressed='true'] .ob-type-cell__description {
+  color: var(--color-white);
+  opacity: var(--opacity-high);
+}
+
+/* ================================================================== *
+ * Expenses screen
+ * ================================================================== */
+
+.ob-expense-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.ob-expense-row__main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.ob-expense-row__icon {
+  flex: none;
+  width: var(--size-icon-container);
+  display: grid;
+  place-items: center;
+  color: var(--label-secondary);
+}
+
+.ob-expense-row__name {
+  font-size: var(--font-body-size);
+  color: var(--label-primary);
+}
+
+.ob-expense-row__amount {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-left: auto;
+}
+
+.ob-expense-row__currency {
+  font-size: var(--font-subheadline-size);
+  color: var(--label-secondary);
+}
+
+.ob-expense-row__input {
+  width: var(--size-input-amount);
+  background: none;
+  border: none;
+  text-align: right;
+  font-size: var(--font-body-size);
+  font-weight: 500;
+  color: var(--label-primary);
+}
+
+.ob-expense-row__from {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  font-size: var(--font-caption-size);
+  color: var(--label-secondary);
+}
+
+.ob-impact {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--accent-secondary) 10%, transparent);
+  transition: background-color var(--dur-standard) var(--ease-smooth);
+}
+
+.ob-impact--warning {
+  background: color-mix(in srgb, var(--color-orange) 10%, transparent);
+}
+
+.ob-impact__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--font-subheadline-size);
+  color: var(--label-secondary);
+}
+
+.ob-impact__head-icon {
+  color: var(--accent-secondary);
+}
+
+.ob-impact--warning .ob-impact__head-icon {
+  color: var(--color-orange);
+}
+
+.ob-impact__amount-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.ob-impact__amount {
+  font-size: var(--font-title2-size);
+  line-height: var(--font-title2-line);
+  font-weight: 700;
+  color: var(--accent-secondary);
+}
+
+.ob-impact--warning .ob-impact__amount {
+  color: var(--color-orange);
+}
+
+.ob-impact__caption {
+  font-size: var(--font-subheadline-size);
+  color: var(--label-secondary);
+}
+
+/* ================================================================== *
+ * Savings screen
+ * ================================================================== */
+
+.ob-savings-percent {
+  display: flex;
+  align-items: last baseline;
+  justify-content: center;
+  gap: var(--space-xxs);
+}
+
+.ob-savings-percent__value {
+  font-family: var(--font-family-rounded);
+  font-size: var(--font-savings-percent-size);
+  font-weight: 700;
+  color: var(--accent-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.ob-savings-percent__sign {
+  font-size: var(--font-title2-size);
+  font-weight: 600;
+  color: var(--label-secondary);
+}
+
+.ob-savings-caption {
+  font-size: var(--font-headline-size);
+  line-height: var(--font-headline-line);
+  font-weight: var(--font-headline-weight);
+  color: var(--label-secondary);
+  text-align: center;
+}
+
+.ob-savings-badge {
+  display: flex;
+  justify-content: center;
+}
+
+.ob-boost__label {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  flex: 1;
+}
+
+.ob-boost__icon {
+  color: var(--label-secondary);
+  flex: none;
+  padding-top: 2px;
+}
+
+.ob-boost__icon--on {
+  color: var(--color-yellow);
+}
+
+.ob-boost__title {
+  font-size: var(--font-subheadline-size);
+  font-weight: 500;
+  color: var(--label-primary);
+}
+
+.ob-boost__description {
+  font-size: var(--font-caption-size);
+  color: var(--label-secondary);
+}
+
+.ob-boost__description--warning {
+  color: var(--color-orange);
+}
+
+.ob-boost__warning {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-orange) 10%, transparent);
+  font-size: var(--font-caption-size);
+  color: var(--label-secondary);
+}
+
+.ob-boost__warning-icon {
+  color: var(--color-orange);
+  flex: none;
+}
+
+.ob-flow__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--font-caption-size);
+  font-weight: 500;
+  color: var(--label-secondary);
+}
+
+.ob-flow__head-icon {
+  color: var(--accent-secondary);
+}
+
+.ob-flow__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--font-caption-size);
+  color: var(--label-secondary);
+}
+
+.ob-flow__number {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--size-flow-number);
+  height: var(--size-flow-number);
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--accent-secondary) 20%, transparent);
+  font-size: var(--font-caption-size);
+  font-weight: 700;
+  color: var(--label-primary);
+}
+
+.ob-flow__icon {
+  color: var(--accent-secondary);
+  flex: none;
+}
+
+.ob-split-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.ob-split-block__label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--font-subheadline-size);
+  color: var(--label-secondary);
+}
+
+.ob-split-rate {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.ob-split-rate__value {
+  font-size: var(--font-title3-size);
+  font-weight: 700;
+  color: var(--accent-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.ob-split-rate__amount {
+  margin-left: auto;
+  font-size: var(--font-subheadline-size);
+  color: var(--label-secondary);
+}
+
+.ob-preview-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--accent-secondary) 10%, transparent);
+}
+
+.ob-preview-card__title {
+  font-size: var(--font-subheadline-size);
+  color: var(--label-secondary);
+}
+
+.ob-preview-card__amount {
+  font-size: var(--font-title2-size);
+  line-height: var(--font-title2-line);
+  font-weight: 700;
+  color: var(--accent-secondary);
+}
+
+/* R13 notice — dev-visible only while `savingsSliderPositions` is unserved. */
+.ob-blocked {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-orange) 10%, transparent);
+  font-size: var(--font-caption-size);
+  color: var(--label-secondary);
+}
+
+/* ================================================================== *
+ * Summary (transfer plan)
+ * ================================================================== */
+
+.ob-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  min-height: 100dvh;
+  padding-block: var(--space-lg);
+}
+
+.ob-summary__header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  padding-top: var(--space-lg);
+  text-align: center;
+}
+
+.ob-summary__check {
+  color: var(--accent-secondary);
+}
+
+.ob-summary__title {
+  font-size: var(--font-large-title-size);
+  line-height: var(--font-large-title-line);
+  font-weight: 700;
+}
+
+.ob-summary__subtitle {
+  font-size: var(--font-title3-size);
+  line-height: var(--font-title3-line);
+  color: var(--label-secondary);
+}
+
+.ob-income-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  text-align: center;
+}
+
+.ob-income-card__label {
+  font-size: var(--font-subheadline-size);
+  color: var(--label-secondary);
+}
+
+.ob-income-card__amount {
+  font-family: var(--font-family-rounded);
+  font-size: var(--font-large-title-size);
+  line-height: var(--font-large-title-line);
+  font-weight: 700;
+  color: var(--accent-secondary);
+}
+
+.ob-transfer-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.ob-transfer-card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.ob-transfer-card__name {
+  font-size: var(--font-subheadline-size);
+  font-weight: 500;
+  color: var(--label-primary);
+}
+
+.ob-transfer-card__amount {
+  margin-left: auto;
+  font-size: var(--font-headline-size);
+  font-weight: 700;
+  color: var(--label-primary);
+}
+
+.ob-transfer-card__amount--positive {
+  color: var(--color-green);
+}
+
+.ob-transfer-card__change {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--font-caption-size);
+  color: var(--color-orange);
+}
+
+.ob-transfer-card__change--complete {
+  color: var(--color-green);
+}
+
+.ob-verification {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-green) 10%, transparent);
+}
+
+.ob-verification--unbalanced {
+  background: color-mix(in srgb, var(--color-orange) 10%, transparent);
+}
+
+.ob-verification__icon {
+  color: var(--color-green);
+}
+
+.ob-verification--unbalanced .ob-verification__icon {
+  color: var(--color-orange);
+}
+
+.ob-verification__total {
+  font-size: var(--font-subheadline-size);
+  font-weight: 500;
+  color: var(--label-primary);
+}
+
+.ob-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  font-size: var(--font-caption-size);
+  line-height: var(--font-caption-line);
+  color: var(--label-secondary);
+}
+
+.ob-tip__icon {
+  color: var(--color-yellow);
+  flex: none;
+}
+
+/* Remaining money picker (§2.7.1) */
+.ob-destination {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--fill-quaternary);
+  text-align: left;
+  transition: background-color var(--dur-appear) var(--ease-out);
+}
+
+.ob-destination[aria-pressed='true'] {
+  background: var(--accent-secondary);
+}
+
+.ob-destination__icon {
+  color: var(--accent-secondary);
+  flex: none;
+}
+
+.ob-destination[aria-pressed='true'] .ob-destination__icon,
+.ob-destination[aria-pressed='true'] .ob-destination__title,
+.ob-destination[aria-pressed='true'] .ob-destination__check {
+  color: var(--color-white);
+}
+
+.ob-destination[aria-pressed='true'] .ob-destination__description {
+  color: var(--color-white);
+  opacity: var(--opacity-high);
+}
+
+.ob-destination__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ob-destination__title {
+  font-size: var(--font-subheadline-size);
+  font-weight: 500;
+  color: var(--label-primary);
+}
+
+.ob-destination__description {
+  font-size: var(--font-caption-size);
+  color: var(--label-secondary);
+}
+
+.ob-destination__check {
+  margin-left: auto;
+  flex: none;
+}

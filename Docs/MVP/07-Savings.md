@@ -319,9 +319,22 @@ struct YearProjection {
 
 ---
 
-## Phase 2: Savings Boost (Future)
+## Savings Boost
 
-> **Note:** This feature is deferred to Phase 2 but documented here for context.
+> **As built (2026-09-27):** boost lives on `SavingsAllocationEntry` (`boostEnabled`,
+> `boostMultiplier` 2× or 3×). It only applies in Priority + Percentage mode
+> (`isBoostActive = isBoostApplicable && boostEnabled`), and can't be switched on when the boosted
+> rate would exceed 100% (`canEnableBoost`; Persistence re-applies `withSafeBoost` on every write).
+>
+> Boost is meant for catching up, so it has to stay visible or it gets forgotten:
+> - **Settings** — toggle, multiplier picker and effective rate.
+> - **Home** — `SavingsBoostCard` under the summary while boost is active ("Saving 75% of available
+>   income instead of 25%") with a **Turn Off** button (`ModelContext.setSavingsBoostEnabled(false)`).
+> - **New Month, step 3** — when boost was on at the start of the flow, a `SavingsBoostToggle`
+>   sits above the transfers and the plan recalculates live. The choice is saved with the month
+>   (`applyNewMonth(…, savingsBoostEnabled:)`).
+
+The original design notes below are kept for context.
 
 The Python script has a "Savings Boost" mode that multiplies the savings rate:
 
@@ -406,7 +419,6 @@ When FM unavailable:
 
 | Feature | Reason | Phase |
 |---------|--------|-------|
-| Savings Boost modifiers | Complexity; basic percentage sufficient | Phase 2 |
 | Investment allocation | Beyond scope of budget app | Phase 2+ |
 | Savings history/trends | Nice-to-have | Phase 2 |
 | Goal-based savings | Custom goals deferred | Phase 2 |

@@ -109,6 +109,52 @@ Diameris/
 - Core has no internal dependencies
 - App composes everything
 
+### As Built (2026-09-27)
+
+The rules above hold today, with less machinery than the target design: there are no
+repository protocols and no `DependencyContainer` yet, because no feature reads or writes
+storage directly.
+
+```
+Diameris (app) ──► Onboarding, Dashboard, Expenses ──► Domain, DesignSystem, SharedUI, Utilities
+      │
+      └──────────► Persistence ──► Domain
+```
+
+- **Features never import Persistence or SwiftData.** They take plain values in and hand results
+  out through closures: `OnboardingContainerView(onComplete: (OnboardingResult) -> Void)`,
+  `NewMonthSheet`'s `NewMonthCompletionData`, and `ExpensesViewModel.onAddExpense` and its siblings.
+- **The app target is the only place that touches `ModelContext`.** It reads with `@Query`, maps
+  models to feature values, and writes through the operations in
+  `Persistence/ModelContext+Writes.swift`: `saveOnboarding`, `insertExpense`, `updateExpense`,
+  `deleteExpense`, `setExpenseEnabled`, `insertCustomCategory`, `deleteCustomCategory`,
+  `applyNewMonth`, `saveSettings`, `updateAccount` and `deleteAllData`. Each saves once, rolls
+  the context back if the save fails, and rethrows. Callers log the error with
+  `Logger.persistence`, and show `saveFailedAlert` where the user would otherwise lose input.
+- **Startup repair:** `ModelContext.repairDanglingExpenseLinks()` runs once per launch, before
+  any view loads data. It relinks orphaned expense links only when the answer is unambiguous,
+  and is a no-op on later runs.
+- **Onboarding data safety:** `saveOnboarding` replaces all stored data. Two safeguards protect
+  existing data. At launch, `restoreOnboardingFlag` sets the flag back to true when a
+  `UserProfile` is stored, so a lost or accidentally reset flag is undone by relaunching. In
+  DEBUG, "Reset Onboarding Flag" sits behind a destructive confirmation dialog.
+- **Dashboard input:** `StoredDashboardData` maps the stored models into the Dashboard's
+  `DashboardDataProvider`, which `DashboardViewModel.loadData(from:)` consumes.
+- **`PersistenceSchema.models`** is the single list of `@Model` types. The app container, the
+  tests and `deleteAllData()` all use it. Schema changes must be additive: new stored
+  properties need a default, and entities and properties are never renamed or removed. The
+  launch path calls `fatalError` if the store can't be opened.
+- **Account and destination rules live in Domain** (`[AccountEntry].canAssign(_:toAccount:)`,
+  `availableRemainingDestinations`, `resolvedRemainingDestination(_:)`,
+  `SavingsAllocationEntry.withSafeBoost`). UIs use them to offer only valid choices, and
+  `updateAccount` / `saveSettings` enforce them again: the primary account keeps its type, a
+  second emergency account throws `PersistenceError.accountTypeNotAllowed`, an unsafe boost is
+  switched off, and a destination with no account falls back to `.primary`.
+- **Model ↔ entry mapping keeps ids.** `Account(from:)` and `Expense(from:)` keep the entry's
+  `id`, because expenses reference accounts through `linkedAccountId`.
+- Add repository protocols only when a feature must query or write storage itself (for example,
+  paging a long history). Until then, closures are the boundary.
+
 ---
 
 ## Model Separation Strategy
@@ -165,6 +211,82 @@ final class ExpenseEntity {
 - Easy to swap persistence (SwiftData → CloudKit)
 - Pure domain models are easier to test
 - Clear separation of concerns
+
+---
+
+## Localization Architecture
+
+Each SPM package maintains **its own localization files** and extension. This is intentional and follows the recommended microapps architecture pattern.
+
+### Why Not Centralize?
+
+The `.localized` extension uses `Bundle.module`, which is resolved at **compile time** to the bundle where the code is defined:
+
+```swift
+// In Onboarding package - .module refers to Onboarding's bundle
+extension String {
+    var localized: String {
+        String(localized: String.LocalizationValue(self), bundle: .module)
+    }
+}
+```
+
+If we centralized this to Utilities, `.module` would refer to Utilities' bundle—not the calling package's bundle. **This is a Swift compiler limitation, not a design choice.**
+
+### Current Structure
+
+Each package has:
+```
+FeaturePackage/
+├── Sources/
+│   └── Feature/
+│       ├── Utils/
+│       │   └── Localization.swift     # String extension with bundle: .module
+│       └── Resources/
+│           └── Localizable.xcstrings  # String Catalog (en/ro)
+```
+
+### Package Localization Files
+
+| Package | Localization.swift | Localizable.xcstrings |
+|---------|-------------------|----------------------|
+| Domain | ✅ | ✅ |
+| SharedUI | — (`String(localized:bundle: .module)`) | ✅ |
+| Onboarding | ✅ | ✅ |
+| Dashboard | ✅ | ✅ |
+| Expenses | ✅ | ✅ |
+| Main App | ✅ (bundle: .main) | ✅ |
+
+Every package with a catalog declares `defaultLocalization: "en"` in `Package.swift`. That turns on
+String Catalog symbol generation, so keys that differ only in case ("Account name" / "Account
+Name") or contain no letters ("%lld×") fail the build — merge them, or use `Text(verbatim:)` for
+strings that need no translation.
+
+> ⚠️ **`.localized` keys are invisible to Xcode's extractor.** Keys used only through the
+> `.localized` helper must be added to the catalog by hand (as manual keys, with `ro`), and Xcode
+> marks existing ones **stale**. Their translations still work — **never run "Remove stale
+> strings"** on these catalogs, it deletes working Romanian. New code may use
+> `String(localized: "…", bundle: .module)` directly, which Xcode does extract.
+
+### Key Differences
+
+- **SPM packages**: Use `bundle: .module` to access their own strings
+- **Main app**: Uses `bundle: .main` to access app-level strings
+
+### Required App Configuration
+
+The main app's `Info.plist` must include:
+```xml
+<key>CFBundleAllowMixedLocalizations</key>
+<true/>
+```
+
+This allows package localizations to work even if the main app doesn't support all the same languages.
+
+### References
+
+- [Swift with Majid - Microapps Resources & Localization](https://swiftwithmajid.com/2022/01/26/microapps-architecture-in-swift-resources-and-localization/)
+- [Daniel Saidi - Swift Package Localization (2025)](https://danielsaidi.com/blog/2025/12/02/a-better-way-to-localize-swift-packages-with-xcode-string-catalogs)
 
 ---
 
@@ -279,6 +401,10 @@ let package = Package(
 ---
 
 ## Dependency Injection
+
+> **Planned, not implemented.** The code today uses closures plus `ModelContext` write
+> operations (see *As Built* above). The sketch below is the target once a feature needs
+> direct data access.
 
 Using native Swift (no external frameworks):
 

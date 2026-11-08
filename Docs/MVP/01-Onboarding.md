@@ -316,6 +316,19 @@ See [Architecture.md](../Architecture.md) for full entity definitions.
 - Partial completion should be resumable
 
 ### Validation
+
+**As built (2026-09-27):**
+- Continue is gated per step (`canAdvance`); double taps can't skip a step or save twice.
+- Name is capped at 50 characters.
+- Account rules (shared with Settings through Domain): the first account is Primary and its type is
+  fixed; no other account can become Primary; only one Emergency account; deleting or retyping the
+  auto-save savings account hands the role to the next savings account; deleting an account unlinks
+  its expenses.
+- The leftover-money destination falls back to Primary when the chosen account doesn't exist.
+- The flow is still forward-only (back navigation is a follow-up).
+- Completion hands an `OnboardingResult` (Domain) to the app, which persists it with
+  `saveOnboarding` — replacing any existing data.
+
 - Real-time validation with inline errors
 - Disable "Continue" until valid
 - Clear error messages

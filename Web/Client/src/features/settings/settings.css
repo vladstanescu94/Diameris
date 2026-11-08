@@ -1,0 +1,95 @@
+/* Settings — PARITY-SPEC §8. Grouped surface (Form), tokens only. */
+
+.set {
+  display: grid;
+  gap: var(--space-lg);
+}
+.set-section {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.set-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  min-height: var(--size-touch-min);
+  font-size: var(--font-body-size);
+}
+.set-row__label {
+  color: var(--label-primary);
+}
+.set-row__value {
+  color: var(--label-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.set-caption {
+  font-size: var(--font-caption-size);
+  line-height: var(--font-caption-line);
+  color: var(--label-secondary);
+  padding-inline: var(--space-md);
+}
+.set-caption--warning {
+  color: var(--color-red);
+}
+
+.set-accounts {
+  padding: var(--space-md);
+}
+.set-account {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  min-height: var(--size-touch-min);
+  padding-block: var(--space-xs);
+  text-align: start;
+  color: var(--label-primary);
+}
+.set-account__icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--size-icon-container);
+  font-size: var(--icon-md);
+  color: var(--accent-primary);
+}
+.set-account__text {
+  display: grid;
+  gap: var(--space-xxs);
+  flex: 1;
+  min-width: 0;
+}
+.set-account__name {
+  font-size: var(--font-headline-size);
+  font-weight: var(--font-headline-weight);
+}
+
+/* R27: HStack(spacing: Spacing.xs) = 8px between independently coloured runs. */
+.set-account__subtitle {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+  font-size: var(--font-caption-size);
+  line-height: var(--font-caption-line);
+}
+.set-account__part--secondary {
+  color: var(--label-secondary);
+}
+.set-account__part--accentPrimary {
+  color: var(--accent-primary);
+}
+.set-account__part--accentSecondary {
+  color: var(--accent-secondary);
+}
+
+.set-account__chevron {
+  flex: none;
+  display: grid;
+  place-items: center;
+  font-size: var(--font-caption-size);
+  color: var(--label-tertiary);
+}
